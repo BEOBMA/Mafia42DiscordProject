@@ -6,5 +6,5 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 abstract class Job {
     abstract val name: String
     abstract val description: String
-    open val uniqueAbilities: List<JobUniqueAbility> = listOf()
+    open val uniqueAbilities: MutableList<JobUniqueAbility> = mutableListOf()
 }
