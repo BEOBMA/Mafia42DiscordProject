@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
-import org.beobma.mafia42discordproject.job.JobManager.registerAll
+import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.AbilityManager
 
 @OptIn(KordPreview::class)
 suspend fun main() {
@@ -54,7 +55,8 @@ suspend fun main() {
         command.handleAutoComplete(this)
     }
 
-    registerAll()
+    JobManager.registerAll()
+    AbilityManager.registerAll()
     JobPreferenceManager.load()
     kord.login()
 }
