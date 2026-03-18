@@ -1,6 +1,6 @@
 package org.beobma.mafia42discordproject.game.player
 
-import org.beobma.mafia42discordproject.game.event.DefenseTier
+import org.beobma.mafia42discordproject.game.system.DefenseTier
 
 class PlayerState {
     // 영구적/누적 상태 (게임 끝날 때까지 유지)

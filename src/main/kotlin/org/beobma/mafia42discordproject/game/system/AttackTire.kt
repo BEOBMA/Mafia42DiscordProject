@@ -1,4 +1,4 @@
-package org.beobma.mafia42discordproject.game.event
+package org.beobma.mafia42discordproject.game.system
 
 enum class AttackTier(val level: Int) {
     NORMAL(1),      // 일반 공격 (마피아, 자경단원, 용병 등)

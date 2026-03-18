@@ -1,12 +1,13 @@
 package org.beobma.mafia42discordproject.game
 
-import org.beobma.mafia42discordproject.game.event.AttackEvent
-import org.beobma.mafia42discordproject.game.event.GameEvent
+import org.beobma.mafia42discordproject.game.system.AttackEvent
+import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
 data class Game(
     var playerDatas: MutableList<PlayerData>,
-    var currentPhase: GamePhase = GamePhase.DAY
+    var currentPhase: GamePhase = GamePhase.DAY,
+    var isRunnig: Boolean = false
 ) {
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()

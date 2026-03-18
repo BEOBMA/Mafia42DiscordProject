@@ -2,7 +2,7 @@ package org.beobma.mafia42discordproject.job.ability
 
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
-import org.beobma.mafia42discordproject.game.event.GameEvent
+import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
 interface PassiveAbility {

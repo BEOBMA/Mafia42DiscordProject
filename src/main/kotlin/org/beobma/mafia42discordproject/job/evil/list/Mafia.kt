@@ -2,8 +2,8 @@ package org.beobma.mafia42discordproject.job.evil.list
 
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
-import org.beobma.mafia42discordproject.game.event.AttackEvent
-import org.beobma.mafia42discordproject.game.event.AttackTier
+import org.beobma.mafia42discordproject.game.system.AttackEvent
+import org.beobma.mafia42discordproject.game.system.AttackTier
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -37,8 +37,8 @@ class Mafia : Job(), Evil {
                 // ==========================================
                 // 2. 공격 티어(강도) 계산 (증강/특성 연동)
                 // ==========================================
-                // 플레이어가 가진 모든 능력(기본+증강) 중 '관통' 능력이 있는지 검사
-                val hasPierce = caster.allAbilities.any { it.name == "관통" }
+                // 플레이어가 가진 모든 능력(기본+증강) 중 '승부수' 능력이 있는지 검사
+                val hasPierce = caster.allAbilities.any { it.name == "승부수" }
 
                 // 관통이 있다면 2티어(PIERCE) 공격, 없다면 1티어(NORMAL) 공격
                 val currentAttackTier = if (hasPierce) AttackTier.PIERCE else AttackTier.NORMAL

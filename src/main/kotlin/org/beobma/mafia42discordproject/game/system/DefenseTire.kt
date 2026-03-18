@@ -1,4 +1,4 @@
-package org.beobma.mafia42discordproject.game.event
+package org.beobma.mafia42discordproject.game.system
 
 enum class DefenseTier(val level: Int) {
     NONE(0),        // 방어 없음

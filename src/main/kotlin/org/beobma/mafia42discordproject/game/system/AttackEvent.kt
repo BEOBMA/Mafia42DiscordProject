@@ -1,4 +1,4 @@
-package org.beobma.mafia42discordproject.game.event
+package org.beobma.mafia42discordproject.game.system
 
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
