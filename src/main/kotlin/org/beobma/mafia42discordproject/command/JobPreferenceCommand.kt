@@ -1,6 +1,7 @@
 package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
+import dev.kord.common.entity.optional.optional
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
@@ -18,9 +19,9 @@ object JobPreferenceCommand : DiscordCommand {
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
 
     private const val maxAutoCompleteChoices = 25
-    private const val assistantOption = "assistant"
-    private const val policeOption = "police"
-    private val specialOptions = (1..5).map { "special$it" }
+    private const val assistantOption = "보조계열"
+    private const val policeOption = "경찰계열"
+    private val specialOptions = (1..5).map { "특수직업$it" }
     private val optionNames = listOf(assistantOption, policeOption) + specialOptions
 
     override suspend fun registerGlobal(kord: Kord) {
@@ -37,7 +38,7 @@ object JobPreferenceCommand : DiscordCommand {
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val query = event.interaction.focusedOption.value.trim()
-        val optionName = event.interaction.focusedOption.name
+        val optionName = event.interaction.focusedOption.value
 
         val suggestions = getAllowedJobsByOption(optionName)
             .asSequence()
@@ -165,7 +166,7 @@ object JobPreferenceCommand : DiscordCommand {
 
         repeat(5) { index ->
             val number = index + 1
-            string("special$number", "특수직업$number") {
+            string("특수직업$number", "특수직업$number") {
                 required = true
                 autocomplete = true
             }
