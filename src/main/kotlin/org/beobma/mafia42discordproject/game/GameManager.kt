@@ -48,14 +48,20 @@ object GameManager {
             return
         }
 
+        val deferredResponse = interaction.deferPublicResponse()
+
         val guild = interaction.guild
         val commandSender = interaction.user
         val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
-            DiscordMessageManager.respondEphemeral(event, "현재 음성채널에 들어가 있지 않습니다.")
+            deferredResponse.respond {
+                content = "현재 음성채널에 들어가 있지 않습니다."
+            }
             return
         }
         val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId) ?: run {
-            DiscordMessageManager.respondEphemeral(event, "음성채널 정보를 가져오지 못했습니다.")
+            deferredResponse.respond {
+                content = "음성채널 정보를 가져오지 못했습니다."
+            }
             return
         }
 
@@ -70,14 +76,13 @@ object GameManager {
         }
 
         if (membersWithoutPreference.isNotEmpty()) {
-            DiscordMessageManager.respondPublic(
-                event,
-                buildString {
+            deferredResponse.respond {
+                content = buildString {
                     appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
                     appendLine("`/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
                     append(DiscordMessageManager.mentions(membersWithoutPreference))
                 }
-            )
+            }
             return
         }
 
@@ -88,16 +93,15 @@ object GameManager {
         val trace = assignJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannels(event, assignmentPlayers, trace)
 
-        DiscordMessageManager.respondPublic(
-            event,
-            buildString {
+        deferredResponse.respond {
+            content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
                 appendLine("실제 인원 수: ${membersInSameVoice.size}")
                 appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
-        )
+        }
     }
 
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
