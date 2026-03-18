@@ -101,7 +101,7 @@ object JobPreferenceCommand : DiscordCommand {
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerJobOptions() {
         repeat(7) { index ->
             val number = index + 1
-            string("job$number", "$number번째 직업") {
+            string("job$number", "${number}번째 직업") {
                 required = true
             }
         }
