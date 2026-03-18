@@ -7,6 +7,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 object GameLoopManager {
@@ -245,7 +246,7 @@ object GameLoopManager {
         while (game.isRunnig) {
 
             startNightPhase(game)
-            delay(30_000L) // 30초 밤 시간
+            delay(25_000L) // 30초 밤 시간
 
             resolveNightPhase(game)
             val nightWinner = checkWinCondition(game)
@@ -254,7 +255,8 @@ object GameLoopManager {
                 break // 코루틴 루프 탈출
             }
             startDayPhase(game)
-            delay(60_000L) // 60초 낮 시간
+            val sec = game.playerDatas.count { !it.state.isDead }
+            delay(sec * 15_000L) // 15초 * 살아있는 사람 수 낮 시간
 
             startVotePhase(game)
             delay(15_000L) // 15초 투표 시간
