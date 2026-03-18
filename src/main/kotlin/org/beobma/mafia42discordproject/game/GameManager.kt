@@ -151,6 +151,8 @@ object GameManager {
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
+        setupGameChannels(this)
+
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
