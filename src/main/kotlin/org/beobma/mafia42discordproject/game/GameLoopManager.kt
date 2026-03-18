@@ -1,5 +1,14 @@
 package org.beobma.mafia42discordproject.game
 
+import dev.kord.common.entity.Overwrite
+import dev.kord.common.entity.OverwriteType
+import dev.kord.common.entity.Permission
+import dev.kord.common.entity.Permissions
+import dev.kord.core.behavior.channel.edit
+import dev.kord.core.behavior.edit
+import dev.kord.rest.builder.channel.addRoleOverwrite
+import io.ktor.client.request.invoke
+import io.ktor.http.invoke
 import kotlinx.coroutines.delay
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
@@ -24,18 +33,30 @@ object GameLoopManager {
         // 2. 디스코드 채널 권한 제어 (비밀 대화방 오픈)
         // ==========================================
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val mainChannel = game.mainChannel ?: return
+        val mafiaChannel = game.mafiaChannel ?: return
 
-        // TODO: 메인 토론 채널의 권한을 수정하여 아무도 채팅을 칠 수 없게 만듦 (채널 락)
-        // muteMainChannel()
+        // 음성 뮤트
+        game.playerDatas.forEach { playerData ->
+            playerData.member.edit {
+                muted = true
+            }
+        }
 
-        // 살아있는 마피아 팀원들을 찾아 마피아 전용 채널의 채팅 권한을 열어줌
-        val mafiaTeam = alivePlayers.filter { it.job is Evil /* 접선한 스파이/짐승인간 포함 로직 필요 */ }
-        // openMafiaChannel(mafiaTeam)
+        // 메인 채널 뮤트
+        mainChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                denied = Permissions(Permission.SendMessages)
+            }
+        }
 
+        mafiaChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                allowed = Permissions(Permission.SendMessages)
+                denied = Permissions(Permission.ReadMessageHistory)
+            }
+        }
 
-        // ==========================================
-        // 3. 밤 능력 사용 가능자에게 UI 띄워주기
-        // ==========================================
         for (player in alivePlayers) {
             val playerJob = player.job ?: continue
             // 현재 '밤'에 사용할 수 있는 액티브 능력이 있는지 검사
@@ -60,17 +81,12 @@ object GameLoopManager {
         }
 
 
-        // ==========================================
-        // 4. 밤 전용 패시브 발동 (필요 시)
-        // ==========================================
         for (player in alivePlayers) {
             val playerJob = player.job ?: continue
             playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
                 passive.onPhaseChanged(game, player, GamePhase.NIGHT)
             }
         }
-
-        // (이후 메인 루프에서 delay()로 밤 타이머가 흘러가고 resolveNightPhase가 호출됨)
     }
 
     // 밤 시간이 끝나고 낮으로 넘어갈 때 호출되는 파이프라인
