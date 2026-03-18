@@ -18,6 +18,8 @@ import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.Ability
+import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
 import kotlin.random.Random
@@ -30,9 +32,12 @@ object GameManager {
     private const val REQUIRED_ASSISTANT_COUNT = 1
     private const val REQUIRED_DOCTOR_COUNT = 1
     private const val REQUIRED_POLICE_COUNT = 1
+    private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
+    private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
     private val policeJobNames = setOf("경찰", "요원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
+    private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = mutableMapOf()
 
     private data class AssignmentPlayer(
         val memberId: Snowflake? = null,
@@ -48,6 +53,13 @@ object GameManager {
             lines += message
         }
     }
+
+    private data class AbilitySelectionSession(
+        val availablePool: MutableList<Ability>,
+        val selected: MutableList<Ability> = mutableListOf(),
+        var currentOptions: List<Ability> = emptyList(),
+        var completedRounds: Int = 0
+    )
 
     suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
         Game(mutableListOf()).start(event)
@@ -109,6 +121,7 @@ object GameManager {
         val trace = assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannels(event, assignmentPlayers, trace)
+        initializeExtraAbilitySelectionForPlayers()
 
         deferredResponse.respond {
             content = buildString {
@@ -166,6 +179,7 @@ object GameManager {
         val trace = assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannelsGuild(guild, assignmentPlayers, trace)
+        initializeExtraAbilitySelectionForPlayers()
 
         event.message.channel.createMessage(
             buildString {
@@ -566,6 +580,117 @@ object GameManager {
         }
     }
 
+    private suspend fun Game.initializeExtraAbilitySelectionForPlayers() {
+        abilitySelectionSessions.clear()
+
+        playerDatas.forEach { player ->
+            val job = player.job ?: return@forEach
+            val pool = AbilityManager.getAvailableExtraAbilitiesFor(job)
+                .distinctBy(Ability::name)
+                .shuffled()
+                .toMutableList()
+
+            val session = AbilitySelectionSession(availablePool = pool)
+            session.currentOptions = drawAbilityOptions(session)
+            abilitySelectionSessions[player.member.id] = session
+
+            val guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = false)
+            runCatching {
+                player.member.getDmChannel().createMessage(
+                    buildString {
+                        appendLine("당신의 직업은 **${job.name}** 입니다.")
+                        appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
+                        appendLine()
+                        append(guideMessage)
+                    }
+                )
+            }.onFailure { error ->
+                println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
+            }
+        }
+    }
+
+    fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
+        val game = currentGame ?: return "진행 중인 게임이 없습니다."
+        val player = game.getPlayer(userId) ?: return "현재 게임 참여자만 사용할 수 있는 명령어입니다."
+
+        if (pickNumber < 1 || pickNumber > EXTRA_ABILITY_OPTIONS_PER_ROUND) {
+            return "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
+        }
+
+        val session = abilitySelectionSessions[userId]
+            ?: return "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
+
+        if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT || session.currentOptions.isEmpty()) {
+            return "이미 부가 능력 선택이 완료되었습니다."
+        }
+
+        if (pickNumber > session.currentOptions.size) {
+            return "현재 라운드에서 선택 가능한 번호가 아닙니다. 제시된 번호 중에서 선택해 주세요."
+        }
+
+        val pickedAbility = session.currentOptions[pickNumber - 1]
+        if (player.extraAbilities.none { it.name == pickedAbility.name }) {
+            player.extraAbilities += pickedAbility
+        }
+        session.selected += pickedAbility
+        session.completedRounds += 1
+
+        if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
+            abilitySelectionSessions.remove(userId)
+            return buildString {
+                appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
+                appendLine("부가 능력 선택이 모두 완료되었습니다.")
+                append("최종 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
+            }
+        }
+
+        session.currentOptions = drawAbilityOptions(session)
+        if (session.currentOptions.isEmpty()) {
+            abilitySelectionSessions.remove(userId)
+            return buildString {
+                appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
+                appendLine("추가로 제시할 수 있는 능력이 없어 선택 단계를 종료합니다.")
+                append("현재 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
+            }
+        }
+
+        return buildString {
+            appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
+            appendLine()
+            append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+        }
+    }
+
+    private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
+        if (session.availablePool.isEmpty()) return emptyList()
+
+        val count = minOf(EXTRA_ABILITY_OPTIONS_PER_ROUND, session.availablePool.size)
+        val options = session.availablePool.shuffled().take(count)
+        val optionNames = options.map(Ability::name).toSet()
+        session.availablePool.removeAll { ability -> ability.name in optionNames }
+        return options
+    }
+
+    private fun buildAbilitySelectionGuideMessage(
+        session: AbilitySelectionSession,
+        includeProgress: Boolean
+    ): String {
+        return buildString {
+            if (includeProgress) {
+                appendLine(
+                    "진행도: ${session.completedRounds}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
+                )
+            }
+
+            appendLine("아래 능력 중 하나를 선택해 주세요.")
+            session.currentOptions.forEachIndexed { index, ability ->
+                appendLine("${index + 1}. ${ability.name} - ${ability.description}")
+            }
+            append("선택 명령어: `/abilitypick 번호:<1~${session.currentOptions.size}>`")
+        }
+    }
+
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true
 
@@ -575,6 +700,7 @@ object GameManager {
             return
         }
         currentGame = null
+        abilitySelectionSessions.clear()
 
         val mention = DiscordMessageManager.mention(event.interaction.user)
         DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
@@ -586,6 +712,7 @@ object GameManager {
             return
         }
         currentGame = null
+        abilitySelectionSessions.clear()
 
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
@@ -683,4 +810,3 @@ object GameManager {
         // TODO: 디스코드 채널에 아침 브리핑 출력 및 토론 시간 타이머 시작
     }
 }
-
