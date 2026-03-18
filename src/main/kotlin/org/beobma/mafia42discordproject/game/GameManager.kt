@@ -256,6 +256,15 @@ object GameManager {
 
         trace.add("[2단계] 고정 직업 제외 슬롯 수: $slotCount")
         trace.add("[2단계] 후보 직업 수: ${allCandidates.size}개")
+        val sortedWeightSummary = preferenceWeightByJob.entries
+            .sortedWith(compareByDescending<Map.Entry<Job, Int>> { it.value }.thenBy { it.key.name })
+            .joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
+        trace.add("[2단계] 전체 선호 직업 가중치: ${if (sortedWeightSummary.isEmpty()) "없음" else sortedWeightSummary}")
+        players.forEach { player ->
+            val playerWeightSummary = player.preferences
+                .joinToString(", ") { job -> "${job.name}(${preferenceWeightByJob[job] ?: 0})" }
+            trace.add("[2단계] ${player.name} 선호 직업 가중치: $playerWeightSummary")
+        }
 
         while (occupiedSlots < slotCount) {
             val eligibleJobs = allCandidates.filter(::isEligible)
