@@ -95,7 +95,7 @@ object GameManager {
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
         val players = members.map { member ->
             AssignmentPlayer(
-                name = member.displayName,
+                name = member.effectiveName,
                 preferences = JobPreferenceManager.get(member.id.value).orEmpty()
             )
         }.toMutableList()
