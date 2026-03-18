@@ -39,8 +39,9 @@ object GameLoopManager {
         // 3. 밤 능력 사용 가능자에게 UI 띄워주기
         // ==========================================
         for (player in alivePlayers) {
+            val playerJob = player.job ?: continue
             // 현재 '밤'에 사용할 수 있는 액티브 능력이 있는지 검사
-            val nightAbility = player.allAbilities
+            val nightAbility = playerJob.abilities
                 .filterIsInstance<ActiveAbility>()
                 .firstOrNull { it.usablePhase == GamePhase.NIGHT }
 
@@ -65,7 +66,8 @@ object GameLoopManager {
         // 4. 밤 전용 패시브 발동 (필요 시)
         // ==========================================
         for (player in alivePlayers) {
-            player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+            val playerJob = player.job ?: continue
+            playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
                 passive.onPhaseChanged(game, player, GamePhase.NIGHT)
             }
         }
@@ -142,7 +144,8 @@ object GameLoopManager {
 
             for (event in eventsToProcess) {
                 for (player in alivePlayers) {
-                    player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                    val playerJob = player.job ?: continue
+                    playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
                         passive.onEventObserved(game, player, event)
                         // 만약 이 과정에서 새로운 GameEvent가 add 된다면 다음 루프에서 처리
                     }
@@ -183,7 +186,8 @@ object GameLoopManager {
 
         // 4. 낮 시작 패시브 발동 (예언자 등)
         game.playerDatas.filter { !it.state.isDead }.forEach { player ->
-            player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+            val playerJob = player.job ?: return@forEach
+            playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
                 passive.onPhaseChanged(game, player, GamePhase.DAY)
             }
         }

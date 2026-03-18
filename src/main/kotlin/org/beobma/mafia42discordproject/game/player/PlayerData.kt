@@ -9,9 +9,5 @@ data class PlayerData(
     var job: Job? = null,
     val extraAbilities: MutableList<Ability> = mutableListOf()
 ) {
-    // 💡 합성(Composition)을 통해 상태 객체를 내부에 포함
     val state: PlayerState = PlayerState()
-
-    val allAbilities: List<Ability>
-        get() = ((job?.uniqueAbilities ?: emptyList()) + extraAbilities).distinctBy(Ability::name)
 }

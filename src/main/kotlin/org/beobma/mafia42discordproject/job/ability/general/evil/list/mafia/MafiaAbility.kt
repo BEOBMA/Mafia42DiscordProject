@@ -18,8 +18,8 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (target == null) return AbilityResult(false, "대상을 지정해야 합니다.")
         if (target.state.isDead) return AbilityResult(false, "이미 죽은 플레이어입니다.")
 
-
-        val hasPierce = caster.allAbilities.any { it::class == WinOrDead::class }
+        val casterJob = caster.job ?: return AbilityResult(false, "플레이어의 직업이 존재하지 않습니다.")
+        val hasPierce = casterJob.abilities.any { it::class == WinOrDead::class }
 
         // 관통이 있다면 2티어(PIERCE) 공격, 없다면 1티어(NORMAL) 공격
         val currentAttackTier = if (hasPierce) AttackTier.PIERCE else AttackTier.NORMAL

@@ -670,8 +670,8 @@ object GameManager {
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
         val selectedUniqueAbility = pickedAbility.toJobUniqueAbility()
-        if (player.job?.uniqueAbilities?.none { it.name == selectedUniqueAbility.name } == true) {
-            player.job?.uniqueAbilities?.add(selectedUniqueAbility)
+        if (player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
+            player.job?.abilities?.add(selectedUniqueAbility)
         }
         if (player.extraAbilities.none { it.name == pickedAbility.name }) {
             player.extraAbilities += pickedAbility
@@ -871,7 +871,8 @@ object GameManager {
 
         for (event in game.nightEvents) {
             for (player in alivePlayers) {
-                player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                val playerJob = player.job ?: continue
+                playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
                     passive.onEventObserved(game, player, event)
                 }
             }
