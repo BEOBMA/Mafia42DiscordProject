@@ -90,13 +90,17 @@ object GameManager {
         val commandSender = interaction.user
         val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
             deferredResponse.respond {
-                content = "현재 음성채널에 들어가 있지 않습니다."
+                embed {
+                    description = "현재 음성채널에 들어가 있지 않습니다."
+                }
             }
             return
         }
         val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId) ?: run {
             deferredResponse.respond {
-                content = "음성채널 정보를 가져오지 못했습니다."
+                embed {
+                    description = "음성채널 정보를 가져오지 못했습니다."
+                }
             }
             return
         }
@@ -113,10 +117,12 @@ object GameManager {
 
         if (membersWithoutPreference.isNotEmpty()) {
             deferredResponse.respond {
-                content = buildString {
-                    appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
-                    appendLine("`/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
-                    append(DiscordMessageManager.mentions(membersWithoutPreference))
+                embed {
+                    description = buildString {
+                        appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
+                        appendLine("`/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
+                        append(DiscordMessageManager.mentions(membersWithoutPreference))
+                    }
                 }
             }
             return
@@ -134,30 +140,32 @@ object GameManager {
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         deferredResponse.respond {
-            content = buildString {
-                appendLine("현재 음성채널: ${voiceChannel.mention}")
-                appendLine("실제 인원 수: ${membersInSameVoice.size}")
-                appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
-                appendLine()
-                append(DiscordMessageManager.mentions(membersInSameVoice))
+            embed {
+                description = buildString {
+                    appendLine("현재 음성채널: ${voiceChannel.mention}")
+                    appendLine("실제 인원 수: ${membersInSameVoice.size}")
+                    appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
+                    appendLine()
+                    append(DiscordMessageManager.mentions(membersInSameVoice))
+                }
             }
         }
     }
 
     private suspend fun Game.start(event: MessageCreateEvent) {
         if (currentGame != null) {
-            event.message.channel.createMessage("이미 게임이 진행 중입니다.")
+            DiscordMessageManager.sendChannelMessage(event.message.channel, "이미 게임이 진행 중입니다.")
             return
         }
 
         val guild = event.getGuildOrNull() ?: return
         val commandSender = event.member ?: return
         val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
-            event.message.channel.createMessage("현재 음성채널에 들어가 있지 않습니다.")
+            DiscordMessageManager.sendChannelMessage(event.message.channel, "현재 음성채널에 들어가 있지 않습니다.")
             return
         }
         val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId) ?: run {
-            event.message.channel.createMessage("음성채널 정보를 가져오지 못했습니다.")
+            DiscordMessageManager.sendChannelMessage(event.message.channel, "음성채널 정보를 가져오지 못했습니다.")
             return
         }
 
@@ -172,7 +180,8 @@ object GameManager {
         }
 
         if (membersWithoutPreference.isNotEmpty()) {
-            event.message.channel.createMessage(
+            DiscordMessageManager.sendChannelMessage(
+                event.message.channel,
                 buildString {
                     appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
                     appendLine("`!jobpreference` 또는 `/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
@@ -193,7 +202,8 @@ object GameManager {
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
-        event.message.channel.createMessage(
+        DiscordMessageManager.sendChannelMessage(
+            event.message.channel,
             buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
                 appendLine("실제 인원 수: ${membersInSameVoice.size}")
@@ -587,7 +597,7 @@ object GameManager {
 
         textChannels.forEach { channel ->
             runCatching {
-                channel.createMessage(message)
+                DiscordMessageManager.sendChannelMessage(channel, message)
             }
         }
     }
@@ -608,7 +618,8 @@ object GameManager {
 
             val guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = false)
             runCatching {
-                player.member.getDmChannel().createMessage(
+                DiscordMessageManager.sendDirectMessage(
+                    player.member,
                     buildString {
                         appendLine("당신의 직업은 **${job.name}** 입니다.")
                         appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
@@ -770,7 +781,7 @@ object GameManager {
 
         textChannels.forEach { channel ->
             runCatching {
-                channel.createMessage(message)
+                DiscordMessageManager.sendChannelMessage(channel, message)
             }
         }
     }
@@ -792,7 +803,7 @@ object GameManager {
 
     suspend fun stop(event: MessageCreateEvent) {
         if (currentGame == null) {
-            event.message.channel.createMessage("진행 중인 게임이 없습니다.")
+            DiscordMessageManager.sendChannelMessage(event.message.channel, "진행 중인 게임이 없습니다.")
             return
         }
         currentGame = null
@@ -802,7 +813,7 @@ object GameManager {
         gameLoopJob = null
 
         val mention = event.message.author?.mention.orEmpty()
-        event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
+        DiscordMessageManager.sendChannelMessage(event.message.channel, "${mention}이(가) 게임을 종료했습니다.")
     }
 
     // 밤 시간이 끝나고 낮으로 넘어갈 때 호출되는 파이프라인

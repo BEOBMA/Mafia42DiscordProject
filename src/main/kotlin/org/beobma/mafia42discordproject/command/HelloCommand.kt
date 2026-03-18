@@ -14,6 +14,6 @@ object HelloCommand : DiscordCommand {
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
-        event.message.channel.createMessage("${event.message.author?.mention.orEmpty()} 반가워요! Kotlin + Kord 봇이 동작 중입니다.")
+        DiscordMessageManager.sendChannelMessage(event.message.channel, "${event.message.author?.mention.orEmpty()} 반가워요! Kotlin + Kord 봇이 동작 중입니다.")
     }
 }

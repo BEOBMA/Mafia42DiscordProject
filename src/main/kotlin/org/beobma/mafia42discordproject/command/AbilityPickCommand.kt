@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.integer
@@ -53,13 +52,14 @@ object AbilityPickCommand : DiscordCommand {
         val pickNumber = args.firstOrNull()?.toIntOrNull()
 
         if (pickNumber == null) {
-            event.message.channel.createMessage(
+            DiscordMessageManager.sendChannelMessage(
+                event.message.channel,
                 "${event.message.author?.mention.orEmpty()} 사용법: `!abilitypick <1|2|3>`"
             )
             return
         }
 
         val resultMessage = GameManager.selectExtraAbility(userId, pickNumber)
-        event.message.channel.createMessage("${event.message.author?.mention.orEmpty()} $resultMessage")
+        DiscordMessageManager.sendChannelMessage(event.message.channel, "${event.message.author?.mention.orEmpty()} $resultMessage")
     }
 }

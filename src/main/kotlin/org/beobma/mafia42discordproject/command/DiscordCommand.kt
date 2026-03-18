@@ -5,6 +5,7 @@ import dev.kord.core.Kord
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 
 interface DiscordCommand {
     val name: String
@@ -15,7 +16,7 @@ interface DiscordCommand {
     suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) = Unit
 
     suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
-        event.message.channel.createMessage("`!$name` 명령어는 현재 슬래시 명령어(`/$name`)로만 지원됩니다.")
+        DiscordMessageManager.sendChannelMessage(event.message.channel, "`!$name` 명령어는 현재 슬래시 명령어(`/$name`)로만 지원됩니다.")
     }
 
     suspend fun registerGlobal(kord: Kord) {

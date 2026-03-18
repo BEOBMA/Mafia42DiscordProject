@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -72,7 +71,7 @@ object JobPreferenceCommand : DiscordCommand {
         val userId = event.message.author?.id ?: return
         val parsedJobs = parseMessageArgs(args)
         if (!parsedJobs.success) {
-            event.message.channel.createMessage(parsedJobs.message)
+            DiscordMessageManager.sendChannelMessage(event.message.channel, parsedJobs.message)
             return
         }
 
@@ -80,7 +79,7 @@ object JobPreferenceCommand : DiscordCommand {
             userId = userId,
             rawJobNamesByOption = optionNames.zip(parsedJobs.values).toMap()
         )
-        event.message.channel.createMessage(result.message)
+        DiscordMessageManager.sendChannelMessage(event.message.channel, result.message)
     }
 
     private data class CommandResult(val success: Boolean, val message: String, val values: List<String> = emptyList())

@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
@@ -43,13 +42,15 @@ object JobPreferenceStatusCommand : DiscordCommand {
         val jobs = JobPreferenceManager.get(userId)
 
         if (jobs.isNullOrEmpty()) {
-            event.message.channel.createMessage(
+            DiscordMessageManager.sendChannelMessage(
+                event.message.channel,
                 "저장된 선호 직업이 없습니다. `!jobpreference` 또는 `/jobpreference` 명령어로 먼저 설정해 주세요."
             )
             return
         }
 
-        event.message.channel.createMessage(
+        DiscordMessageManager.sendChannelMessage(
+            event.message.channel,
             "현재 저장된 선호 직업입니다:\n${jobs.joinToString("\n") { "• ${it.name}" }}"
         )
     }

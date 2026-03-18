@@ -13,6 +13,6 @@ object PingCommand : DiscordCommand {
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
-        event.message.channel.createMessage("Pong! 🏓")
+        DiscordMessageManager.sendChannelMessage(event.message.channel, "Pong! 🏓")
     }
 }
