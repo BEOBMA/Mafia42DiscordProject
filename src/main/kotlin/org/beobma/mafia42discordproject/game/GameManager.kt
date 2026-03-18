@@ -81,7 +81,6 @@ object GameManager {
             guild = guild,
         )
 
-        setupGameChannels(game)
         game.start(event)
     }
 
@@ -96,7 +95,6 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
-        setupGameChannels(game)
 
         // 기존 로직 실행
         game.start(event)
@@ -214,6 +212,8 @@ object GameManager {
         this.applyAssignedJobs(assignmentPlayers)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+
+        setupGameChannels(this)
 
         event.message.channel.createMessage(
             buildString {
@@ -821,14 +821,6 @@ object GameManager {
 
         game.mainChannel = mainChat
         game.mafiaChannel = mafiaChat
-
-        for (player in evilPlayers) {
-            mafiaChat.edit {
-                addMemberOverwrite(player.member.id) {
-                    allowed = Permissions(Permission.ViewChannel, Permission.SendMessages)
-                }
-            }
-        }
 
         mafiaChat.createMessage("마피아 전용채널")
     }
