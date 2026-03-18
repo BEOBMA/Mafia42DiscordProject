@@ -8,11 +8,11 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 
 data class Game(
     var playerDatas: MutableList<PlayerData>,
-    var currentPhase: GamePhase = GamePhase.DAY,
-    var isRunnig: Boolean = false,
     val guild: Guild,
     var mainChannel: TextChannel,
-    var mafiaChannel: TextChannel
+    var mafiaChannel: TextChannel,
+    var currentPhase: GamePhase = GamePhase.DAY,
+    var isRunnig: Boolean = false,
     ) {
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
