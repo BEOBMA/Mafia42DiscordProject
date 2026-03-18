@@ -18,6 +18,10 @@ object JobPreferenceCommand : DiscordCommand {
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
 
     private const val maxAutoCompleteChoices = 25
+    private const val assistantOption = "assistant"
+    private const val policeOption = "police"
+    private val specialOptions = (1..5).map { "special$it" }
+    private val optionNames = listOf(assistantOption, policeOption) + specialOptions
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
@@ -33,8 +37,9 @@ object JobPreferenceCommand : DiscordCommand {
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val query = event.interaction.focusedOption.value.trim()
+        val optionName = event.interaction.focusedOption.name
 
-        val suggestions = JobManager.getAll()
+        val suggestions = getAllowedJobsByOption(optionName)
             .asSequence()
             .map(Job::name)
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
@@ -63,16 +68,13 @@ object JobPreferenceCommand : DiscordCommand {
             return
         }
 
-        val rawInputs = (1..7).associate { index ->
-            val optionName = "job$index"
-            optionName to event.interaction.command.strings[optionName]
-        }
+        val rawInputs = optionNames.associateWith { optionName -> event.interaction.command.strings[optionName] }
         log("raw inputs=$rawInputs")
 
-        val jobs = (1..7).mapNotNull { index ->
-            val optionName = "job$index"
-            val jobName = event.interaction.command.strings[optionName]
+        val jobsByOption = mutableMapOf<String, Job>()
 
+        for (optionName in optionNames) {
+            val jobName = event.interaction.command.strings[optionName]
             log("checking option=$optionName input=$jobName")
 
             val matchedJob = jobName?.let(JobManager::findByName)
@@ -90,22 +92,27 @@ object JobPreferenceCommand : DiscordCommand {
                 return
             }
 
-            if (matchedJob != null) {
-                log("matched option=$optionName -> ${matchedJob.name}")
-            } else {
-                log("option=$optionName was not provided")
+            if (matchedJob == null) {
+                log("failed: option=$optionName was not provided")
+                DiscordMessageManager.respondEphemeral(event, "직업 7개를 모두 입력해 주세요.")
+                return
             }
 
-            matchedJob
+            if (matchedJob !in getAllowedJobsByOption(optionName)) {
+                log("failed: option=$optionName has invalid category job=${matchedJob.name}")
+                DiscordMessageManager.respondEphemeral(
+                    event,
+                    "${getOptionDisplayName(optionName)}에는 선택할 수 없는 직업입니다: ${matchedJob.name}"
+                )
+                return
+            }
+
+            log("matched option=$optionName -> ${matchedJob.name}")
+            jobsByOption[optionName] = matchedJob
         }
 
+        val jobs = optionNames.mapNotNull { jobsByOption[it] }
         log("resolved jobs size=${jobs.size} jobs=${jobs.joinToString { it.name }}")
-
-        if (jobs.size != 7) {
-            log("failed: not all 7 jobs provided size=${jobs.size}")
-            DiscordMessageManager.respondEphemeral(event, "직업 7개를 모두 입력해 주세요.")
-            return
-        }
 
         val duplicateNames = jobs.groupingBy(Job::name).eachCount().filterValues { it > 1 }.keys
         log("duplicate check duplicates=$duplicateNames")
@@ -115,52 +122,6 @@ object JobPreferenceCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(
                 event,
                 "직업은 중복 없이 선택해야 합니다. 중복 직업: ${duplicateNames.joinToString()}"
-            )
-            return
-        }
-
-        val policeOrAgentJobs = jobs.filter { it.name == "경찰" || it.name == "요원" }
-        log("police/agent check count=${policeOrAgentJobs.size} jobs=${policeOrAgentJobs.joinToString { it.name }}")
-
-        if (policeOrAgentJobs.size != 1) {
-            log("failed: police/agent count invalid count=${policeOrAgentJobs.size}")
-            DiscordMessageManager.respondEphemeral(event, "경찰/요원 중 정확히 1개를 선택해야 합니다.")
-            return
-        }
-
-        val evilExcludingMafiaVillain = jobs.filter {
-            it is Evil && it.name != "마피아" && it.name != "악인"
-        }
-        log(
-            "evil excluding mafia/villain check count=${evilExcludingMafiaVillain.size} " +
-                    "jobs=${evilExcludingMafiaVillain.joinToString { it.name }}"
-        )
-
-        if (evilExcludingMafiaVillain.size != 1) {
-            log("failed: evil excluding mafia/villain count invalid count=${evilExcludingMafiaVillain.size}")
-            DiscordMessageManager.respondEphemeral(
-                event,
-                "악인 계열(마피아, 악인 제외) 직업을 정확히 1개 선택해야 합니다."
-            )
-            return
-        }
-
-        val remainingJobs = jobs - policeOrAgentJobs.toSet() - evilExcludingMafiaVillain.toSet()
-        log("remaining jobs size=${remainingJobs.size} jobs=${remainingJobs.joinToString { it.name }}")
-
-        val invalidRemainingJobs = remainingJobs.filter {
-            it.name == "경찰" || it.name == "요원" || it.name == "의사" || it is Evil
-        }
-        log("invalid remaining jobs=${invalidRemainingJobs.joinToString { it.name }}")
-
-        if (remainingJobs.size != 5 || invalidRemainingJobs.isNotEmpty()) {
-            log(
-                "failed: remaining jobs invalid " +
-                        "remainingSize=${remainingJobs.size} invalidRemaining=${invalidRemainingJobs.joinToString { it.name }}"
-            )
-            DiscordMessageManager.respondEphemeral(
-                event,
-                "나머지 5개는 경찰/요원/의사/악인 계열을 제외한 직업이어야 합니다."
             )
             return
         }
@@ -175,10 +136,36 @@ object JobPreferenceCommand : DiscordCommand {
         )
     }
 
+    private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {
+        assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
+        policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" }
+        in specialOptions -> JobManager.getAll().filter {
+            it.name != "경찰" && it.name != "요원" && it.name != "의사" && it !is Evil
+        }
+        else -> JobManager.getAll()
+    }
+
+    private fun getOptionDisplayName(optionName: String): String = when (optionName) {
+        assistantOption -> "보조계열"
+        policeOption -> "경찰계열"
+        in specialOptions -> "특수직업"
+        else -> optionName
+    }
+
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerJobOptions() {
-        repeat(7) { index ->
+        string(assistantOption, "보조계열") {
+            required = true
+            autocomplete = true
+        }
+
+        string(policeOption, "경찰계열") {
+            required = true
+            autocomplete = true
+        }
+
+        repeat(5) { index ->
             val number = index + 1
-            string("job$number", "${number}번째 직업") {
+            string("special$number", "특수직업$number") {
                 required = true
                 autocomplete = true
             }
