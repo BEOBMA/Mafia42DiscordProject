@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
+import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.JobManager.registerAll
 
@@ -42,6 +43,7 @@ suspend fun main() {
     }
 
     registerAll()
+    JobPreferenceManager.load()
     kord.login()
 }
 
