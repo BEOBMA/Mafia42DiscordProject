@@ -2,9 +2,9 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.suggestString
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
@@ -107,7 +107,7 @@ object JobPreferenceCommand : DiscordCommand {
         if (remainingJobs.size != 5 || invalidRemainingJobs.isNotEmpty()) {
             DiscordMessageManager.respondEphemeral(
                 event,
-                "나머지 5개는 경찰/요원/의사/Evil 계열을 제외한 직업이어야 합니다."
+                "나머지 5개는 경찰/요원/의사/악인 계열을 제외한 직업이어야 합니다."
             )
             return
         }
