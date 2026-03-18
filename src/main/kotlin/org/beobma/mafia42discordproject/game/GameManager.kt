@@ -75,12 +75,10 @@ object GameManager {
     suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
         val interaction = event.interaction
         val guild = interaction.getGuild()
-        val mainChannel = interaction.getChannel() as TextChannel
 
         val game = Game(
             playerDatas = mutableListOf(),
             guild = guild,
-            mainChannel = mainChannel,
         )
 
         setupGameChannels(game)
@@ -97,7 +95,6 @@ object GameManager {
         val game = Game(
             playerDatas = mutableListOf(),
             guild = guild,
-            mainChannel = mainChannel
         )
         setupGameChannels(game)
 
@@ -766,7 +763,7 @@ object GameManager {
             DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
             return
         }
-        gameToStop.mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
+        gameToStop.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
         gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
 
         currentGame = null
@@ -786,7 +783,7 @@ object GameManager {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return
         }
-        gameToStop.mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
+        gameToStop.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
         gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
 
         currentGame = null
@@ -822,6 +819,7 @@ object GameManager {
             }
         }
 
+        game.mainChannel = mainChat
         game.mafiaChannel = mafiaChat
 
         for (player in evilPlayers) {

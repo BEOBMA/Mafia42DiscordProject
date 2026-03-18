@@ -9,7 +9,6 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 data class Game(
     var playerDatas: MutableList<PlayerData>,
     val guild: Guild,
-    var mainChannel: TextChannel,
     var currentPhase: GamePhase = GamePhase.DAY,
     var isRunnig: Boolean = false,
     ) {
@@ -22,6 +21,7 @@ data class Game(
     // 몇 번째 낮/밤인지 추적
     var dayCount: Int = 0
 
+    var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
     fun getPlayer(userId: dev.kord.common.entity.Snowflake): PlayerData? {
         return playerDatas.find { it.member.id == userId }
