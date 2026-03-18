@@ -3,9 +3,11 @@ package org.beobma.mafia42discordproject.command
 import dev.kord.common.entity.Snowflake
 import dev.kord.common.entity.optional.optional
 import dev.kord.core.Kord
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import dev.kord.core.event.message.GuildMessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
@@ -56,85 +58,93 @@ object JobPreferenceCommand : DiscordCommand {
 
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
+        val result = savePreference(
+            userId = event.interaction.user.id,
+            rawJobNamesByOption = optionNames.associateWith { optionName -> event.interaction.command.strings[optionName] }
+        )
+        if (!result.success) {
+            DiscordMessageManager.respondEphemeral(event, result.message)
+            return
+        }
+        DiscordMessageManager.respondEphemeral(event, result.message)
+    }
+
+    override suspend fun handleMessage(event: GuildMessageCreateEvent, args: List<String>) {
+        val userId = event.message.author?.id ?: return
+        val parsedJobs = parseMessageArgs(args)
+        if (!parsedJobs.success) {
+            event.message.channel.createMessage(parsedJobs.message)
+            return
+        }
+
+        val result = savePreference(
+            userId = userId,
+            rawJobNamesByOption = optionNames.zip(parsedJobs.values).toMap()
+        )
+        event.message.channel.createMessage(result.message)
+    }
+
+    private data class CommandResult(val success: Boolean, val message: String, val values: List<String> = emptyList())
+
+    private fun parseMessageArgs(args: List<String>): CommandResult {
+        if (args.size != optionNames.size) {
+            return CommandResult(
+                success = false,
+                message = "사용법: !jobpreference <보조계열> <경찰계열> <특수직업1> <특수직업2> <특수직업3> <특수직업4> <특수직업5>"
+            )
+        }
+        return CommandResult(success = true, message = "", values = args)
+    }
+
+    private fun savePreference(userId: Snowflake, rawJobNamesByOption: Map<String, String?>): CommandResult {
         fun log(message: String) {
             println("[jobpreference] $message")
         }
 
-        val user = event.interaction.user
-        log("handle start userId=${user.id.value} username=${user.username}")
-
-        if (GameManager.isInCurrentGame(user.id)) {
-            log("blocked: user is already in current game userId=${user.id.value}")
-            DiscordMessageManager.respondEphemeral(event, "게임 참여 중에는 선호 직업을 변경할 수 없습니다.")
-            return
+        log("handle start userId=${userId.value}")
+        if (GameManager.isInCurrentGame(userId)) {
+            log("blocked: user is already in current game userId=${userId.value}")
+            return CommandResult(false, "게임 참여 중에는 선호 직업을 변경할 수 없습니다.")
         }
 
-        val rawInputs = optionNames.associateWith { optionName -> event.interaction.command.strings[optionName] }
-        log("raw inputs=$rawInputs")
-
+        log("raw inputs=$rawJobNamesByOption")
         val jobsByOption = mutableMapOf<String, Job>()
 
         for (optionName in optionNames) {
-            val jobName = event.interaction.command.strings[optionName]
+            val jobName = rawJobNamesByOption[optionName]
             log("checking option=$optionName input=$jobName")
-
             val matchedJob = jobName?.let(JobManager::findByName)
 
             if (jobName != null && matchedJob == null) {
-                log(
-                    "invalid job detected option=$optionName input=$jobName possibleJobs=${
-                        JobManager.getAll().joinToString { it.name }
-                    }"
-                )
-                DiscordMessageManager.respondEphemeral(
-                    event,
+                log("invalid job detected option=$optionName input=$jobName")
+                return CommandResult(
+                    false,
                     "존재하지 않는 직업이 있습니다: $jobName\n가능한 직업: ${JobManager.getAll().joinToString { it.name }}"
                 )
-                return
             }
 
             if (matchedJob == null) {
                 log("failed: option=$optionName was not provided")
-                DiscordMessageManager.respondEphemeral(event, "직업 7개를 모두 입력해 주세요.")
-                return
+                return CommandResult(false, "직업 7개를 모두 입력해 주세요.")
             }
 
             if (matchedJob !in getAllowedJobsByOption(optionName)) {
                 log("failed: option=$optionName has invalid category job=${matchedJob.name}")
-                DiscordMessageManager.respondEphemeral(
-                    event,
-                    "${getOptionDisplayName(optionName)}에는 선택할 수 없는 직업입니다: ${matchedJob.name}"
-                )
-                return
+                return CommandResult(false, "${getOptionDisplayName(optionName)}에는 선택할 수 없는 직업입니다: ${matchedJob.name}")
             }
 
-            log("matched option=$optionName -> ${matchedJob.name}")
             jobsByOption[optionName] = matchedJob
         }
 
         val jobs = optionNames.mapNotNull { jobsByOption[it] }
-        log("resolved jobs size=${jobs.size} jobs=${jobs.joinToString { it.name }}")
-
         val duplicateNames = jobs.groupingBy(Job::name).eachCount().filterValues { it > 1 }.keys
-        log("duplicate check duplicates=$duplicateNames")
-
         if (duplicateNames.isNotEmpty()) {
             log("failed: duplicate jobs found duplicates=${duplicateNames.joinToString()}")
-            DiscordMessageManager.respondEphemeral(
-                event,
-                "직업은 중복 없이 선택해야 합니다. 중복 직업: ${duplicateNames.joinToString()}"
-            )
-            return
+            return CommandResult(false, "직업은 중복 없이 선택해야 합니다. 중복 직업: ${duplicateNames.joinToString()}")
         }
 
-        log("saving preference userId=${user.id.value} jobs=${jobs.joinToString { it.name }}")
-        JobPreferenceManager.save(user.id.value, jobs)
-
-        log("success: preference saved userId=${user.id.value}")
-        DiscordMessageManager.respondEphemeral(
-            event,
-            "선호 직업 7개가 저장되었습니다:\n${jobs.joinToString("\n") { "• ${it.name}" }}"
-        )
+        JobPreferenceManager.save(userId.value, jobs)
+        return CommandResult(true, "선호 직업 7개가 저장되었습니다:\n${jobs.joinToString("\n") { "• ${it.name}" }}")
     }
 
     private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {

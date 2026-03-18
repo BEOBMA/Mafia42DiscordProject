@@ -7,6 +7,7 @@ import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import dev.kord.core.event.message.GuildMessageCreateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -36,6 +37,18 @@ suspend fun main() {
         command.handle(this)
     }
 
+    kord.on<GuildMessageCreateEvent> {
+        if (message.author?.isBot == true) return@on
+
+        val content = message.content.trim()
+        if (!content.startsWith("!")) return@on
+
+        val tokens = content.removePrefix("!").trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (tokens.isEmpty()) return@on
+
+        val command = CommandRegistry.find(tokens.first()) ?: return@on
+        command.handleMessage(this, tokens.drop(1))
+    }
 
     kord.on<GuildAutoCompleteInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
@@ -77,8 +90,13 @@ private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCom
         return
     }
 
-    command.registerGlobal(kord)
-    println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
+    runCatching {
+        command.registerGlobal(kord)
+    }.onSuccess {
+        println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
+    }.onFailure { error ->
+        println("⚠️ 글로벌 명령어 생성 실패로 건너뜁니다: /${command.name}, reason=${error.message}")
+    }
 }
 
 private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
@@ -91,6 +109,11 @@ private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, 
         return
     }
 
-    command.registerGuild(kord, guildId)
-    println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
+    runCatching {
+        command.registerGuild(kord, guildId)
+    }.onSuccess {
+        println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
+    }.onFailure { error ->
+        println("⚠️ 길드 명령어 생성 실패로 건너뜁니다: /${command.name} (guildId=$guildId), reason=${error.message}")
+    }
 }
