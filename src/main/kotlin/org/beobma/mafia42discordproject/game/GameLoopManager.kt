@@ -336,11 +336,11 @@ object GameLoopManager {
 
             resolveNightPhase(game)
             game.sendMainChannerMessage("resolveNightPhase")
-            val nightWinner = checkWinCondition(game)
-            if (nightWinner != null) {
-                endGame(game, nightWinner) // 승리 공지 및 게임 종료 처리
-                break // 코루틴 루프 탈출
-            }
+//            val nightWinner = checkWinCondition(game)
+//            if (nightWinner != null) {
+//                endGame(game, nightWinner) // 승리 공지 및 게임 종료 처리
+//                break // 코루틴 루프 탈출
+//            }
 
             resolveDawnPhase(game)
             game.sendMainChannerMessage("resolveDawnPhase")
@@ -364,12 +364,12 @@ object GameLoopManager {
                 delay(10_000L) // 찬반 투표 시간
 
                 resolveExecutionPhase(game, target)
-                val voteWinner = checkWinCondition(game)
-                if (voteWinner != null) {
-                    endGame(game, voteWinner) // 승리 공지 및 게임 종료 처리
-                    break // 코루틴 루프 탈출
-
-                }
+//                val voteWinner = checkWinCondition(game)
+//                if (voteWinner != null) {
+//                    endGame(game, voteWinner) // 승리 공지 및 게임 종료 처리
+//                    break // 코루틴 루프 탈출
+//
+//                }
             }
         }
     }
