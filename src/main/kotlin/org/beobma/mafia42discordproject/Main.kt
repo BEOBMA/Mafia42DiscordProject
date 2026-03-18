@@ -5,6 +5,7 @@ import dev.kord.common.entity.ApplicationCommandType
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
+import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
@@ -30,6 +31,12 @@ suspend fun main() {
     kord.on<GuildChatInputCommandInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
         command.handle(this)
+    }
+
+
+    kord.on<GuildAutoCompleteInteractionCreateEvent> {
+        val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
+        command.handleAutoComplete(this)
     }
 
     kord.login()
