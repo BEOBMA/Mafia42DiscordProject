@@ -785,6 +785,8 @@ object GameManager {
         gameLoopJob?.cancel()
         gameLoopJob = null
 
+        currentGame?.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+        currentGame?.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
     }
