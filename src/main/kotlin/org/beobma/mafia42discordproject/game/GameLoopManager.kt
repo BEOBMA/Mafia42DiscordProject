@@ -6,12 +6,15 @@ import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
+import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import io.ktor.client.request.invoke
 import io.ktor.http.invoke
 import kotlinx.coroutines.delay
-import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
+import org.beobma.mafia42discordproject.game.GameLoopManager.resolveDawnPhase
+import org.beobma.mafia42discordproject.game.GameLoopManager.resolveNightPhase
+import org.beobma.mafia42discordproject.game.GameLoopManager.startNightPhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -185,30 +188,97 @@ object GameLoopManager {
         // TODO: 디스코드 채널에 아침 브리핑 출력 및 토론 시간 타이머 시작
     }
 
-    suspend fun startDayPhase(game: Game) {
-        // 1. 페이즈 전환
-        game.currentPhase = GamePhase.DAY
+    fun resolveDawnPhase(game: Game) {
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
-        // 2. 아침 브리핑 구성 (사망자 발표)
-        val diedLastNight = game.playerDatas.filter { it.state.isDead /* && 어젯밤 죽었음 플래그 */ }
-        // DiscordMessageManager.sendToMainChannel("아침이 밝았습니다. ...")
+        // 생존자들의 모든 패시브 능력을 수집하여 우선순위(priority) 내림차순으로 정렬
+        val sortedPassives = alivePlayers.flatMap { player ->
+            player.allAbilities.filterIsInstance<PassiveAbility>().map { player to it }
+        }.sortedByDescending { it.second.priority }
 
-        // 3. 가장 중요한 디스코드 권한 제어
-        // - 죽은 자: 메인 채널 권한 박탈 -> 무덤 채널 권한 부여
-        // - 영매: 무덤 채널 읽기 권한 부여
-        // - 생존자: 마담에게 유혹당하지 않은(isSilenced == false) 사람만 메인 채널 발언권 부여
+        // 1. 이벤트 연쇄 처리 (while 루프)
+        while (game.nightEvents.isNotEmpty()) {
+            val eventsToProcess = game.nightEvents.toList()
+            game.nightEvents.clear()
 
-        // 4. 낮 시작 패시브 발동 (예언자 등)
-        game.playerDatas.filter { !it.state.isDead }.forEach { player ->
-            val playerJob = player.job ?: return@forEach
-            playerJob.abilities.filterIsInstance<PassiveAbility>().forEach { passive ->
-                passive.onPhaseChanged(game, player, GamePhase.DAY)
+            for (event in eventsToProcess) {
+                // 정렬된 순서대로(수습 -> 도굴 -> 기타) 이벤트를 던져줌
+                for ((player, passive) in sortedPassives) {
+                    passive.onEventObserved(game, player, event)
+                }
             }
         }
 
-        // 5. 낮 능력자(해커 등) UI 활성화
+        // 2. 공무원 / 기자 등의 아침 공지용 텍스트 수집 (선택 사항)
+        // 새벽에 발동된 특종, 조회 결과 등을 여기서 모아두었다가 startDayPhase에 넘겨줄 수 있습니다.
+    }
 
-        // 6. 토론 시간 타이머 시작 (루프 복귀)
+    suspend fun startDayPhase(game: Game, diedLastNight: List<PlayerData> = emptyList()) {
+        val mainChannel = game.mainChannel ?: return
+
+        // 1. 게임 상태 및 날짜 변경
+        game.currentPhase = GamePhase.DAY
+
+        // 2. 아침 브리핑 공지
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val deathMessage = if (diedLastNight.isEmpty()) "간밤에 아무 일도 일어나지 않았습니다."
+        else "간밤에 **${diedLastNight.joinToString { it.member.effectiveName }}**님이 살해당했습니다."
+
+        // game.sendMainChannerMessage(...) 같은 커스텀 함수가 있다면 그것을 사용하셔도 됩니다.
+        game.sendMainChannerMessage("🌅 **${game.dayCount}번째 아침이 밝았습니다.**\n$deathMessage\n지금부터 토론을 시작합니다.")
+
+        // ==========================================
+        // 3. 🎯 텍스트 및 음성 채널 권한 완벽 동기화
+        // ==========================================
+
+        // 3-1. 메인 텍스트 채널 전체 잠금 해제 (밤에 막았던 @everyone 권한 원상 복구)
+        mainChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                allowed = Permissions(Permission.SendMessages)
+                denied = Permissions() // 금지 내역 초기화
+            }
+
+            // 3-2. 플레이어 개별 예외 처리 (텍스트 채널 개별 덮어쓰기)
+            for (player in game.playerDatas) {
+                val isSilencedOrDead = player.state.isDead || player.state.isSilenced
+
+                if (isSilencedOrDead) {
+                    // 사망자이거나 마담에게 유혹당한 경우: 채팅 치기 강제 금지
+                    addMemberOverwrite(player.member.id) {
+                        denied = Permissions(Permission.SendMessages)
+                    }
+                } else {
+                    // 정상 생존자: 개별 금지 내역이 혹시 남아있다면 초기화
+                    addMemberOverwrite(player.member.id) {
+                        denied = Permissions()
+                    }
+                }
+            }
+        }
+
+        // 3-3. 디스코드 서버 마이크(음성) 권한 개별 동기화
+        for (player in game.playerDatas) {
+            val shouldMute = player.state.isDead || player.state.isSilenced
+
+            // 서버 마이크 뮤트 해제 및 설정 (API 호출)
+            runCatching {
+                player.member.edit {
+                    muted = shouldMute
+                }
+            }
+
+            // 마담에게 유혹당한 생존자에게만 조용히 DM 안내
+            if (player.state.isSilenced && !player.state.isDead) {
+                runCatching {
+                    player.member.getDmChannel().createMessage("💋 마담에게 유혹당해 오늘 하루 텍스트 및 음성 발언이 금지됩니다.")
+                }
+            }
+        }
+
+        // ==========================================
+        // 4. 낮 전용 UI 및 패시브 등 후속 처리
+        // ==========================================
+        // ...
     }
 
     fun startVotePhase(game: Game) {}
@@ -271,6 +341,11 @@ object GameLoopManager {
                 endGame(game, nightWinner) // 승리 공지 및 게임 종료 처리
                 break // 코루틴 루프 탈출
             }
+
+            resolveDawnPhase(game)
+            delay(10_000L) // 낮 정산시간 10초 동안 채팅 못치게
+
+
             startDayPhase(game)
             val sec = game.playerDatas.count { !it.state.isDead }
             delay(sec * 15_000L) // 15초 * 살아있는 사람 수 낮 시간
@@ -291,6 +366,7 @@ object GameLoopManager {
                 if (voteWinner != null) {
                     endGame(game, voteWinner) // 승리 공지 및 게임 종료 처리
                     break // 코루틴 루프 탈출
+
                 }
             }
         }

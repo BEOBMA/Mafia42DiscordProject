@@ -10,4 +10,6 @@ data class PlayerData(
     val extraAbilities: MutableList<Ability> = mutableListOf()
 ) {
     val state: PlayerState = PlayerState()
+    val allAbilities: List<Ability>
+        get() = (job?.abilities ?: emptyList()) + extraAbilities
 }
