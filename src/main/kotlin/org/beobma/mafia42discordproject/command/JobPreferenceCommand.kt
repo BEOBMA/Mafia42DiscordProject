@@ -37,11 +37,18 @@ object JobPreferenceCommand : DiscordCommand {
     }
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
-        val query = event.interaction.focusedOption.value.trim()
-        val optionName = event.interaction.focusedOption.value
+        val focusedOption = event.interaction.focusedOption
+        val query = focusedOption.value.trim()
+        val optionName = resolveFocusedOptionNameByOrder(event)
+
+        val selectedJobNames = event.interaction.command.strings
+            .filterKeys { it != optionName }
+            .values
+            .toSet()
 
         val suggestions = getAllowedJobsByOption(optionName)
             .asSequence()
+            .filterNot { optionName in specialOptions && it.name in selectedJobNames }
             .map(Job::name)
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
             .take(maxAutoCompleteChoices)
@@ -52,6 +59,11 @@ object JobPreferenceCommand : DiscordCommand {
                 choice(jobName, jobName)
             }
         }
+    }
+
+    private fun resolveFocusedOptionNameByOrder(event: GuildAutoCompleteInteractionCreateEvent): String {
+        val resolvedByOrder = optionNames.getOrNull(event.interaction.command.strings.size)
+        return resolvedByOrder ?: event.interaction.focusedOption.name
     }
 
 
@@ -138,10 +150,14 @@ object JobPreferenceCommand : DiscordCommand {
     }
 
     private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {
-        assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
+        assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" && it.name != "악인" }
         policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" }
         in specialOptions -> JobManager.getAll().filter {
-            it.name != "경찰" && it.name != "요원" && it.name != "의사" && it !is Evil
+            it.name != "경찰" &&
+                it.name != "요원" &&
+                it.name != "의사" &&
+                it.name != "시민" &&
+                it !is Evil
         }
         else -> JobManager.getAll()
     }
