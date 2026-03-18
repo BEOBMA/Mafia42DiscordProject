@@ -34,16 +34,9 @@ object JobPreferenceCommand : DiscordCommand {
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val query = event.interaction.focusedOption.value.trim()
 
-        val selectedJobNames = (1..7).mapNotNull { index ->
-            event.interaction.command.strings["job$index"]
-                ?.trim()
-                ?.takeIf(String::isNotBlank)
-        }.toSet()
-
         val suggestions = JobManager.getAll()
             .asSequence()
             .map(Job::name)
-            .filterNot { it in selectedJobNames }
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
             .take(maxAutoCompleteChoices)
             .toList()
