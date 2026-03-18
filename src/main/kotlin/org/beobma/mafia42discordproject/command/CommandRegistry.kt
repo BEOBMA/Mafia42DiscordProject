@@ -4,6 +4,8 @@ object CommandRegistry {
     private val registeredCommands: List<DiscordCommand> = listOf(
         PingCommand,
         HelloCommand,
+        GameStartCommand,
+        GameStopCommand,
     )
 
     fun all(): List<DiscordCommand> = registeredCommands

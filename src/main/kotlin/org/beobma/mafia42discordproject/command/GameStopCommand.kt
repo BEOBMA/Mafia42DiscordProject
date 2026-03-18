@@ -4,13 +4,13 @@ import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import org.beobma.mafia42discordproject.game.GameManager
 
-object GameStartCommand : DiscordCommand {
-    override val name: String = "gamestart"
-    override val description: String = "게임을 시작합니다."
+object GameStopCommand : DiscordCommand {
+    override val name: String = "gamestop"
+    override val description: String = "게임을 종료합니다."
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         event.interaction.respondPublic {
-            GameManager.start(event)
+            GameManager.stop(event)
         }
     }
 }
