@@ -111,7 +111,7 @@ object AbilityManager {
                 is EvilCommonAbility -> job is Evil
                 is CitizenCommonAbility -> job is Definition
                 is AssistanceCommonAbility -> job is Evil && job !is Mafia && job !is Villain
-                is JobSpecificExtraAbility -> ability.targetJob.any { it == job }
+                is JobSpecificExtraAbility -> ability.targetJob.any { it == job::class }
                 else -> false
             }
         }

@@ -12,10 +12,10 @@ import dev.kord.core.event.message.MessageCreateEvent
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
-import org.beobma.mafia42discordproject.game.event.DefenseTier
-import org.beobma.mafia42discordproject.game.event.GameEvent
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.DefenseTier
+import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
@@ -614,7 +614,7 @@ object GameManager {
         val game = currentGame ?: return "진행 중인 게임이 없습니다."
         val player = game.getPlayer(userId) ?: return "현재 게임 참여자만 사용할 수 있는 명령어입니다."
 
-        if (pickNumber < 1 || pickNumber > EXTRA_ABILITY_OPTIONS_PER_ROUND) {
+        if (pickNumber !in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND) {
             return "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
         }
 
@@ -679,7 +679,7 @@ object GameManager {
         return buildString {
             if (includeProgress) {
                 appendLine(
-                    "진행도: ${session.completedRounds}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
+                    "진행도: ${session.completedRounds + 1}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
                 )
             }
 
