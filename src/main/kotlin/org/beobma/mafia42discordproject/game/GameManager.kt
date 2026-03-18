@@ -243,6 +243,7 @@ object GameManager {
             trace.add("[오류] 경찰 계열 직업 정의를 찾지 못했습니다.")
             return trace
         }
+        val selectedPoliceJob = pickPoliceJobByPreference(players, policePool, trace)
 
         trace.add("[1단계] 참여 인원: ${players.size}명")
         trace.add(
@@ -252,7 +253,7 @@ object GameManager {
         val slotCountForNonFixed = players.size - REQUIRED_MAFIA_COUNT - REQUIRED_DOCTOR_COUNT - REQUIRED_POLICE_COUNT
         if (slotCountForNonFixed <= 0) {
             trace.add("[2단계] 고정 직업만 배정 가능한 인원 수라서 바로 랜덤 배정 진행")
-            assignRequiredJobsRandomly(players, mafia, doctor, policePool, trace)
+            assignRequiredJobsRandomly(players, mafia, doctor, selectedPoliceJob, trace)
             return trace
         }
 
@@ -263,8 +264,27 @@ object GameManager {
             trace = trace
         )
         assignByPreference(players, nonFixedJobs, trace)
-        assignRequiredJobsRandomly(players, mafia, doctor, policePool, trace)
+        assignRequiredJobsRandomly(players, mafia, doctor, selectedPoliceJob, trace)
         return trace
+    }
+
+    private fun pickPoliceJobByPreference(
+        players: List<AssignmentPlayer>,
+        policePool: List<Job>,
+        trace: AssignmentTrace
+    ): Job {
+        val weightedPoliceJobs = policePool.map { policeJob ->
+            val weight = players.sumOf { player ->
+                player.preferences.count { preferred -> preferred.name == policeJob.name }
+            }
+            policeJob to weight
+        }
+        val weightSummary = weightedPoliceJobs.joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
+        trace.add("[1단계] 경찰계열 후보 가중치: $weightSummary")
+
+        val picked = pickByWeight(weightedPoliceJobs) ?: policePool.random()
+        trace.add("[1단계] 경찰계열 고정 직업 선택: ${picked.name}")
+        return picked
     }
 
     private fun selectNonFixedJobs(
@@ -380,7 +400,7 @@ object GameManager {
         players: MutableList<AssignmentPlayer>,
         mafia: Job,
         doctor: Job,
-        policePool: List<Job>,
+        policeJob: Job,
         trace: AssignmentTrace
     ) {
         trace.add("[4단계] 고정 직업/잔여 인원 배정 시작")
@@ -403,7 +423,6 @@ object GameManager {
         repeat(REQUIRED_POLICE_COUNT) {
             if (unassigned.isEmpty()) return@repeat
             val player = unassigned.removeFirst()
-            val policeJob = policePool.random()
             player.assignedJob = policeJob
             trace.add("[4단계] 경찰계열 배정: ${player.name} -> ${policeJob.name}")
         }
