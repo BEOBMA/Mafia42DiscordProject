@@ -7,6 +7,7 @@ import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import dev.kord.core.event.message.GuildMessageCreateEvent
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
@@ -38,6 +39,10 @@ object GameManager {
     }
 
     suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
+        Game(mutableListOf()).start(event)
+    }
+
+    suspend fun start(event: GuildMessageCreateEvent) {
         Game(mutableListOf()).start(event)
     }
 
@@ -102,6 +107,62 @@ object GameManager {
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
         }
+    }
+
+    private suspend fun Game.start(event: GuildMessageCreateEvent) {
+        if (currentGame != null) {
+            event.message.channel.createMessage("이미 게임이 진행 중입니다.")
+            return
+        }
+
+        val guild = event.getGuildOrNull() ?: return
+        val commandSender = event.member ?: return
+        val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
+            event.message.channel.createMessage("현재 음성채널에 들어가 있지 않습니다.")
+            return
+        }
+        val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId) ?: run {
+            event.message.channel.createMessage("음성채널 정보를 가져오지 못했습니다.")
+            return
+        }
+
+        val membersInSameVoice = guild.members
+            .filter { guildMember ->
+                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
+            }
+            .toList()
+
+        val membersWithoutPreference = membersInSameVoice.filter { member ->
+            JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+        }
+
+        if (membersWithoutPreference.isNotEmpty()) {
+            event.message.channel.createMessage(
+                buildString {
+                    appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
+                    appendLine("`!jobpreference` 또는 `/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
+                    append(DiscordMessageManager.mentions(membersWithoutPreference))
+                }
+            )
+            return
+        }
+
+        currentGame = this
+        this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
+
+        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        val trace = assignJobs(assignmentPlayers)
+        publishAssignmentsToAllTextChannels(guild, assignmentPlayers, trace)
+
+        event.message.channel.createMessage(
+            buildString {
+                appendLine("현재 음성채널: ${voiceChannel.mention}")
+                appendLine("실제 인원 수: ${membersInSameVoice.size}")
+                appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
+                appendLine()
+                append(DiscordMessageManager.mentions(membersInSameVoice))
+            }
+        )
     }
 
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
@@ -292,6 +353,14 @@ object GameManager {
         players: List<AssignmentPlayer>,
         trace: AssignmentTrace
     ) {
+        publishAssignmentsToAllTextChannels(event.interaction.guild, players, trace)
+    }
+
+    private suspend fun publishAssignmentsToAllTextChannels(
+        guild: dev.kord.core.entity.Guild,
+        players: List<AssignmentPlayer>,
+        trace: AssignmentTrace
+    ) {
         val message = buildString {
             appendLine("[테스트 공개] 플레이어 직업 배정 결과")
             appendLine()
@@ -307,7 +376,6 @@ object GameManager {
             }
         }
 
-        val guild = event.interaction.guild
         val textChannels = guild.channels
             .filter { it is TextChannel }
             .toList()
@@ -332,5 +400,16 @@ object GameManager {
 
         val mention = DiscordMessageManager.mention(event.interaction.user)
         DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
+    }
+
+    suspend fun stop(event: GuildMessageCreateEvent) {
+        if (currentGame == null) {
+            event.message.channel.createMessage("진행 중인 게임이 없습니다.")
+            return
+        }
+        currentGame = null
+
+        val mention = event.message.author?.mention.orEmpty()
+        event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
     }
 }
