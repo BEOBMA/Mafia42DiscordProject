@@ -2,7 +2,9 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import dev.kord.core.suggestString
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
@@ -15,6 +17,8 @@ object JobPreferenceCommand : DiscordCommand {
     override val name: String = "jobpreference"
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
 
+    private const val maxAutoCompleteChoices = 25
+
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             registerJobOptions()
@@ -24,6 +28,30 @@ object JobPreferenceCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             registerJobOptions()
+        }
+    }
+
+    override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
+        val query = event.interaction.focusedOption.value.trim()
+
+        val selectedJobNames = (1..7).mapNotNull { index ->
+            event.interaction.command.strings["job$index"]
+                ?.trim()
+                ?.takeIf(String::isNotBlank)
+        }.toSet()
+
+        val suggestions = JobManager.getAll()
+            .asSequence()
+            .map(Job::name)
+            .filterNot { it in selectedJobNames }
+            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+            .take(maxAutoCompleteChoices)
+            .toList()
+
+        event.interaction.suggestString {
+            suggestions.forEach { jobName ->
+                choice(jobName, jobName)
+            }
         }
     }
 
@@ -103,6 +131,7 @@ object JobPreferenceCommand : DiscordCommand {
             val number = index + 1
             string("job$number", "${number}번째 직업") {
                 required = true
+                autocomplete = true
             }
         }
     }
