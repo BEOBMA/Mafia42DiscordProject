@@ -184,10 +184,6 @@ object GameLoopManager {
         for (player in game.playerDatas) {
             player.state.resetForNextPhase()
         }
-
-        // 게임 페이즈 업데이트
-        game.currentPhase = GamePhase.DAY
-        // TODO: 디스코드 채널에 아침 브리핑 출력 및 토론 시간 타이머 시작
     }
 
     fun resolveDawnPhase(game: Game) {
@@ -335,9 +331,11 @@ object GameLoopManager {
         while (game.isRunnig) {
 
             startNightPhase(game)
+            game.sendMainChannerMessage("NightPhase")
             delay(25_000L) // 25초 밤 시간
 
             resolveNightPhase(game)
+            game.sendMainChannerMessage("resolveNightPhase")
             val nightWinner = checkWinCondition(game)
             if (nightWinner != null) {
                 endGame(game, nightWinner) // 승리 공지 및 게임 종료 처리
@@ -345,10 +343,12 @@ object GameLoopManager {
             }
 
             resolveDawnPhase(game)
+            game.sendMainChannerMessage("resolveDawnPhase")
             delay(10_000L) // 낮 정산시간 10초 동안 채팅 못치게
 
 
             startDayPhase(game)
+            game.sendMainChannerMessage("Day")
             val sec = game.playerDatas.count { !it.state.isDead }
             delay(sec * 15_000L) // 15초 * 살아있는 사람 수 낮 시간
 
