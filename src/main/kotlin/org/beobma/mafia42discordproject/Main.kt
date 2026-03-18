@@ -1,4 +1,4 @@
-package org.example
+package org.beobma.mafia42discordproject
 
 import dev.kord.common.annotation.KordPreview
 import dev.kord.core.Kord
@@ -6,7 +6,7 @@ import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
 
-private const val COMMAND_PREFIX = "!"
+private const val COMMAND_PREFIX = "/"
 
 @OptIn(KordPreview::class)
 suspend fun main() {
