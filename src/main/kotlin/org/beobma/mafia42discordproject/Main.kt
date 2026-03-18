@@ -68,19 +68,29 @@ private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>
 }
 
 private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
-    kord.getGlobalApplicationCommands()
+    val existingCommand = kord.getGlobalApplicationCommands()
         .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
         .firstOrNull()
-        ?.delete()
+
+    if (existingCommand != null) {
+        println("ℹ️ 글로벌 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name}")
+        return
+    }
 
     command.registerGlobal(kord)
+    println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
 }
 
 private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
-    kord.getGuildApplicationCommands(guildId)
+    val existingCommand = kord.getGuildApplicationCommands(guildId)
         .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
         .firstOrNull()
-        ?.delete()
+
+    if (existingCommand != null) {
+        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name} (guildId=$guildId)")
+        return
+    }
 
     command.registerGuild(kord, guildId)
+    println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
 }
