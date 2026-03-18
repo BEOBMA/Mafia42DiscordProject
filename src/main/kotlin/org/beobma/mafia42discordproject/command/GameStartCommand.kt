@@ -4,7 +4,7 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import org.beobma.mafia42discordproject.game.GameManager
 
 object GameStartCommand : DiscordCommand {
-    override val name: String = "gameStart"
+    override val name: String = "gamestart"
     override val description: String = "게임을 시작합니다."
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
