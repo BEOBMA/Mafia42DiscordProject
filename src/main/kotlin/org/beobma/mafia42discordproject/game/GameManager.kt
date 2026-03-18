@@ -760,10 +760,15 @@ object GameManager {
     }
 
     suspend fun stop(event: GuildChatInputCommandInteractionCreateEvent) {
-        if (currentGame == null) {
+        val gameToStop = currentGame
+
+        if (gameToStop == null) {
             DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
             return
         }
+        gameToStop.mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
+        gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+
         currentGame = null
         currentGuild = null
         abilitySelectionSessions.clear()
