@@ -264,12 +264,13 @@ object GameManager {
             val weightedJobs = eligibleJobs.map { it to (preferenceWeightByJob[it] ?: 0) }
             val picked = pickByWeight(weightedJobs)
                 ?: eligibleJobs.random()
+            val pickedWeight = preferenceWeightByJob[picked] ?: 0
 
             selectedJobs += picked
             pickedNames += picked.name
             occupiedSlots += slotsFor(picked)
             trace.add(
-                "[2단계] 선택 직업: ${picked.name} (필요 슬롯 ${slotsFor(picked)} / 누적 $occupiedSlots)"
+                "[2단계] 선택 직업: ${picked.name} (가중치 $pickedWeight / 필요 슬롯 ${slotsFor(picked)} / 누적 $occupiedSlots)"
             )
         }
 
