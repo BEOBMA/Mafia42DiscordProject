@@ -4,11 +4,17 @@ import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import org.beobma.mafia42discordproject.game.Game
 
 object DiscordMessageManager {
     fun mention(user: User): String = user.mention
 
     fun mentions(users: List<User>): String = users.joinToString("\n") { "• ${it.mention}" }
+
+    suspend fun Game.sendMainChannerMessage(msg: String) {
+        val mainChannel = this.mainChannel ?: return
+        mainChannel.createMessage(msg)
+    }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
         event.interaction.respondPublic {

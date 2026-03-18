@@ -1,6 +1,8 @@
 package org.beobma.mafia42discordproject.game
 
 import kotlinx.coroutines.delay
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -12,14 +14,10 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 object GameLoopManager {
 
     suspend fun startNightPhase(game: Game) {
-        // ==========================================
-        // 1. 상태 전환 (능력 입력 활성화)
-        // ==========================================
         game.currentPhase = GamePhase.NIGHT
         game.dayCount++
 
-        // 디스코드 메인 채널에 밤이 되었음을 공지
-        // DiscordMessageManager.sendToMainChannel("🌙 밤이 되었습니다. 모두 눈을 감아주세요.")
+        game.sendMainChannerMessage("밤이 되었습니다.")
 
 
         // ==========================================
