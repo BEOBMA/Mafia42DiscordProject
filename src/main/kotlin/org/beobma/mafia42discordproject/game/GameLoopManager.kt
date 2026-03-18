@@ -11,11 +11,12 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 
 object GameLoopManager {
 
-    fun startNightPhase(game: Game) {
+    suspend fun startNightPhase(game: Game) {
         // ==========================================
         // 1. 상태 전환 (능력 입력 활성화)
         // ==========================================
         game.currentPhase = GamePhase.NIGHT
+        game.dayCount++
 
         // 디스코드 메인 채널에 밤이 되었음을 공지
         // DiscordMessageManager.sendToMainChannel("🌙 밤이 되었습니다. 모두 눈을 감아주세요.")
@@ -167,7 +168,30 @@ object GameLoopManager {
         // TODO: 디스코드 채널에 아침 브리핑 출력 및 토론 시간 타이머 시작
     }
 
-    fun startDayPhase(game: Game) {}
+    suspend fun startDayPhase(game: Game) {
+        // 1. 페이즈 전환
+        game.currentPhase = GamePhase.DAY
+
+        // 2. 아침 브리핑 구성 (사망자 발표)
+        val diedLastNight = game.playerDatas.filter { it.state.isDead /* && 어젯밤 죽었음 플래그 */ }
+        // DiscordMessageManager.sendToMainChannel("아침이 밝았습니다. ...")
+
+        // 3. 가장 중요한 디스코드 권한 제어
+        // - 죽은 자: 메인 채널 권한 박탈 -> 무덤 채널 권한 부여
+        // - 영매: 무덤 채널 읽기 권한 부여
+        // - 생존자: 마담에게 유혹당하지 않은(isSilenced == false) 사람만 메인 채널 발언권 부여
+
+        // 4. 낮 시작 패시브 발동 (예언자 등)
+        game.playerDatas.filter { !it.state.isDead }.forEach { player ->
+            player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                passive.onPhaseChanged(game, player, GamePhase.DAY)
+            }
+        }
+
+        // 5. 낮 능력자(해커 등) UI 활성화
+
+        // 6. 토론 시간 타이머 시작 (루프 복귀)
+    }
 
     fun startVotePhase(game: Game) {}
 

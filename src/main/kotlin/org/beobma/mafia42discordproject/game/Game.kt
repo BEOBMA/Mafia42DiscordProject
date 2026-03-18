@@ -16,7 +16,7 @@ data class Game(
     val nightEvents: MutableList<GameEvent> = mutableListOf()
 
     // 몇 번째 낮/밤인지 추적
-    var dayCount: Int = 1
+    var dayCount: Int = 0
 
     fun getPlayer(userId: dev.kord.common.entity.Snowflake): PlayerData? {
         return playerDatas.find { it.member.id == userId }
