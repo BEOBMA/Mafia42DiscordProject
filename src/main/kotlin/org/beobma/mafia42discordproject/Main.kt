@@ -7,14 +7,13 @@ import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
-import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.JobManager.registerAll
 
 @OptIn(KordPreview::class)
@@ -37,7 +36,7 @@ suspend fun main() {
         command.handle(this)
     }
 
-    kord.on<GuildMessageCreateEvent> {
+    kord.on<MessageCreateEvent> {
         if (message.author?.isBot == true) return@on
 
         val content = message.content.trim()

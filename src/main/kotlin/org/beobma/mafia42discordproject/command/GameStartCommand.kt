@@ -1,7 +1,7 @@
 package org.beobma.mafia42discordproject.command
 
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import org.beobma.mafia42discordproject.game.GameManager
 
 object GameStartCommand : DiscordCommand {
@@ -12,7 +12,7 @@ object GameStartCommand : DiscordCommand {
         GameManager.start(event)
     }
 
-    override suspend fun handleMessage(event: GuildMessageCreateEvent, args: List<String>) {
+    override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
         GameManager.start(event)
     }
 }

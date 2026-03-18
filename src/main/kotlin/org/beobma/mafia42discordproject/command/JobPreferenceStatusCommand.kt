@@ -4,7 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 
@@ -38,7 +38,7 @@ object JobPreferenceStatusCommand : DiscordCommand {
         )
     }
 
-    override suspend fun handleMessage(event: GuildMessageCreateEvent, args: List<String>) {
+    override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
         val userId = event.message.author?.id?.value ?: return
         val jobs = JobPreferenceManager.get(userId)
 

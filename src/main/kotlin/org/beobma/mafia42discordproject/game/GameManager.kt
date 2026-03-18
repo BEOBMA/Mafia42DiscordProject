@@ -1,16 +1,18 @@
 package org.beobma.mafia42discordproject.game
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.core.behavior.channel.createMessage
+import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.getChannelOfOrNull
+import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.game.GameManager.publishAssignmentsToAllTextChannels
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
@@ -42,7 +44,7 @@ object GameManager {
         Game(mutableListOf()).start(event)
     }
 
-    suspend fun start(event: GuildMessageCreateEvent) {
+    suspend fun start(event: MessageCreateEvent) {
         Game(mutableListOf()).start(event)
     }
 
@@ -109,7 +111,7 @@ object GameManager {
         }
     }
 
-    private suspend fun Game.start(event: GuildMessageCreateEvent) {
+    private suspend fun Game.start(event: MessageCreateEvent) {
         if (currentGame != null) {
             event.message.channel.createMessage("이미 게임이 진행 중입니다.")
             return
@@ -152,7 +154,7 @@ object GameManager {
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         val trace = assignJobs(assignmentPlayers)
-        publishAssignmentsToAllTextChannels(guild, assignmentPlayers, trace)
+        publishAssignmentsToAllTextChannelsGuild(guild, assignmentPlayers, trace)
 
         event.message.channel.createMessage(
             buildString {
@@ -353,11 +355,11 @@ object GameManager {
         players: List<AssignmentPlayer>,
         trace: AssignmentTrace
     ) {
-        publishAssignmentsToAllTextChannels(event.interaction.guild, players, trace)
+        publishAssignmentsToAllTextChannelsGuild(event.interaction.guild, players, trace)
     }
 
-    private suspend fun publishAssignmentsToAllTextChannels(
-        guild: dev.kord.core.entity.Guild,
+    private suspend fun publishAssignmentsToAllTextChannelsGuild(
+        guild: GuildBehavior,
         players: List<AssignmentPlayer>,
         trace: AssignmentTrace
     ) {
@@ -402,7 +404,7 @@ object GameManager {
         DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
     }
 
-    suspend fun stop(event: GuildMessageCreateEvent) {
+    suspend fun stop(event: MessageCreateEvent) {
         if (currentGame == null) {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return

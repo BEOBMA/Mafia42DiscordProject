@@ -1,13 +1,12 @@
 package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.common.entity.optional.optional
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
@@ -69,7 +68,7 @@ object JobPreferenceCommand : DiscordCommand {
         DiscordMessageManager.respondEphemeral(event, result.message)
     }
 
-    override suspend fun handleMessage(event: GuildMessageCreateEvent, args: List<String>) {
+    override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
         val userId = event.message.author?.id ?: return
         val parsedJobs = parseMessageArgs(args)
         if (!parsedJobs.success) {

@@ -5,7 +5,7 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.GuildMessageCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 
 interface DiscordCommand {
     val name: String
@@ -15,7 +15,7 @@ interface DiscordCommand {
 
     suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) = Unit
 
-    suspend fun handleMessage(event: GuildMessageCreateEvent, args: List<String>) {
+    suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
         event.message.channel.createMessage("`!$name` 명령어는 현재 슬래시 명령어(`/$name`)로만 지원됩니다.")
     }
 
