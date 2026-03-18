@@ -1,5 +1,6 @@
 package org.beobma.mafia42discordproject.game
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -52,6 +53,9 @@ object GameManager {
             }
         )
     }
+
+    fun isInCurrentGame(userId: Snowflake): Boolean =
+        currentGame?.playerDatas?.any { it.member.id == userId } == true
 
     suspend fun stop(event: GuildChatInputCommandInteractionCreateEvent) {
         if (currentGame == null) {

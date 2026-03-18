@@ -42,33 +42,33 @@ private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>
 
     if (guildId != null) {
         commands.forEach { command ->
-            upsertGuildChatInputCommand(kord, guildId, command.name, command.description)
+            upsertGuildChatInputCommand(kord, guildId, command)
         }
         println("✅ 길드 슬래시 명령어 동기화 완료 (guildId=$guildId)")
         return
     }
 
     commands.forEach { command ->
-        upsertGlobalChatInputCommand(kord, command.name, command.description)
+        upsertGlobalChatInputCommand(kord, command)
     }
     println("✅ 글로벌 슬래시 명령어 동기화 완료")
     println("ℹ️ 빠른 반영이 필요하면 DISCORD_GUILD_ID를 설정하세요.")
 }
 
-private suspend fun upsertGlobalChatInputCommand(kord: Kord, name: String, description: String) {
+private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
     kord.getGlobalApplicationCommands()
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == name }
+        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
         .firstOrNull()
         ?.delete()
 
-    kord.createGlobalChatInputCommand(name, description)
+    command.registerGlobal(kord)
 }
 
-private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, name: String, description: String) {
+private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
     kord.getGuildApplicationCommands(guildId)
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == name }
+        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
         .firstOrNull()
         ?.delete()
 
-    kord.createGuildChatInputCommand(guildId, name, description)
+    command.registerGuild(kord, guildId)
 }

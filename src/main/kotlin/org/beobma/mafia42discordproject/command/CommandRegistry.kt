@@ -6,6 +6,7 @@ object CommandRegistry {
         HelloCommand,
         GameStartCommand,
         GameStopCommand,
+        JobPreferenceCommand,
     )
 
     fun all(): List<DiscordCommand> = registeredCommands
