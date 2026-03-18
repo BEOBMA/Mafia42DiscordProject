@@ -73,11 +73,37 @@ object GameManager {
     )
 
     suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
-        Game(mutableListOf()).start(event)
+        val interaction = event.interaction
+        val guild = interaction.getGuild()
+        val mainChannel = interaction.getChannel() as TextChannel
+
+        val game = Game(
+            playerDatas = mutableListOf(),
+            guild = guild,
+            mainChannel = mainChannel,
+        )
+
+        game.start(event)
     }
 
     suspend fun start(event: MessageCreateEvent) {
-        Game(mutableListOf()).start(event)
+        // DM(개인 메시지)에서 명령어를 쳤을 경우 예외 처리
+        val guild = event.getGuildOrNull() ?: return
+
+        val mainChannel = event.message.channel.asChannel() as TextChannel
+
+        // 💡 새롭게 변경된 Game 생성자 적용
+        val game = Game(
+            playerDatas = mutableListOf(),
+            guild = guild,
+            mainChannel = mainChannel
+        )
+
+        // TODO: (선택) 시작 전 채널 셋업 로직 호출
+        // setupGameChannels(game)
+
+        // 기존 로직 실행
+        game.start(event)
     }
 
     private suspend fun Game.start(event: GuildChatInputCommandInteractionCreateEvent) {
