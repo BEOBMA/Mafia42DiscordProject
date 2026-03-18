@@ -2,6 +2,8 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.behavior.interaction.suggestString
+import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
@@ -15,6 +17,8 @@ object JobPreferenceCommand : DiscordCommand {
     override val name: String = "jobpreference"
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
 
+    private const val maxAutoCompleteChoices = 25
+
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             registerJobOptions()
@@ -26,6 +30,24 @@ object JobPreferenceCommand : DiscordCommand {
             registerJobOptions()
         }
     }
+
+    override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
+        val query = event.interaction.focusedOption.value.trim()
+
+        val suggestions = JobManager.getAll()
+            .asSequence()
+            .map(Job::name)
+            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+            .take(maxAutoCompleteChoices)
+            .toList()
+
+        event.interaction.suggestString {
+            suggestions.forEach { jobName ->
+                choice(jobName, jobName)
+            }
+        }
+    }
+
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         fun log(message: String) {
@@ -118,7 +140,7 @@ object JobPreferenceCommand : DiscordCommand {
             log("failed: evil excluding mafia/villain count invalid count=${evilExcludingMafiaVillain.size}")
             DiscordMessageManager.respondEphemeral(
                 event,
-                "Evil 계열(마피아, 악인 제외) 직업을 정확히 1개 선택해야 합니다."
+                "악인 계열(마피아, 악인 제외) 직업을 정확히 1개 선택해야 합니다."
             )
             return
         }
