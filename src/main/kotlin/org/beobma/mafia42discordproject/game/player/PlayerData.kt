@@ -13,5 +13,5 @@ data class PlayerData(
     val state: PlayerState = PlayerState()
 
     val allAbilities: List<Ability>
-        get() = (job?.uniqueAbilities ?: emptyList()) + extraAbilities
+        get() = ((job?.uniqueAbilities ?: emptyList()) + extraAbilities).distinctBy(Ability::name)
 }

@@ -16,7 +16,7 @@ class Mafia : Job(), Evil {
     override val description: String = "[처형] 밤마다 한 명의 플레이어를 죽일 수 있으며 마피아끼리 대화가 가능하다."
 
     // 직업이 기본적으로 가지는 고유 능력 리스트
-    override val uniqueAbilities: List<JobUniqueAbility> = listOf(
+    override val uniqueAbilities: MutableList<JobUniqueAbility> = mutableListOf(
         object : JobUniqueAbility, ActiveAbility {
             override val name = "처형"
             override val description = "밤마다 한 명의 플레이어를 죽일 수 있습니다."
