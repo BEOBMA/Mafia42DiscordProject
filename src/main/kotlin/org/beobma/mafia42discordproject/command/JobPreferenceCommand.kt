@@ -32,18 +32,35 @@ object JobPreferenceCommand : DiscordCommand {
     }
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
-        val query = event.interaction.focusedOption.value.trim()
+        val focusedOption = event.interaction.focusedOption
+        val query = focusedOption.value.trim()
 
-        val suggestions = JobManager.getAll()
-            .asSequence()
-            .map(Job::name)
-            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
-            .toList()
+        println("🔎 [jobpreference/autocomplete] user=${event.interaction.user.id} option=${focusedOption.name} query='$query'")
 
-        event.interaction.suggestString {
-            suggestions.forEach { jobName ->
-                choice(jobName, jobName)
+        try {
+            val suggestions = JobManager.getAll()
+                .asSequence()
+                .map(Job::name)
+                .distinct()
+                .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+                .take(maxAutoCompleteChoices)
+                .toList()
+
+            event.interaction.suggestString {
+                suggestions.forEach { jobName ->
+                    choice(jobName, jobName)
+                }
+            }
+            println("✅ [jobpreference/autocomplete] responded ${suggestions.size} choices")
+        } catch (exception: Exception) {
+            println("❌ [jobpreference/autocomplete] failed: ${exception.message}")
+            exception.printStackTrace()
+
+            runCatching {
+                event.interaction.suggestString {}
+            }.onFailure { fallbackException ->
+                println("❌ [jobpreference/autocomplete] fallback response failed: ${fallbackException.message}")
+                fallbackException.printStackTrace()
             }
         }
     }
