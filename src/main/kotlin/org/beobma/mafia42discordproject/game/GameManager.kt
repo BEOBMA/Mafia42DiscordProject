@@ -86,12 +86,8 @@ object GameManager {
     }
 
     suspend fun start(event: MessageCreateEvent) {
-        // DM(개인 메시지)에서 명령어를 쳤을 경우 예외 처리
         val guild = event.getGuildOrNull() ?: return
 
-        val mainChannel = event.message.channel.asChannel() as TextChannel
-
-        // 💡 새롭게 변경된 Game 생성자 적용
         val game = Game(
             playerDatas = mutableListOf(),
             guild = guild,
