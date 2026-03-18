@@ -590,6 +590,9 @@ object GameManager {
                 player.member.getDmChannel().createMessage(
                     buildString {
                         appendLine("당신의 직업은 **${job.name}** 입니다.")
+                        appendLine()
+                        appendLine("📌 직업 정보")
+                        appendLine(job.description)
                         appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
                         appendLine()
                         append(guideMessage)
