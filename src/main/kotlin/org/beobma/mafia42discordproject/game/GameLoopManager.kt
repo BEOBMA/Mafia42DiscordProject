@@ -1,13 +1,12 @@
 package org.beobma.mafia42discordproject.game
 
 import kotlinx.coroutines.delay
+import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
-import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
-import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 object GameLoopManager {
