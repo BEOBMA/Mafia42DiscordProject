@@ -50,12 +50,14 @@ object GameLoopManager {
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
                 denied = Permissions(Permission.SendMessages)
+                allowed = Permissions(Permission.UseApplicationCommands)
             }
         }
 
         mafiaChannel.edit {
             addRoleOverwrite(game.guild.id) {
                 allowed = Permissions(Permission.SendMessages)
+                allowed = Permissions(Permission.UseApplicationCommands)
                 denied = Permissions(Permission.ReadMessageHistory)
             }
         }
