@@ -1,6 +1,7 @@
 package org.beobma.mafia42discordproject.command
 
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import dev.kord.core.event.message.MessageCreateEvent
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 
 object HelloCommand : DiscordCommand {
@@ -10,5 +11,9 @@ object HelloCommand : DiscordCommand {
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val mention = DiscordMessageManager.mention(event.interaction.user)
         DiscordMessageManager.respondPublic(event, "$mention 반가워요! Kotlin + Kord 봇이 동작 중입니다.")
+    }
+
+    override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
+        event.message.channel.createMessage("${event.message.author?.mention.orEmpty()} 반가워요! Kotlin + Kord 봇이 동작 중입니다.")
     }
 }
