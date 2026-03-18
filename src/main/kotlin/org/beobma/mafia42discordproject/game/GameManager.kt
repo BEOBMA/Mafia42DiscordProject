@@ -353,7 +353,7 @@ object GameManager {
         val sortedWeightSummary = preferenceWeightByJob.entries
             .sortedWith(compareByDescending<Map.Entry<Job, Int>> { it.value }.thenBy { it.key.name })
             .joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
-        trace.add("[2단계] 전체 선호 직업 가중치: ${if (sortedWeightSummary.isEmpty()) "없음" else sortedWeightSummary}")
+        trace.add("[2단계] 전체 선호 직업 가중치: ${sortedWeightSummary.ifEmpty { "없음" }}")
         players.forEach { player ->
             val playerWeightSummary = player.preferences
                 .joinToString(", ") { job -> "${job.name}(${preferenceWeightByJob[job] ?: 0})" }
