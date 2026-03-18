@@ -41,6 +41,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Witch
 
 object JobManager {
     private val jobs = mutableListOf<Job>()
+    private val jobFactories = mutableMapOf<String, () -> Job>()
 
     fun register(job: Job) {
         println("[JobManager] register start name=${job.name}")
@@ -60,50 +61,62 @@ object JobManager {
         return result
     }
 
+    fun createByName(name: String): Job? {
+        println("[JobManager] createByName start name=$name")
+        val factory = jobFactories[name]
+        val job = factory?.invoke()
+        println("[JobManager] createByName end name=$name result=${job?.name}")
+        return job
+    }
+
     fun registerAll() {
         println("[JobManager] registerAll start")
 
-        listOf(
-            logCreate("Mafia") { Mafia() },
-            logCreate("Godfather") { Godfather() },
-            logCreate("Spy") { Spy() },
-            logCreate("HitMan") { HitMan() },
-            logCreate("Thief") { Thief() },
-            logCreate("Beastman") { Beastman() },
-            logCreate("Villain") { Villain() },
-            logCreate("Hostess") { Hostess() },
-            logCreate("Swindler") { Swindler() },
-            logCreate("Witch") { Witch() },
-            logCreate("MadScientist") { MadScientist() },
+        listOf<Pair<String, () -> Job>>(
+            "Mafia" to { Mafia() },
+            "Godfather" to { Godfather() },
+            "Spy" to { Spy() },
+            "HitMan" to { HitMan() },
+            "Thief" to { Thief() },
+            "Beastman" to { Beastman() },
+            "Villain" to { Villain() },
+            "Hostess" to { Hostess() },
+            "Swindler" to { Swindler() },
+            "Witch" to { Witch() },
+            "MadScientist" to { MadScientist() },
 
-            logCreate("Citizen") { Citizen() },
-            logCreate("Doctor") { Doctor() },
-            logCreate("Police") { Police() },
-            logCreate("Detective") { Detective() },
-            logCreate("Soldier") { Soldier() },
-            logCreate("Nurse") { Nurse() },
-            logCreate("Priest") { Priest() },
-            logCreate("Shaman") { Shaman() },
-            logCreate("Fortuneteller") { Fortuneteller() },
-            logCreate("Ghoul") { Ghoul() },
-            logCreate("Judge") { Judge() },
-            logCreate("Politician") { Politician() },
-            logCreate("Agent") { Agent() },
-            logCreate("Couple") { Couple() },
-            logCreate("Vigilante") { Vigilante() },
-            logCreate("Reporter") { Reporter() },
-            logCreate("Hacker") { Hacker() },
-            logCreate("Magician") { Magician() },
-            logCreate("Martyr") { Martyr() },
-            logCreate("Prophet") { Prophet() },
-            logCreate("Mercenary") { Mercenary() },
-            logCreate("Gangster") { Gangster() },
-            logCreate("Cabal") { Cabal() },
-            logCreate("Mentalist") { Mentalist() },
-            logCreate("Hypnotist") { Hypnotist() },
-            logCreate("Paparazzi") { Paparazzi() },
-            logCreate("Administrator") { Administrator() }
-        ).forEach(::register)
+            "Citizen" to { Citizen() },
+            "Doctor" to { Doctor() },
+            "Police" to { Police() },
+            "Detective" to { Detective() },
+            "Soldier" to { Soldier() },
+            "Nurse" to { Nurse() },
+            "Priest" to { Priest() },
+            "Shaman" to { Shaman() },
+            "Fortuneteller" to { Fortuneteller() },
+            "Ghoul" to { Ghoul() },
+            "Judge" to { Judge() },
+            "Politician" to { Politician() },
+            "Agent" to { Agent() },
+            "Couple" to { Couple() },
+            "Vigilante" to { Vigilante() },
+            "Reporter" to { Reporter() },
+            "Hacker" to { Hacker() },
+            "Magician" to { Magician() },
+            "Martyr" to { Martyr() },
+            "Prophet" to { Prophet() },
+            "Mercenary" to { Mercenary() },
+            "Gangster" to { Gangster() },
+            "Cabal" to { Cabal() },
+            "Mentalist" to { Mentalist() },
+            "Hypnotist" to { Hypnotist() },
+            "Paparazzi" to { Paparazzi() },
+            "Administrator" to { Administrator() }
+        ).forEach { (className, factory) ->
+            val job = logCreate(className, factory)
+            register(job)
+            registerFactory(job.name, className, factory)
+        }
 
         println("[JobManager] registerAll end")
     }
@@ -113,5 +126,14 @@ object JobManager {
         val job = block()
         println("[JobManager] create success class=$name jobName=${job.name}")
         return job
+    }
+
+    private fun registerFactory(name: String, className: String, factory: () -> Job) {
+        println("[JobManager] registerFactory start name=$name class=$className")
+        require(name !in jobFactories) {
+            "이미 등록된 직업 팩토리입니다: $name"
+        }
+        jobFactories[name] = factory
+        println("[JobManager] registerFactory success name=$name class=$className")
     }
 }
