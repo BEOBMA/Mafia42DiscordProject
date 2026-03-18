@@ -246,7 +246,7 @@ object GameLoopManager {
         while (game.isRunnig) {
 
             startNightPhase(game)
-            delay(25_000L) // 30초 밤 시간
+            delay(25_000L) // 25초 밤 시간
 
             resolveNightPhase(game)
             val nightWinner = checkWinCondition(game)
