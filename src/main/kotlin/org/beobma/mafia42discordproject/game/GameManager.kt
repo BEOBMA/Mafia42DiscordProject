@@ -18,9 +18,9 @@ import dev.kord.rest.builder.channel.addRoleOverwrite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -28,6 +28,7 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
+import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
 import kotlin.random.Random
 
@@ -129,17 +130,15 @@ object GameManager {
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
-        val trace = assignJobs(assignmentPlayers)
+        assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
-        publishAssignmentsToAllTextChannels(event, assignmentPlayers, trace)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                appendLine("실제 인원 수: ${membersInSameVoice.size}")
-                appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
+                appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
@@ -189,17 +188,15 @@ object GameManager {
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
-        val trace = assignJobs(assignmentPlayers)
+        assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
-        publishAssignmentsToAllTextChannelsGuild(guild, assignmentPlayers, trace)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         event.message.channel.createMessage(
             buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                appendLine("실제 인원 수: ${membersInSameVoice.size}")
-                appendLine("테스트 인원 수(가상 포함): ${assignmentPlayers.size}")
+                appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
@@ -554,46 +551,6 @@ object GameManager {
         trace.add("[3단계] 배정 완료")
     }
 
-    private suspend fun publishAssignmentsToAllTextChannels(
-        event: GuildChatInputCommandInteractionCreateEvent,
-        players: List<AssignmentPlayer>,
-        trace: AssignmentTrace
-    ) {
-        publishAssignmentsToAllTextChannelsGuild(event.interaction.guild, players, trace)
-    }
-
-    private suspend fun publishAssignmentsToAllTextChannelsGuild(
-        guild: GuildBehavior,
-        players: List<AssignmentPlayer>,
-        trace: AssignmentTrace
-    ) {
-        val message = buildString {
-            appendLine("[테스트 공개] 플레이어 직업 배정 결과")
-            appendLine()
-            appendLine("[배정 과정 상세 로그]")
-            trace.lines.forEach { line ->
-                appendLine("• $line")
-            }
-            appendLine()
-            appendLine("[최종 직업 결과]")
-            players.forEach { player ->
-                val assignedJobName = player.assignedJob?.name ?: "미배정"
-                appendLine("• ${player.name}: $assignedJobName")
-            }
-        }
-
-        val textChannels = guild.channels
-            .filter { it is TextChannel }
-            .toList()
-            .map { it as TextChannel }
-
-        textChannels.forEach { channel ->
-            runCatching {
-                channel.createMessage(message)
-            }
-        }
-    }
-
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
         abilitySelectionSessions.clear()
 
@@ -671,6 +628,10 @@ object GameManager {
         }
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
+        val selectedUniqueAbility = pickedAbility.toJobUniqueAbility()
+        if (player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
+            player.job?.abilities?.add(selectedUniqueAbility)
+        }
         if (player.extraAbilities.none { it.name == pickedAbility.name }) {
             player.extraAbilities += pickedAbility
         }
@@ -718,6 +679,12 @@ object GameManager {
         session.availablePool.removeAll { ability -> ability.name in optionNames }
         return options
     }
+
+    private fun Ability.toJobUniqueAbility(): JobUniqueAbility =
+        this as? JobUniqueAbility ?: object : JobUniqueAbility {
+            override val name: String = this@toJobUniqueAbility.name
+            override val description: String = this@toJobUniqueAbility.description
+        }
 
     private fun buildAbilitySelectionGuideMessage(
         session: AbilitySelectionSession,
