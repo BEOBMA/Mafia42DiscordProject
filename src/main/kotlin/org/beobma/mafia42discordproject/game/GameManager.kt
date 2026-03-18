@@ -777,12 +777,12 @@ object GameManager {
     suspend fun stop(event: MessageCreateEvent) {
         val gameToStop = currentGame
 
-        if (currentGame == null) {
+        if (gameToStop == null) {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return
         }
-        currentGame!!.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
-        currentGame!!.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+        gameToStop.mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
+        gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
 
         currentGame = null
         currentGuild = null
