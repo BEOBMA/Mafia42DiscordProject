@@ -12,7 +12,6 @@ import dev.kord.core.event.message.MessageCreateEvent
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
-import org.beobma.mafia42discordproject.game.GameManager.publishAssignmentsToAllTextChannels
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
@@ -359,9 +358,7 @@ object GameManager {
             val preferredUnassignedCount = players.count { player ->
                 player.assignedJob == null && player.preferences.any { it.name == job.name }
             }
-            if (preferredUnassignedCount < requiredSlots) return false
-
-            return true
+            return preferredUnassignedCount >= requiredSlots
         }
 
         trace.add("[2단계] 고정 직업 제외 슬롯 수: $slotCount")
