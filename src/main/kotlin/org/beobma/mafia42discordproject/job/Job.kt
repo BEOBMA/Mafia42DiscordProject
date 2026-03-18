@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job
 
-import dev.kord.gateway.Command
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 
 abstract class Job {
