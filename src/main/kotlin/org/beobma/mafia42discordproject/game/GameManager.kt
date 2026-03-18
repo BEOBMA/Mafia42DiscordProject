@@ -9,6 +9,10 @@ import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
@@ -26,6 +30,9 @@ import kotlin.random.Random
 
 object GameManager {
     private var currentGame: Game? = null
+    private var currentGuild: GuildBehavior? = null
+    private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var gameLoopJob: kotlinx.coroutines.Job? = null
 
     private const val MIN_TEST_PLAYER_COUNT = 8
     private const val REQUIRED_MAFIA_COUNT = 2
@@ -115,13 +122,15 @@ object GameManager {
         }
 
         currentGame = this
+        currentGuild = guild
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         val trace = assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannels(event, assignmentPlayers, trace)
-        initializeExtraAbilitySelectionForPlayers()
+        initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
+        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         deferredResponse.respond {
             content = buildString {
@@ -173,13 +182,15 @@ object GameManager {
         }
 
         currentGame = this
+        currentGuild = guild
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         val trace = assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannelsGuild(guild, assignmentPlayers, trace)
-        initializeExtraAbilitySelectionForPlayers()
+        initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
+        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         event.message.channel.createMessage(
             buildString {
@@ -580,7 +591,7 @@ object GameManager {
         }
     }
 
-    private suspend fun Game.initializeExtraAbilitySelectionForPlayers() {
+    private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
         abilitySelectionSessions.clear()
 
         playerDatas.forEach { player ->
@@ -608,9 +619,36 @@ object GameManager {
                 println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
             }
         }
+
+        assignVirtualPlayerExtraAbilities(players)
     }
 
-    fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
+    private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
+        val virtualPlayers = players.filter { it.memberId == null }
+        virtualPlayers.forEach { virtualPlayer ->
+            val assignedJob = virtualPlayer.assignedJob ?: return@forEach
+            val pool = AbilityManager.getAvailableExtraAbilitiesFor(assignedJob)
+                .distinctBy(Ability::name)
+                .shuffled()
+                .toMutableList()
+
+            val selected = mutableListOf<Ability>()
+            repeat(EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
+                if (pool.isEmpty()) return@repeat
+                selected += pool.removeAt(0)
+            }
+
+            if (selected.isNotEmpty()) {
+                println(
+                    "🎲 ${virtualPlayer.name}(${assignedJob.name}) 부가 능력 랜덤 선택 완료: ${
+                        selected.joinToString(", ") { it.name }
+                    }"
+                )
+            }
+        }
+    }
+
+    suspend fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
         val game = currentGame ?: return "진행 중인 게임이 없습니다."
         val player = game.getPlayer(userId) ?: return "현재 게임 참여자만 사용할 수 있는 명령어입니다."
 
@@ -638,6 +676,9 @@ object GameManager {
 
         if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
             abilitySelectionSessions.remove(userId)
+            currentGuild?.let { guild ->
+                tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+            }
             return buildString {
                 appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
                 appendLine("부가 능력 선택이 모두 완료되었습니다.")
@@ -648,6 +689,9 @@ object GameManager {
         session.currentOptions = drawAbilityOptions(session)
         if (session.currentOptions.isEmpty()) {
             abilitySelectionSessions.remove(userId)
+            currentGuild?.let { guild ->
+                tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+            }
             return buildString {
                 appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
                 appendLine("추가로 제시할 수 있는 능력이 없어 선택 단계를 종료합니다.")
@@ -694,13 +738,42 @@ object GameManager {
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true
 
+    private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted(guild: GuildBehavior) {
+        val game = currentGame ?: return
+        if (abilitySelectionSessions.isNotEmpty()) return
+        if (game.isRunnig) return
+        if (gameLoopJob?.isActive == true) return
+
+        game.isRunnig = true
+        publishMessageToAllTextChannels(guild, "✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
+        gameLoopJob = gameLoopScope.launch {
+            GameLoopManager.runGameLoop(game)
+        }
+    }
+
+    private suspend fun publishMessageToAllTextChannels(guild: GuildBehavior, message: String) {
+        val textChannels = guild.channels
+            .filter { it is TextChannel }
+            .toList()
+            .map { it as TextChannel }
+
+        textChannels.forEach { channel ->
+            runCatching {
+                channel.createMessage(message)
+            }
+        }
+    }
+
     suspend fun stop(event: GuildChatInputCommandInteractionCreateEvent) {
         if (currentGame == null) {
             DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
             return
         }
         currentGame = null
+        currentGuild = null
         abilitySelectionSessions.clear()
+        gameLoopJob?.cancel()
+        gameLoopJob = null
 
         val mention = DiscordMessageManager.mention(event.interaction.user)
         DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
@@ -712,7 +785,10 @@ object GameManager {
             return
         }
         currentGame = null
+        currentGuild = null
         abilitySelectionSessions.clear()
+        gameLoopJob?.cancel()
+        gameLoopJob = null
 
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
