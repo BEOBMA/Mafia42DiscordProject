@@ -1,20 +1,13 @@
 package org.beobma.mafia42discordproject.game
 
-import dev.kord.common.entity.Overwrite
-import dev.kord.common.entity.OverwriteType
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
-import io.ktor.client.request.invoke
-import io.ktor.http.invoke
 import kotlinx.coroutines.delay
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
-import org.beobma.mafia42discordproject.game.GameLoopManager.resolveDawnPhase
-import org.beobma.mafia42discordproject.game.GameLoopManager.resolveNightPhase
-import org.beobma.mafia42discordproject.game.GameLoopManager.startNightPhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
