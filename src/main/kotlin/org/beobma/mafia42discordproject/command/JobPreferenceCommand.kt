@@ -101,6 +101,37 @@ object JobPreferenceCommand : DiscordCommand {
         )
     }
 
+    override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
+        val focusedOptionName = event.interaction.focusedOption.name
+        if (!focusedOptionName.startsWith("job")) return
+
+        val focusedValue = event.interaction.focusedOption.value
+            ?.lowercase()
+            ?.trim()
+            .orEmpty()
+
+        val selectedJobNames = (1..7)
+            .map { "job$it" }
+            .filter { it != focusedOptionName }
+            .mapNotNull { event.interaction.command.strings[it] }
+            .toSet()
+
+        val candidateJobs = JobManager.getAll()
+            .asSequence()
+            .filterNot { it.name in selectedJobNames }
+            .filter { job ->
+                focusedValue.isBlank() || job.name.lowercase().contains(focusedValue)
+            }
+            .take(25)
+            .toList()
+
+        event.interaction.suggestString {
+            candidateJobs.forEach { job ->
+                choice(job.name, job.name)
+            }
+        }
+    }
+
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerJobOptions() {
         repeat(7) { index ->
             val number = index + 1
