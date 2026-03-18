@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
 object GameManager {
+    private var currentGame: Game = Game(mutableListOf())
+
+    suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
+        currentGame.start(event)
+    }
 
     suspend fun Game.start(event: GuildChatInputCommandInteractionCreateEvent) {
         val interaction = event.interaction
