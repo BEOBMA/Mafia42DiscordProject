@@ -3,6 +3,8 @@ package org.beobma.mafia42discordproject.job.ability
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Villain
 
 object AbilityManager {
     private val extraAbilityPool = mutableListOf<Ability>()
@@ -108,7 +110,8 @@ object AbilityManager {
                 is CommonAbility -> true
                 is EvilCommonAbility -> job is Evil
                 is CitizenCommonAbility -> job is Definition
-                is JobSpecificExtraAbility -> ability.targetJob.isInstance(job)
+                is AssistanceCommonAbility -> job is Evil && job !is Mafia && job !is Villain
+                is JobSpecificExtraAbility -> ability.targetJob.any { it == job }
                 else -> false
             }
         }
