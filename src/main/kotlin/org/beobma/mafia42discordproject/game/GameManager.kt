@@ -7,6 +7,7 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
 object GameManager {
@@ -39,6 +40,22 @@ object GameManager {
                 guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
             }
             .toList()
+
+        val membersWithoutPreference = membersInSameVoice.filter { member ->
+            JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+        }
+
+        if (membersWithoutPreference.isNotEmpty()) {
+            DiscordMessageManager.respondPublic(
+                event,
+                buildString {
+                    appendLine("아래 플레이어가 선호 직업을 설정하지 않아 게임 시작이 취소되었습니다.")
+                    appendLine("`/jobpreference` 명령어로 선호 직업 7개를 먼저 설정해 주세요.")
+                    append(DiscordMessageManager.mentions(membersWithoutPreference))
+                }
+            )
+            return
+        }
 
         currentGame = this
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
