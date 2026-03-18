@@ -83,6 +83,7 @@ object GameManager {
             mainChannel = mainChannel,
         )
 
+        setupGameChannels(game)
         game.start(event)
     }
 
@@ -98,9 +99,7 @@ object GameManager {
             guild = guild,
             mainChannel = mainChannel
         )
-
-        // TODO: (선택) 시작 전 채널 셋업 로직 호출
-        // setupGameChannels(game)
+        setupGameChannels(game)
 
         // 기존 로직 실행
         game.start(event)
