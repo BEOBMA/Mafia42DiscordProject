@@ -42,29 +42,76 @@ import org.beobma.mafia42discordproject.job.evil.list.Witch
 object JobManager {
     private val jobs = mutableListOf<Job>()
 
-    init {
-        registerAll()
-    }
-
     fun register(job: Job) {
+        println("[JobManager] register start name=${job.name}")
         require(jobs.none { it.name == job.name }) {
             "이미 등록된 직업입니다: ${job.name}"
         }
         jobs.add(job)
+        println("[JobManager] register success name=${job.name}")
     }
 
     fun getAll(): List<Job> = jobs.toList()
 
-    fun findByName(name: String): Job? = jobs.firstOrNull { it.name == name }
+    fun findByName(name: String): Job? {
+        println("[JobManager] findByName start name=$name size=${jobs.size}")
+        val result = jobs.firstOrNull { it.name == name }
+        println("[JobManager] findByName end name=$name result=${result?.name}")
+        return result
+    }
 
-    private fun registerAll() {
+    fun registerAll() {
+        println("[JobManager] registerAll start")
+
         listOf(
-            Mafia(), Godfather(), Spy(), HitMan(), Thief(), Beastman(), Villain(), Hostess(),
-            Swindler(), Witch(), MadScientist(),
-            Citizen(), Doctor(), Police(), Detective(), Soldier(), Nurse(), Priest(), Shaman(),
-            Fortuneteller(), Ghoul(), Judge(), Politician(), Agent(), Couple(), Vigilante(),
-            Reporter(), Hacker(), Magician(), Martyr(), Prophet(), Mercenary(), Gangster(),
-            Cabal(), Mentalist(), Hypnotist(), Paparazzi(), Administrator()
+            logCreate("Mafia") { Mafia() },
+            logCreate("Godfather") { Godfather() },
+            logCreate("Spy") { Spy() },
+            logCreate("HitMan") { HitMan() },
+            logCreate("Thief") { Thief() },
+            logCreate("Beastman") { Beastman() },
+            logCreate("Villain") { Villain() },
+            logCreate("Hostess") { Hostess() },
+            logCreate("Swindler") { Swindler() },
+            logCreate("Witch") { Witch() },
+            logCreate("MadScientist") { MadScientist() },
+
+            logCreate("Citizen") { Citizen() },
+            logCreate("Doctor") { Doctor() },
+            logCreate("Police") { Police() },
+            logCreate("Detective") { Detective() },
+            logCreate("Soldier") { Soldier() },
+            logCreate("Nurse") { Nurse() },
+            logCreate("Priest") { Priest() },
+            logCreate("Shaman") { Shaman() },
+            logCreate("Fortuneteller") { Fortuneteller() },
+            logCreate("Ghoul") { Ghoul() },
+            logCreate("Judge") { Judge() },
+            logCreate("Politician") { Politician() },
+            logCreate("Agent") { Agent() },
+            logCreate("Couple") { Couple() },
+            logCreate("Vigilante") { Vigilante() },
+            logCreate("Reporter") { Reporter() },
+            logCreate("Hacker") { Hacker() },
+            logCreate("Magician") { Magician() },
+            logCreate("Martyr") { Martyr() },
+            logCreate("Prophet") { Prophet() },
+            logCreate("Mercenary") { Mercenary() },
+            logCreate("Gangster") { Gangster() },
+            logCreate("Cabal") { Cabal() },
+            logCreate("Mentalist") { Mentalist() },
+            logCreate("Hypnotist") { Hypnotist() },
+            logCreate("Paparazzi") { Paparazzi() },
+            logCreate("Administrator") { Administrator() }
         ).forEach(::register)
+
+        println("[JobManager] registerAll end")
+    }
+
+    private fun logCreate(name: String, block: () -> Job): Job {
+        println("[JobManager] create start class=$name")
+        val job = block()
+        println("[JobManager] create success class=$name jobName=${job.name}")
+        return job
     }
 }
