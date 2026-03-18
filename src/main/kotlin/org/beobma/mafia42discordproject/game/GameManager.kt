@@ -33,6 +33,7 @@ object GameManager {
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
 
     private data class AssignmentPlayer(
+        val memberId: Snowflake? = null,
         val name: String,
         val preferences: List<Job>,
         var assignedJob: Job? = null
@@ -104,6 +105,7 @@ object GameManager {
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         val trace = assignJobs(assignmentPlayers)
+        this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannels(event, assignmentPlayers, trace)
 
         deferredResponse.respond {
@@ -160,6 +162,7 @@ object GameManager {
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         val trace = assignJobs(assignmentPlayers)
+        this.applyAssignedJobs(assignmentPlayers)
         publishAssignmentsToAllTextChannelsGuild(guild, assignmentPlayers, trace)
 
         event.message.channel.createMessage(
@@ -176,6 +179,7 @@ object GameManager {
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
         val players = members.map { member ->
             AssignmentPlayer(
+                memberId = member.id,
                 name = member.effectiveName,
                 preferences = JobPreferenceManager.get(member.id.value).orEmpty()
             )
@@ -191,6 +195,18 @@ object GameManager {
         }
 
         return players
+    }
+
+    private fun Game.applyAssignedJobs(players: List<AssignmentPlayer>) {
+        val assignmentByMemberId = players
+            .filter { it.memberId != null }
+            .associateBy { it.memberId }
+
+        playerDatas.forEach { playerData ->
+            val assignment = assignmentByMemberId[playerData.member.id]
+            val assignedJobName = assignment?.assignedJob?.name
+            playerData.job = assignedJobName?.let(JobManager::createByName)
+        }
     }
 
     private fun generateVirtualPreferences(): List<Job> {
