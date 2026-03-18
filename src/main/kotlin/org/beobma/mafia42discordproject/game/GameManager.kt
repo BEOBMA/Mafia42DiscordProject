@@ -61,6 +61,6 @@ object GameManager {
         currentGame = null
 
         val mention = DiscordMessageManager.mention(event.interaction.user)
-        DiscordMessageManager.respondPublic(event, "$mention이(가) 게임을 종료했습니다.")
+        DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
     }
 }
