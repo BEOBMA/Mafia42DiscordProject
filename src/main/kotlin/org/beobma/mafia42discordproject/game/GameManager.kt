@@ -775,18 +775,21 @@ object GameManager {
     }
 
     suspend fun stop(event: MessageCreateEvent) {
+        val gameToStop = currentGame
+
         if (currentGame == null) {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return
         }
+        currentGame!!.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+        currentGame!!.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+
         currentGame = null
         currentGuild = null
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
 
-        currentGame?.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
-        currentGame?.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
     }
