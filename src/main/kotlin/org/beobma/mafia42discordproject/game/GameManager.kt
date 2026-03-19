@@ -4,7 +4,6 @@ import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
-import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.createTextChannel
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
@@ -731,10 +730,10 @@ object GameManager {
     private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted(guild: GuildBehavior) {
         val game = currentGame ?: return
         if (abilitySelectionSessions.isNotEmpty()) return
-        if (game.isRunnig) return
+        if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
-        game.isRunnig = true
+        game.isRunning = true
         publishMessageToAllTextChannels(guild, "✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
         gameLoopJob = gameLoopScope.launch {
             GameLoopManager.runGameLoop(game)

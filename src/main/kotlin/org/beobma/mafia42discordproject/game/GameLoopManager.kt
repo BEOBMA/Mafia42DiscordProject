@@ -1,20 +1,18 @@
 package org.beobma.mafia42discordproject.game
 
-import dev.kord.common.entity.Overwrite
-import dev.kord.common.entity.OverwriteType
+import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
+import dev.kord.common.entity.Snowflake
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
-import io.ktor.client.request.invoke
-import io.ktor.http.invoke
+import dev.kord.rest.builder.component.actionRow
+import dev.kord.rest.builder.component.option
 import kotlinx.coroutines.delay
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
-import org.beobma.mafia42discordproject.game.GameLoopManager.resolveDawnPhase
-import org.beobma.mafia42discordproject.game.GameLoopManager.resolveNightPhase
-import org.beobma.mafia42discordproject.game.GameLoopManager.startNightPhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -279,16 +277,186 @@ object GameLoopManager {
         // ...
     }
 
-    fun startVotePhase(game: Game) {}
+    suspend fun startVotePhase(game: Game) {
+        val mainChannel = game.mainChannel ?: return
 
-    fun resolveVotePhase(game: Game) {}
+        game.currentPhase = GamePhase.VOTE
+        game.currentMainVotes.clear() // 투표 데이터 초기화
 
-    fun startDefensePhase(game: Game, target1: Unit) {}
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
-    fun startProsConsVotePhase(game: Game, target1: Unit) {}
+        mainChannel.createMessage {
+            content = "🗳️ **투표 시간이 되었습니다.** 처형할 의심자를 선택해주세요.\n*(시간 내에 선택하지 않으면 무효표 처리됩니다.)*"
 
-    fun resolveExecutionPhase(game: Game, target1: Unit) {}
+            actionRow {
+                stringSelect("main_vote_select") {
+                    placeholder = "처형할 플레이어 선택"
 
+                    // 💡 기권 없이 오직 생존자 목록만 옵션으로 제공
+                    for (player in alivePlayers) {
+                        option(player.member.effectiveName, player.member.id.toString()) {
+                            description = "이 플레이어에게 투표합니다."
+                        }
+                    }
+                }
+            }
+        }
+    }
+    suspend fun resolveVotePhase(game: Game): PlayerData? {
+        val mainChannel = game.mainChannel ?: return null
+
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val voteCounts = mutableMapOf<PlayerData, Int>()
+        var invalidVoteCount = 0
+
+        // ==========================================
+        // 1. 전체 생존자를 순회하며 투표 검사 및 가중치 적용
+        // ==========================================
+        for (voter in alivePlayers) {
+
+            // 💡 투표 가중치 판정 이벤트 (기본 1표, 정치인 개입 시 3표 등)
+            val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = 1)
+            voter.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                passive.onEventObserved(game, voter, weightEvent)
+            }
+
+            // 이 유저가 투표한 대상 확인
+            val targetIdString = game.currentMainVotes[voter.member.id]
+
+            if (targetIdString == null) {
+                // 💡 시간 내에 투표하지 않은 경우 -> 무효표(invalid)에 가중치만큼 누적
+                invalidVoteCount += weightEvent.weight
+            } else {
+                // 💡 누군가에게 투표한 경우 -> 해당 타겟의 득표수에 가중치만큼 누적
+                val targetId = Snowflake(targetIdString)
+                val target = game.getPlayer(targetId)
+
+                if (target != null) {
+                    voteCounts[target] = (voteCounts[target] ?: 0) + weightEvent.weight
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. 최다 득표자 도출 및 예외 판정 (무효표 다수, 동률)
+        // ==========================================
+        val maxVotes = voteCounts.values.maxOrNull() ?: 0
+
+        // 예외 1: 무효표가 누군가가 받은 최다 표와 같거나 더 많을 때 (또는 아무도 표를 못 받았을 때)
+        if (invalidVoteCount >= maxVotes || maxVotes == 0) {
+            mainChannel.createMessage("⚖️ 무효표가 가장 많거나 같아, 오늘 투표는 **부결**되었습니다.")
+            return null
+        }
+
+        // 예외 2: 최다 득표자가 여러 명(동률)일 때
+        val maxVotedPlayers = voteCounts.filter { it.value == maxVotes }.keys.toList()
+
+        if (maxVotedPlayers.size > 1) {
+            mainChannel.createMessage("⚖️ 최다 득표자가 여러 명(동률)이므로, 오늘 투표는 **부결**되었습니다.")
+            return null
+        }
+
+        // ==========================================
+        // 3. 정상 도출
+        // ==========================================
+        val finalTarget = maxVotedPlayers.first()
+        mainChannel.createMessage("⚖️ 투표 결과, **${finalTarget.member.effectiveName}**님이 최다 득표(${maxVotes}표)로 선정되었습니다.")
+
+        return finalTarget
+    }
+    suspend fun startDefensePhase(game: Game, target: PlayerData) {
+        val mainChannel = game.mainChannel ?: return
+
+        mainChannel.createMessage("⚖️ **${target.member.effectiveName}**님이 최다 득표자로 선정되었습니다. 15초 동안 최후의 반론을 시작합니다.")
+
+        // 1. 서버 전체(@everyone) 발언권 박탈
+        mainChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                denied = Permissions(Permission.SendMessages)
+            }
+
+            // 2. 오직 타겟(최다 득표자)에게만 발언권 임시 부여
+            // (단, 타겟이 마담에게 유혹당한 상태라면 반론도 할 수 없음!)
+            if (!target.state.isSilenced) {
+                addMemberOverwrite(target.member.id) {
+                    allowed = Permissions(Permission.SendMessages)
+                }
+            }
+        }
+
+        // (타이머 대기 후 찬반 투표로 이동)
+    }
+    suspend fun startProsConsVotePhase(game: Game, target: PlayerData) {
+        val mainChannel = game.mainChannel ?: return
+
+        // 찬반 투표 데이터 초기화
+        game.currentPhase = GamePhase.VOTE
+        game.currentProsConsVotes.clear()
+
+        mainChannel.createMessage {
+            content = "⚖️ 최후의 반론이 종료되었습니다.\n**${target.member.effectiveName}**님을 처형하시겠습니까? (10초)\n*(미투표 시 반대(부결)로 처리됩니다)*"
+
+            // 디스코드 Kord 버튼 UI 추가
+            actionRow {
+                interactionButton(ButtonStyle.Success, "vote_pros") {
+                    label = "찬성"
+                    // emoji = DiscordPartialEmoji(name = "👍") // (선택) 이모지 추가
+                }
+                interactionButton(ButtonStyle.Danger, "vote_cons") {
+                    label = "반대"
+                    // emoji = DiscordPartialEmoji(name = "👎") // (선택) 이모지 추가
+                }
+            }
+        }
+    }
+    suspend fun resolveExecutionPhase(game: Game, target: PlayerData) {
+        val mainChannel = game.mainChannel ?: return
+
+        // 1. 단순 과반수 합산 (true=찬성, false=반대)
+        val prosCount = game.currentProsConsVotes.values.count { it == true }
+        val consCount = game.currentProsConsVotes.values.count { it == false }
+        var isApproved = prosCount > consCount // 동률이면 부결 처리
+
+        // 2. 판사 등 찬반 결과 강제 조작 직업의 이벤트 개입
+        val executionEvent = GameEvent.DecideExecution(target, isApproved)
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+
+        for (player in alivePlayers) {
+            player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                passive.onEventObserved(game, player, executionEvent)
+            }
+        }
+
+        // 판사 등 누군가가 결과를 조작했다면 사유 출력
+        if (executionEvent.overrideReason != null) {
+            game.sendMainChannerMessage("🚨 ${executionEvent.overrideReason}")
+        }
+
+        // 3. 최종 판정
+        if (executionEvent.isApproved) {
+            // 처형이 확정된 시점! -> 여기서 정치인의 '처세' 등 처형 회피 이벤트가 한 번 더 발생합니다.
+            val voteExecutionEvent = GameEvent.VoteExecution(target)
+            for (player in alivePlayers) {
+                player.allAbilities.filterIsInstance<PassiveAbility>().forEach { passive ->
+                    passive.onEventObserved(game, player, voteExecutionEvent)
+                }
+            }
+
+            if (voteExecutionEvent.isCancelled) {
+                // 정치인 처세 발동 등으로 처형 무효화
+                game.sendMainChannerMessage("🛡️ ${voteExecutionEvent.cancelReason}")
+            } else {
+                // 진짜 최종 사망 처리
+                target.state.isDead = true
+                game.sendMainChannerMessage("💀 투표 결과 (찬성 $prosCount : 반대 $consCount)로 **${target.member.effectiveName}**님이 처형되었습니다.")
+
+                // 유품을 위한 처형 사망 이벤트 기록
+                game.nightEvents.add(GameEvent.PlayerDied(target, isLynch = true))
+            }
+        } else {
+            game.sendMainChannerMessage("🕊️ 투표 결과 (찬성 $prosCount : 반대 $consCount)로 처형이 **부결**되었습니다.")
+        }
+    }
     fun checkWinCondition(game: Game): Team? {
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mafiaCount = alivePlayers.count { it.job is Evil }
@@ -303,7 +471,7 @@ object GameLoopManager {
     }
     
     suspend fun endGame(game: Game, winningTeam: Team) {
-        game.isRunnig = false // 상태 플래그 변경
+        game.isRunning = false // 상태 플래그 변경
 
         // 디스코드 Embed 메시지로 결과 발표
         /*
@@ -328,7 +496,7 @@ object GameLoopManager {
 
     // 코루틴 루프 예시 (GameManager.kt)
     suspend fun runGameLoop(game: Game) {
-        while (game.isRunnig) {
+        while (game.isRunning) {
 
             startNightPhase(game)
             game.sendMainChannerMessage("NightPhase")
@@ -355,7 +523,7 @@ object GameLoopManager {
             startVotePhase(game)
             delay(15_000L) // 15초 투표 시간
 
-            val target = resolveVotePhase(game)
+            val target: PlayerData? = resolveVotePhase(game)
             if (target != null) {
                 startDefensePhase(game, target)
                 delay(15_000L) // 반론 시간
