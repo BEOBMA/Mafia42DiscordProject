@@ -585,16 +585,11 @@ object GameManager {
             abilitySelectionSessions[player.member.id] = session
 
             val guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = false)
-            player.member.getDmChannel().createMessage(
-                buildString {
-                    appendLine(".")
-                    appendLine(".")
-                    appendLine(".")
-                    appendLine(".")
-                    appendLine(".")
-                    appendLine(".")
+            job.jobImage
+                ?.takeIf { it.isNotBlank() }
+                ?.let { imageUrl ->
+                    player.member.getDmChannel().createMessage(imageUrl)
                 }
-            )
             runCatching {
                 player.member.getDmChannel().createMessage(
                     buildString {
