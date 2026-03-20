@@ -16,28 +16,17 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
-    override val description: String = "현재 사용할 수 있는 능력을 사용합니다."
+    override val description: String = "..."
 
-    private const val abilityOptionName = "능력"
-    private const val targetOptionName = "대상"
+    private const val abilityOptionName = "use_ability"
+    private const val targetOptionName = "use_target"
     private const val maxAutoCompleteChoices = 25
-
-    override suspend fun registerGlobal(kord: Kord) {
-        kord.createGlobalChatInputCommand(name, description) {
-            registerOptions()
-        }
-    }
-
-    override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
-        kord.createGuildChatInputCommand(guildId, name, description) {
-            registerOptions()
-        }
-    }
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val interaction = event.interaction
         val focusedEntry = interaction.command.options.entries
             .firstOrNull { it.value.focused } ?: return
+
         if (focusedEntry.key != abilityOptionName) return
 
         val game = GameManager.getCurrentGameFor(interaction.user.id) ?: return
