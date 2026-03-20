@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.game
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
 import dev.kord.core.entity.channel.TextChannel
+import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 
@@ -33,6 +34,8 @@ data class Game(
     val nightDeathCandidates: MutableList<PlayerData> = mutableListOf()
     val nightEvents: MutableList<GameEvent> = mutableListOf()
     var lastNightSummary: NightResolutionSummary = NightResolutionSummary()
+
+    // 투표
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
 

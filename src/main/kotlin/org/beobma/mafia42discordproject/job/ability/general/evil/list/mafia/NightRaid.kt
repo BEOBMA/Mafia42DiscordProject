@@ -10,10 +10,9 @@ import org.beobma.mafia42discordproject.job.definition.list.Doctor
 
 class NightRaid : JobUniqueAbility, PassiveAbility {
     override val name: String = "야습"
-    override val description: String = "첫날 밤 의사를 처형 대상으로 지정하면 새벽 연출을 바꿉니다."
+    override val description: String = "첫 날 처형하는 대상이 치료 상태의 의사일 경우, 치료 효과를 무시하며 의사의 정체가 모두에게 알려진다."
 
-    private val nightRaidImageUrl =
-        "https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"
+    private val nightRaidImageUrl = ""
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {
         if (event !is GameEvent.ResolveDawnPresentation) return
@@ -24,7 +23,7 @@ class NightRaid : JobUniqueAbility, PassiveAbility {
 
         event.presentation = DawnPresentation(
             imageUrl = nightRaidImageUrl,
-            message = "야습이 발동해 새벽 연출이 변경되었습니다."
+            message = "의사 ${mafiaAttack.target.member.nickname}님이 마피아의 야습으로 사망하였습니다."
         )
     }
 }
