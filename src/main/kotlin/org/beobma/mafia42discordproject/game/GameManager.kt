@@ -678,8 +678,8 @@ object GameManager {
         if (selectedUniqueAbility != null && player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
             player.job?.abilities?.add(selectedUniqueAbility)
         }
-        if (player.extraAbilities.none { it.name == pickedAbility.name }) {
-            player.extraAbilities += pickedAbility
+        if (player.job?.extraAbilities?.none { it.name == pickedAbility.name } == true) {
+            player.job?.extraAbilities?.add(pickedAbility)
         }
         session.selected += pickedAbility
         session.completedRounds += 1
