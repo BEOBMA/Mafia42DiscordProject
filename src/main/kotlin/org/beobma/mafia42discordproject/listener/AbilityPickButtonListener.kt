@@ -16,6 +16,12 @@ object AbilityPickButtonListener : InteractionListener {
                 val pickNumber = GameManager.parseAbilityPickButtonId(interaction.componentId) ?: return@onEach
                 val deferredResponse = interaction.deferPublicResponse()
 
+                runCatching {
+                    interaction.message.edit {
+                        components = mutableListOf()
+                    }
+                }
+
                 val resultMessage = GameManager.selectExtraAbility(interaction.user.id, pickNumber)
                 val snapshot = GameManager.getAbilitySelectionSession(interaction.user.id)
 
