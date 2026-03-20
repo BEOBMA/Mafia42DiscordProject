@@ -11,17 +11,25 @@ sealed class GameEvent {
         var defenseTier: DefenseTier
     ) : GameEvent()
 
-    data class JobDiscovered(
-        val discoverer: PlayerData,
-        val target: PlayerData,
-        val discoveredJob: Job
-    ) : GameEvent()
-
     data class PlayerDied(
         val victim: PlayerData,
         val isLynch: Boolean = false,
         var isCleanedUp: Boolean = false
     ) : GameEvent()
+
+    data class JobDiscovered(
+        val discoverer: PlayerData,
+        val target: PlayerData,
+        val actualJob: Job,
+        var revealedJob: Job,
+        val sourceAbilityName: String? = null,
+        val resolvedAt: DiscoveryStep,
+        var isFalsified: Boolean = false,
+        var note: String? = null,
+        val sharedByPaparazzi: Boolean = false,
+        val triggeredByTact: Boolean = false
+    ) : GameEvent()
+
 
     data class CalculateVoteWeight(
         val voter: PlayerData,
