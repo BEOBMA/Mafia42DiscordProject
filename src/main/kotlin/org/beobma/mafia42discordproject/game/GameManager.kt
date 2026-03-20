@@ -13,6 +13,7 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
+import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -616,6 +617,18 @@ object GameManager {
         assignVirtualPlayerExtraAbilities(players)
     }
 
+    private fun appendAbilityImages(
+        builder: StringBuilder,
+        abilities: List<Ability>
+    ) {
+        abilities
+            .map(Ability::image)
+            .filter { it.isNotBlank() }
+            .forEach { imageUrl ->
+                builder.appendLine(imageUrl)
+            }
+    }
+
     private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
         val virtualPlayers = players.filter { it.memberId == null }
         virtualPlayers.forEach { virtualPlayer ->
@@ -709,22 +722,21 @@ object GameManager {
         return options
     }
 
-    private fun buildAbilitySelectionGuideMessage(
-    ): String {
+    private fun buildAbilitySelectionGuideMessage(session1: AbilitySelectionSession, includeProgress: Boolean): String {
         return buildString {
             append("능력 중 하나를 선택하세요.")
         }
     }
 
-    private fun appendAbilityImages(
-        builder: StringBuilder,
+    private suspend fun sendAbilityImages(
+        dmChannel: DmChannel,
         abilities: List<Ability>
     ) {
         abilities
             .map(Ability::image)
             .filter { it.isNotBlank() }
             .forEach { imageUrl ->
-                builder.appendLine(imageUrl)
+                dmChannel.createMessage(imageUrl)
             }
     }
 
@@ -739,7 +751,7 @@ object GameManager {
     fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
         val session = abilitySelectionSessions[userId] ?: return null
         return AbilitySelectionSnapshot(
-            guideMessage = buildAbilitySelectionGuideMessage(),
+            guideMessage = buildAbilitySelectionGuideMessage(session, true),
             optionCount = session.currentOptions.size
         )
     }
@@ -752,10 +764,10 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         val dm = buildString {
-            appendLine("능력 중 하나를 선택하세요.")
-            appendAbilityImages(this, session.currentOptions)
+            append("능력 중 하나를 선택하세요.")
         }
         dmChannel.createMessage(dm)
+        sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }
 
@@ -767,7 +779,7 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         dmChannel.createMessage {
-            content = buildAbilitySelectionGuideMessage()
+            content = buildAbilitySelectionGuideMessage(session, true)
             actionRow {
                 session.currentOptions.forEachIndexed { index, _ ->
                     interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
