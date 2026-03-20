@@ -13,7 +13,6 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
-import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -588,18 +587,19 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
-            job.jobImage
-                ?.takeIf { it.isNotBlank() }
-                ?.let { imageUrl ->
-                    player.member.getDmChannel().createMessage(imageUrl)
-                }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
-                sendAbilityImages(dmChannel, job.abilities)
-                sendAbilityImages(dmChannel, session.currentOptions)
+                val introMessage = buildString {
+                    job.jobImage
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { appendLine(it) }
+                    appendAbilityImages(this, job.abilities)
+                    appendAbilityImages(this, session.currentOptions)
+                    append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+                }
 
                 dmChannel.createMessage {
-                    content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
+                    content = introMessage
                     actionRow {
                         session.currentOptions.forEachIndexed { index, _ ->
                             interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
@@ -721,15 +721,15 @@ object GameManager {
         }
     }
 
-    private suspend fun sendAbilityImages(
-        dmChannel: DmChannel,
+    private fun appendAbilityImages(
+        builder: StringBuilder,
         abilities: List<Ability>
     ) {
         abilities
             .map(Ability::image)
             .filter { it.isNotBlank() }
             .forEach { imageUrl ->
-                dmChannel.createMessage(imageUrl)
+                builder.appendLine(imageUrl)
             }
     }
 
@@ -757,10 +757,10 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         val dm = buildString {
-            append("능력 중 하나를 선택하세요.")
+            appendLine("능력 중 하나를 선택하세요.")
+            appendAbilityImages(this, session.currentOptions)
         }
         dmChannel.createMessage(dm)
-        sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }
 

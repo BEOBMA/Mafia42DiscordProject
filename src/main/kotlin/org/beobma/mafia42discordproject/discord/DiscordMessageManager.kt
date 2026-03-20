@@ -49,13 +49,7 @@ object DiscordMessageManager {
     }
 
     suspend fun Game.sendMainChannelMessageWithImage(imageLink: String, message: String) {
-        val mainChannel = this.mainChannel ?: return
-        mainChannel.createMessage {
-            content = buildString {
-                appendLine(imageLink)
-                append(message)
-            }
-        }
+        sendMainChannerCombinedMessage(imageLink, message)
     }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
