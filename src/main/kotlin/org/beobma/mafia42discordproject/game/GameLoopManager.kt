@@ -46,12 +46,23 @@ object GameLoopManager {
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         updateTimeStatusMessage(game, label, durationMillis)
         delay(durationMillis.coerceAtLeast(0L))
+        updateTimeStatusMessageAtZero(game, label)
     }
 
     private suspend fun updateTimeStatusMessage(game: Game, phaseLabel: String, remainingMillis: Long) {
-        val statusMessage = ensureTimeStatusMessage(game) ?: return
         val targetEpochSeconds = ((System.currentTimeMillis() + remainingMillis) / 1_000L).coerceAtLeast(0L)
         val content = "${game.dayCount}일차 $phaseLabel - <t:${targetEpochSeconds}:R>"
+
+        editTimeStatusMessage(game, content)
+    }
+
+    private suspend fun updateTimeStatusMessageAtZero(game: Game, phaseLabel: String) {
+        val content = "${game.dayCount}일차 $phaseLabel - 0초"
+        editTimeStatusMessage(game, content)
+    }
+
+    private suspend fun editTimeStatusMessage(game: Game, content: String) {
+        val statusMessage = ensureTimeStatusMessage(game) ?: return
 
         runCatching {
             statusMessage.edit {
