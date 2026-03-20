@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
@@ -744,7 +745,7 @@ object GameManager {
         if (gameLoopJob?.isActive == true) return
 
         game.isRunning = true
-        publishMessageToAllTextChannels(guild, "✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
+        game.sendMainChannerMessage("✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
         gameLoopJob = gameLoopScope.launch {
             GameLoopManager.runGameLoop(game)
         }
