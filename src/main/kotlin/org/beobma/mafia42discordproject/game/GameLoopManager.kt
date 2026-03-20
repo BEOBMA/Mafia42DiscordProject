@@ -7,6 +7,9 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
+import dev.kord.core.entity.Message
+import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.channel.thread.TextChannelThread
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
@@ -72,7 +75,6 @@ object GameLoopManager {
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
-        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
         game.playerDatas.forEach { player ->
             runCatching {
@@ -88,6 +90,7 @@ object GameLoopManager {
                 allowed = Permissions(Permission.UseApplicationCommands)
             }
         }
+        updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
 
         mafiaChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -161,6 +164,9 @@ object GameLoopManager {
         summary: NightResolutionSummary = game.lastNightSummary
     ) {
         val mainChannel = game.mainChannel ?: return
+        val mafiaChannel = game.mafiaChannel ?: return
+
+        // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
         val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(summary.deaths)
 
@@ -198,6 +204,40 @@ object GameLoopManager {
             runCatching {
                 player.member.edit {
                     muted = shouldMute
+                }
+            }
+        }
+    }
+
+    private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
+        mafiaChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+
+            game.playerDatas.forEach { player ->
+                if (player.job is Evil) {
+                    val canSend = isNight && !player.state.isDead
+                    addMemberOverwrite(player.member.id) {
+                        allowed = Permissions(Permission.ViewChannel)
+                        denied = if (canSend) {
+                            Permissions(Permission.ReadMessageHistory)
+                        } else {
+                            Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                        }
+                    }
+                } else {
+                    addMemberOverwrite(player.member.id) {
+                        denied = Permissions(
+                            Permission.ViewChannel,
+                            Permission.ReadMessageHistory,
+                            Permission.SendMessages
+                        )
+                    }
                 }
             }
         }
