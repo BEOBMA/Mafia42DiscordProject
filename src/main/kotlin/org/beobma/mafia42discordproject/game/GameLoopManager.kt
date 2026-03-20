@@ -29,6 +29,8 @@ object GameLoopManager {
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val TIMER_TICK_MS = 1_000L
+    private const val QUIET_NIGHT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&"
+    private const val DEATH_NIGHT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"
 
     fun resetTimeThreadState() = Unit
 
@@ -131,10 +133,12 @@ object GameLoopManager {
         }
 
         val processedEvents = dispatchEvents(game)
+        val deaths = playersToDie.toList()
         val summary = NightResolutionSummary(
             processedEvents = processedEvents,
-            deaths = playersToDie.toList(),
-            blockedAttacks = blockedAttacks.toList()
+            deaths = deaths,
+            blockedAttacks = blockedAttacks.toList(),
+            dawnPresentation = buildDawnPresentation(game, deaths)
         )
         game.lastNightSummary = summary
 
@@ -152,17 +156,16 @@ object GameLoopManager {
         game.lastNightSummary = summary
     }
 
-    suspend fun startDayPhase(game: Game, diedLastNight: List<PlayerData> = game.lastNightSummary.deaths) {
+    suspend fun startDayPhase(
+        game: Game,
+        summary: NightResolutionSummary = game.lastNightSummary
+    ) {
         val mainChannel = game.mainChannel ?: return
         game.currentPhase = GamePhase.DAY
+        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(summary.deaths)
 
-        if (diedLastNight.isEmpty()) {
-            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&")
-            game.sendMainChannerMessage("조용한 밤이 지나갔습니다.")
-        } else {
-            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&")
-            game.sendMainChannerMessage("밤 사이 사망자: ${diedLastNight.joinToString { it.member.effectiveName }}")
-        }
+        game.sendMainChannerImage(dawnPresentation.imageUrl)
+        game.sendMainChannerMessage(dawnPresentation.message)
         delay(3_000L)
 
         mainChannel.edit {
@@ -380,7 +383,7 @@ object GameLoopManager {
             resolveDawnPhase(game, nightSummary)
             runPhaseCountdown(game, "Dawn ${game.dayCount}", DAWN_DURATION_MS)
 
-            startDayPhase(game, nightSummary.deaths)
+            startDayPhase(game, nightSummary)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
             runPhaseCountdown(game, "Day ${game.dayCount}", discussionMillis.toLong())
 
@@ -411,6 +414,42 @@ object GameLoopManager {
         target.state.healTier = maxOf(target.state.healTier, DefenseTier.ABSOLUTE)
         if (target.state.healTier.level >= attackEvent.attackTier.level) {
             target.state.hasUsedOneTimeAbility = true
+        }
+    }
+
+    private fun buildDawnPresentation(game: Game, deaths: List<PlayerData>): DawnPresentation {
+        val presentationEvent = GameEvent.ResolveDawnPresentation(
+            dayCount = game.dayCount,
+            attacks = game.nightAttacks.values.toList(),
+            deaths = deaths,
+            presentation = buildDefaultDawnPresentation(deaths)
+        )
+
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { player ->
+                player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onEventObserved(game, player, presentationEvent)
+                    }
+            }
+
+        return presentationEvent.presentation
+    }
+
+    private fun buildDefaultDawnPresentation(deaths: List<PlayerData>): DawnPresentation {
+        return if (deaths.isEmpty()) {
+            DawnPresentation(
+                imageUrl = QUIET_NIGHT_IMAGE_URL,
+                message = "조용한 밤이 지나갔습니다."
+            )
+        } else {
+            DawnPresentation(
+                imageUrl = DEATH_NIGHT_IMAGE_URL,
+                message = "밤 사이 사망자: ${deaths.joinToString { it.member.effectiveName }}"
+            )
         }
     }
 

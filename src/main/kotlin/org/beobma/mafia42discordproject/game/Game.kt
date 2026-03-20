@@ -8,10 +8,16 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 
+data class DawnPresentation(
+    val imageUrl: String,
+    val message: String
+)
+
 data class NightResolutionSummary(
     val processedEvents: List<GameEvent> = emptyList(),
     val deaths: List<PlayerData> = emptyList(),
-    val blockedAttacks: List<AttackEvent> = emptyList()
+    val blockedAttacks: List<AttackEvent> = emptyList(),
+    val dawnPresentation: DawnPresentation? = null
 )
 
 data class Game(
