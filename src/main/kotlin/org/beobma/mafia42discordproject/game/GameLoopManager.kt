@@ -562,12 +562,12 @@ object GameLoopManager {
         return if (mafiaKillVictim == null) {
             DawnPresentation(
                 imageUrl = QUIET_NIGHT_IMAGE_URL,
-                message = "조용하게 밤이 지나갔습니다."
+                message = "조용하게 밤이 넘어갔습니다."
             )
         } else {
             DawnPresentation(
                 imageUrl = DEATH_NIGHT_IMAGE_URL,
-                message = "밤 사이 사망자: ${mafiaKillVictim.member.effectiveName}"
+                message = "${mafiaKillVictim.member.effectiveName}이(가) 살해당했습니다."
             )
         }
     }
