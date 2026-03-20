@@ -732,12 +732,12 @@ object GameManager {
         dmChannel: DmChannel,
         abilities: List<Ability>
     ) {
-        abilities
+        val imageUrls = abilities
             .map(Ability::image)
             .filter { it.isNotBlank() }
-            .forEach { imageUrl ->
-                dmChannel.createMessage(imageUrl)
-            }
+        if (imageUrls.isEmpty()) return
+
+        dmChannel.createMessage(imageUrls.joinToString("\n"))
     }
 
     fun parseAbilityPickButtonId(componentId: String): Int? {
