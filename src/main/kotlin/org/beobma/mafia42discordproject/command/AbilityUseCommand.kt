@@ -106,4 +106,16 @@ object AbilityUseCommand : DiscordCommand {
             required = false
         }
     }
+
+    override suspend fun registerGlobal(kord: Kord) {
+        kord.createGlobalChatInputCommand(name, description) {
+            registerOptions()
+        }
+    }
+
+    override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
+        kord.createGuildChatInputCommand(guildId, name, description) {
+            registerOptions()
+        }
+    }
 }
