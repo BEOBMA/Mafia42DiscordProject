@@ -13,6 +13,7 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
+import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -741,7 +742,7 @@ object GameManager {
     }
 
     private suspend fun sendAbilityImages(
-        dmChannel: dev.kord.core.behavior.channel.DmChannelBehavior,
+        dmChannel: DmChannel,
         abilities: List<Ability>
     ) {
         abilities
