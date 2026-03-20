@@ -670,7 +670,7 @@ object GameManager {
         }
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
-        val selectedUniqueAbility = pickedAbility.toJobUniqueAbility()
+        val selectedUniqueAbility = pickedAbility as JobUniqueAbility
         if (player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
             player.job?.abilities?.add(selectedUniqueAbility)
         }
@@ -699,13 +699,13 @@ object GameManager {
                 tryStartGameLoopWhenAbilitySelectionCompleted(guild)
             }
             return buildString {
-                appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
+                appendLine("**${pickedAbility.name}** 능력을 선택했습니다.")
                 appendLine("추가로 제시할 수 있는 능력이 없어 선택 단계를 종료합니다.")
                 append("현재 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
             }
         }
 
-        return "✅ ${pickedAbility.name} 능력을 선택했습니다. 다음 능력을 선택해 주세요."
+        return "**${pickedAbility.name}** 능력을 선택했습니다. 다음 능력을 선택해 주세요."
     }
 
     private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
@@ -718,12 +718,6 @@ object GameManager {
         return options
     }
 
-    private fun Ability.toJobUniqueAbility(): JobUniqueAbility =
-        this as? JobUniqueAbility ?: object : JobUniqueAbility {
-            override val name: String = this@toJobUniqueAbility.name
-            override val description: String = this@toJobUniqueAbility.description
-        }
-
     private fun buildAbilitySelectionGuideMessage(
         session: AbilitySelectionSession,
         includeProgress: Boolean
@@ -731,7 +725,7 @@ object GameManager {
         return buildString {
             if (includeProgress) {
                 appendLine(
-                    "진행도: ${session.completedRounds + 1}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
+                    "${session.completedRounds + 1}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
                 )
             }
 

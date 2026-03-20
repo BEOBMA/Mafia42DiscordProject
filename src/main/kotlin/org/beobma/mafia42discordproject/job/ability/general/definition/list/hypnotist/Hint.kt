@@ -17,5 +17,6 @@ import kotlin.reflect.KClass
 class Hint : Ability, JobSpecificExtraAbility {
     override val name: String = "암시"
     override val description: String = "최면 대상이 사망할 경우, 직업을 알아낸다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484608906784280717/bc7389fe0d0a070b.png?ex=69bed94a&is=69bd87ca&hm=2ef2f74259e68b0d6fecf17a96695bbeb8d2d487aefbc9d8d780cde5a63106f8&"
     override val targetJob: List<KClass<out Job>> = listOf(Hypnotist::class)
 }

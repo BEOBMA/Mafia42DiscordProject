@@ -12,6 +12,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처형"
     override val description: String = "밤에 대상을 지정해 사망 후보 리스트에 올립니다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619430263521330/930fdad0076c57b6.png?ex=69bee317&is=69bd9197&hm=a0fb01e23944eb5f0cab3ad595509ef41f6716f9a897e2f1a204de8c083a7d3e&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     private val attackKey = "MAFIA_TEAM"
