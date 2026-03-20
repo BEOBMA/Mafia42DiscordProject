@@ -591,7 +591,11 @@ object GameManager {
             job.jobImage
                 ?.takeIf { it.isNotBlank() }
                 ?.let { imageUrl ->
-                    player.member.getDmChannel().createMessage(imageUrl)
+                    player.member.getDmChannel().createMessage {
+                        embed {
+                            image = imageUrl
+                        }
+                    }
                 }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
@@ -730,7 +734,11 @@ object GameManager {
             .map(Ability::image)
             .filter { it.isNotBlank() }
             .forEach { imageUrl ->
-                dmChannel.createMessage(imageUrl)
+                dmChannel.createMessage {
+                    embed {
+                        image = imageUrl
+                    }
+                }
             }
     }
 

@@ -13,15 +13,26 @@ object DiscordMessageManager {
 
     fun mentions(users: List<User>): String = users.joinToString("\n") { "• ${it.mention}" }
 
-    suspend fun Game.sendMainChannerMessage(msg: String) {
+    suspend fun Game.sendMainChannerMessage(msg: String, imageUrl: String? = null) {
         val mainChannel = this.mainChannel ?: return
-        mainChannel.createMessage(msg)
+        mainChannel.createMessage {
+            content = buildString {
+                append(msg)
+            }
+            imageUrl?.takeIf { it.isNotBlank() }?.let { embedImageUrl ->
+                embed {
+                    image = embedImageUrl
+                }
+            }
+        }
     }
 
     suspend fun Game.sendMainChannerImage(imageLink: String) {
         val mainChannel = this.mainChannel ?: return
         mainChannel.createMessage {
-            content = imageLink
+            embed {
+                image = imageLink
+            }
         }
     }
 
