@@ -674,8 +674,8 @@ object GameManager {
         }
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
-        val selectedUniqueAbility = pickedAbility as JobUniqueAbility
-        if (player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
+        val selectedUniqueAbility = pickedAbility as? JobUniqueAbility
+        if (selectedUniqueAbility != null && player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
             player.job?.abilities?.add(selectedUniqueAbility)
         }
         if (player.extraAbilities.none { it.name == pickedAbility.name }) {
