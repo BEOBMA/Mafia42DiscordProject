@@ -594,7 +594,11 @@ object GameManager {
                     job.jobImage
                         ?.takeIf { it.isNotBlank() }
                         ?.let { appendLine(it) }
-                    appendAbilityImages(this, job.abilities)
+                    val ownedAbilityImageCount = appendAbilityImages(this, job.abilities)
+                    val selectableAbilityImageCount = session.currentOptions.count { it.image.isNotBlank() }
+                    if (ownedAbilityImageCount > 0 && selectableAbilityImageCount > 0) {
+                        appendLine()
+                    }
                     appendAbilityImages(this, session.currentOptions)
                     append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
                 }
@@ -620,13 +624,16 @@ object GameManager {
     private fun appendAbilityImages(
         builder: StringBuilder,
         abilities: List<Ability>
-    ) {
+    ): Int {
+        var count = 0
         abilities
             .map(Ability::image)
             .filter { it.isNotBlank() }
             .forEach { imageUrl ->
                 builder.appendLine(imageUrl)
+                count += 1
             }
+        return count
     }
 
     private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
