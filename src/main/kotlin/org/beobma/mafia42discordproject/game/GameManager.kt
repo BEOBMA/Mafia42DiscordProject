@@ -13,7 +13,6 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
-import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.blindImageLinkIfNeeded
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
@@ -588,16 +588,36 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
-            job.jobImage
-                ?.takeIf { it.isNotBlank() }
-                ?.let { imageUrl ->
-                    player.member.getDmChannel().createMessage(imageUrl)
-                }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
-                sendAbilityImages(dmChannel, job.abilities)
-                dmChannel.createMessage(".")
-                sendAbilityImages(dmChannel, session.currentOptions)
+                val baseAbilityImages = buildList {
+                    job.jobImage
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let(::add)
+                    addAll(
+                        job.abilities
+                            .map(Ability::image)
+                            .filter { it.isNotBlank() }
+                    )
+                }
+                if (baseAbilityImages.isNotEmpty()) {
+                    dmChannel.createMessage(
+                        baseAbilityImages.joinToString("\n") { blindImageLinkIfNeeded(it) }
+                    )
+                }
+                val selectableAbilityImages = session.currentOptions
+                    .map(Ability::image)
+                    .filter { it.isNotBlank() }
+                if (selectableAbilityImages.isNotEmpty()) {
+                    dmChannel.createMessage(
+                        buildString {
+                            appendLine(".")
+                            appendLine(".")
+                            appendLine(".")
+                            append(selectableAbilityImages.joinToString("\n") { blindImageLinkIfNeeded(it) })
+                        }
+                    )
+                }
 
                 dmChannel.createMessage {
                     content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
@@ -722,18 +742,6 @@ object GameManager {
         }
     }
 
-    private suspend fun sendAbilityImages(
-        dmChannel: DmChannel,
-        abilities: List<Ability>
-    ) {
-        abilities
-            .map(Ability::image)
-            .filter { it.isNotBlank() }
-            .forEach { imageUrl ->
-                dmChannel.createMessage(imageUrl)
-            }
-    }
-
     fun parseAbilityPickButtonId(componentId: String): Int? {
         val prefix = "ability_pick_"
         if (!componentId.startsWith(prefix)) return null
@@ -758,10 +766,16 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         val dm = buildString {
-            append("능력 중 하나를 선택하세요.")
+            appendLine("능력 중 하나를 선택하세요.")
+            session.currentOptions
+                .map(Ability::image)
+                .filter { it.isNotBlank() }
+                .forEachIndexed { index, image ->
+                    if (index > 0) appendLine()
+                    append(blindImageLinkIfNeeded(image))
+                }
         }
         dmChannel.createMessage(dm)
-        sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }
 
