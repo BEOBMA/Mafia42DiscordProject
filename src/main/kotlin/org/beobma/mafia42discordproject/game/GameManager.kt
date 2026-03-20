@@ -596,7 +596,6 @@ object GameManager {
             runCatching {
                 val dmChannel = player.member.getDmChannel()
                 sendAbilityImages(dmChannel, job.abilities)
-                dmChannel.createMessage(".")
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {

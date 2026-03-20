@@ -342,13 +342,16 @@ object GameLoopManager {
                 }
         }
 
-        executionEvent.overrideReason?.let { reason ->
-            mainChannel.createMessage(reason)
-        }
-
         if (!executionEvent.isApproved) {
             game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
-            mainChannel.createMessage("${target.member.effectiveName}님의 처형이 부결되었습니다.")
+            mainChannel.createMessage(
+                buildString {
+                    executionEvent.overrideReason?.let { reason ->
+                        appendLine(reason)
+                    }
+                    append("${target.member.effectiveName}님의 처형이 부결되었습니다.")
+                }
+            )
             return
         }
 
