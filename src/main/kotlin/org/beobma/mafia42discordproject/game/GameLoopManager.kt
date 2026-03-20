@@ -29,6 +29,10 @@ object GameLoopManager {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount++
 
+        game.mainChannel?.edit {
+            name = "${game.dayCount}일차 밤"
+        }
+        game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&")
         game.sendMainChannerMessage("밤이 되었습니다.")
 
 
@@ -231,6 +235,9 @@ object GameLoopManager {
         game.sendMainChannerMessage(deathMessage)
         delay(3_000L) // 3초 딜레이
 
+        game.mainChannel?.edit {
+            name = "${game.dayCount}일차 낮"
+        }
         game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&")
         game.sendMainChannerMessage("날이 밝았습니다.")
 

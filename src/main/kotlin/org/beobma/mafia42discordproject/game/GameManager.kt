@@ -745,7 +745,6 @@ object GameManager {
         if (gameLoopJob?.isActive == true) return
 
         game.isRunning = true
-        game.sendMainChannerMessage("✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
         gameLoopJob = gameLoopScope.launch {
             GameLoopManager.runGameLoop(game)
         }
@@ -816,8 +815,6 @@ object GameManager {
 
         game.mainChannel = mainChat
         game.mafiaChannel = mafiaChat
-
-        mafiaChat.createMessage("마피아 전용채널")
     }
 
     // 지목투표 데이터 저장
