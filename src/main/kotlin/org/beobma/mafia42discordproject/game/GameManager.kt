@@ -588,6 +588,11 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
+            job.jobImage
+                ?.takeIf { it.isNotBlank() }
+                ?.let { imageUrl ->
+                    player.member.getDmChannel().createMessage(imageUrl)
+                }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
                 dmChannel.createMessage(
@@ -603,14 +608,9 @@ object GameManager {
                     }
                 )
 
-                job.jobImage
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { imageUrl ->
-                        dmChannel.createMessage("직업 이미지: $imageUrl")
-                    }
-                dmChannel.createMessage("직업 기본 능력 이미지")
+                dmChannel.createMessage("직업 기본 능력")
                 sendAbilityImages(dmChannel, job.abilities)
-                dmChannel.createMessage("현재 라운드 선택지 능력 이미지")
+                dmChannel.createMessage("현재 라운드 선택지 능력")
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {
@@ -735,11 +735,7 @@ object GameManager {
                 )
             }
 
-            appendLine("아래 능력 중 하나를 선택해 주세요.")
-            session.currentOptions.forEachIndexed { index, ability ->
-                appendLine("${index + 1}. ${ability.name}")
-            }
-            append("각 번호의 이미지(위에 전송된 URL)를 확인한 뒤 아래 버튼으로 선택해 주세요.")
+            appendLine("능력 중 하나를 선택해 주세요.")
         }
     }
 
