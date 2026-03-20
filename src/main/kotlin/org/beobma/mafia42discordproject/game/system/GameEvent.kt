@@ -11,6 +11,12 @@ sealed class GameEvent {
         var defenseTier: DefenseTier
     ) : GameEvent()
 
+    data class HealSucceeded(
+        val healer: PlayerData,
+        val target: PlayerData,
+        val blockedAttack: AttackEvent
+    ) : GameEvent()
+
     data class PlayerDied(
         val victim: PlayerData,
         val isLynch: Boolean = false,
