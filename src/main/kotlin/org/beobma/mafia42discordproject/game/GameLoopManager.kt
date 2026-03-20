@@ -51,17 +51,21 @@ object GameLoopManager {
 
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
         val thread = thread ?: return
-        val timerMessage = "**$label**\n - 남은 시간: <t:$targetUnixSeconds:R>"
+        val countdownMessage = "**$label**\n - 남은 시간: <t:$targetUnixSeconds:R>"
 
         if (this.timerMessage == null) {
-            this.timerMessage = thread.createMessage(timerMessage)
+            this.timerMessage = thread.createMessage(countdownMessage)
         } else {
             this.timerMessage?.edit {
-                content = timerMessage
+                content = countdownMessage
             }
         }
 
         delay(durationMillis)
+
+        this.timerMessage?.edit {
+            content = "**$label**\n - 남은 시간: 0초"
+        }
     }
 
     suspend fun startNightPhase(game: Game) {
