@@ -14,7 +14,6 @@ import dev.kord.rest.builder.component.option
 import kotlinx.coroutines.delay
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
-import org.beobma.mafia42discordproject.discord.DiscordMessageManager.setMainChannerTitleName
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -38,7 +37,7 @@ object GameLoopManager {
 
         runCatching {
             game.guild.getMember(game.guild.kord.selfId).edit {
-                nick = timerName.take(32)
+                nickname = timerName.take(32)
             }
         }
     }
@@ -56,7 +55,6 @@ object GameLoopManager {
     suspend fun startNightPhase(game: Game) {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount++
-
         game.mainChannel?.edit {
             name = "${game.dayCount}일차 밤"
         }
