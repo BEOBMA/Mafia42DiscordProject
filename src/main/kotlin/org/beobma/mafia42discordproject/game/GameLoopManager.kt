@@ -7,7 +7,9 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
+import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.channel.ThreadChannel
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
@@ -36,14 +38,76 @@ object GameLoopManager {
     private const val DEATH_NIGHT_IMAGE_URL =
         "https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"
 
-    fun resetTimeThreadState() = Unit
+    private const val TIME_THREAD_NAME = "시간"
+
+    private var timeThreadChannel: ThreadChannel? = null
+    private var timeStatusMessage: Message? = null
+
+    fun resetTimeThreadState() {
+        timeThreadChannel = null
+        timeStatusMessage = null
+    }
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         var remainingMillis = durationMillis
+        updateTimeStatusMessage(game, label, remainingMillis)
         while (remainingMillis > 0) {
             delay(TIMER_TICK_MS)
             remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
+            updateTimeStatusMessage(game, label, remainingMillis)
         }
+    }
+
+    private suspend fun updateTimeStatusMessage(game: Game, phaseLabel: String, remainingMillis: Long) {
+        val statusMessage = ensureTimeStatusMessage(game) ?: return
+        val remainingSeconds = (remainingMillis / 1_000L).coerceAtLeast(0L)
+        val minutes = remainingSeconds / 60L
+        val seconds = remainingSeconds % 60L
+        val targetEpochSeconds = ((System.currentTimeMillis() + remainingMillis) / 1_000L).coerceAtLeast(0L)
+
+        val content = buildString {
+            append("${game.dayCount}일차 ${phaseLabel} - ${minutes}분 ${seconds}초")
+            appendLine()
+            append("<t:${targetEpochSeconds}:R>")
+        }
+
+        runCatching {
+            statusMessage.edit {
+                this.content = content
+            }
+        }.onFailure {
+            timeStatusMessage = null
+            val recreated = ensureTimeStatusMessage(game) ?: return
+            recreated.edit {
+                this.content = content
+            }
+        }
+    }
+
+    private suspend fun ensureTimeStatusMessage(game: Game): Message? {
+        if (timeStatusMessage != null) return timeStatusMessage
+
+        val threadChannel = ensureTimeThread(game) ?: return null
+        return runCatching {
+            threadChannel.createMessage("시간 정보를 준비 중입니다...")
+        }.onSuccess {
+            timeStatusMessage = it
+        }.getOrNull()
+    }
+
+    private suspend fun ensureTimeThread(game: Game): ThreadChannel? {
+        timeThreadChannel?.let { return it }
+
+        val mainChannel = game.mainChannel ?: return null
+        val starterMessage = mainChannel.createMessage("시간 스레드를 생성합니다.")
+        return runCatching {
+            starterMessage.startPublicThread(TIME_THREAD_NAME)
+        }.onSuccess {
+            timeThreadChannel = it
+        }.onFailure {
+            timeThreadChannel = null
+            timeStatusMessage = null
+        }.getOrNull()
     }
 
     suspend fun startNightPhase(game: Game) {
@@ -414,7 +478,7 @@ object GameLoopManager {
     suspend fun runGameLoop(game: Game) {
         while (game.isRunning) {
             startNightPhase(game)
-            runPhaseCountdown(game, "Night ${game.dayCount}", NIGHT_DURATION_MS)
+            runPhaseCountdown(game, "밤", NIGHT_DURATION_MS)
 
             val nightSummary = resolveNightPhase(game)
             checkWinCondition(game)?.let { winner ->
@@ -423,22 +487,22 @@ object GameLoopManager {
             }
 
             resolveDawnPhase(game, nightSummary)
-            runPhaseCountdown(game, "Dawn ${game.dayCount}", DAWN_DURATION_MS)
+            runPhaseCountdown(game, "새벽", DAWN_DURATION_MS)
 
             startDayPhase(game, nightSummary)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
-            runPhaseCountdown(game, "Day ${game.dayCount}", discussionMillis.toLong())
+            runPhaseCountdown(game, "낮", discussionMillis.toLong())
 
             startVotePhase(game)
-            runPhaseCountdown(game, "Vote ${game.dayCount}", VOTE_DURATION_MS)
+            runPhaseCountdown(game, "투표", VOTE_DURATION_MS)
 
             val target = resolveVotePhase(game)
             if (target != null) {
                 startDefensePhase(game, target)
-                runPhaseCountdown(game, "Defense ${game.dayCount}", DEFENSE_DURATION_MS)
+                runPhaseCountdown(game, "변론", DEFENSE_DURATION_MS)
 
                 startProsConsVotePhase(game, target)
-                runPhaseCountdown(game, "Execution Vote ${game.dayCount}", PROS_CONS_VOTE_DURATION_MS)
+                runPhaseCountdown(game, "찬반 투표", PROS_CONS_VOTE_DURATION_MS)
 
                 resolveExecutionPhase(game, target)
                 checkWinCondition(game)?.let { winner ->
