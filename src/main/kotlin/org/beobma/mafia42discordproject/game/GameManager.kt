@@ -588,14 +588,9 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
-            job.jobImage
-                ?.takeIf { it.isNotBlank() }
-                ?.let { imageUrl ->
-                    player.member.getDmChannel().createMessage(imageUrl)
-                }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
-                player.member.getDmChannel().createMessage(
+                dmChannel.createMessage(
                     buildString {
                         appendLine()
                         appendLine()
@@ -608,7 +603,14 @@ object GameManager {
                     }
                 )
 
+                job.jobImage
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { imageUrl ->
+                        dmChannel.createMessage("직업 이미지: $imageUrl")
+                    }
+                dmChannel.createMessage("직업 기본 능력 이미지")
                 sendAbilityImages(dmChannel, job.abilities)
+                dmChannel.createMessage("현재 라운드 선택지 능력 이미지")
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {
@@ -767,6 +769,18 @@ object GameManager {
             guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = true),
             optionCount = session.currentOptions.size
         )
+    }
+
+    suspend fun sendCurrentAbilityOptionImages(userId: Snowflake): Boolean {
+        val game = currentGame ?: return false
+        val player = game.getPlayer(userId) ?: return false
+        val session = abilitySelectionSessions[userId] ?: return false
+        if (session.currentOptions.isEmpty()) return false
+
+        val dmChannel = player.member.getDmChannel()
+        dmChannel.createMessage("현재 라운드 선택지 능력 이미지")
+        sendAbilityImages(dmChannel, session.currentOptions)
+        return true
     }
 
     fun getCurrentGameFor(userId: Snowflake): Game? =
