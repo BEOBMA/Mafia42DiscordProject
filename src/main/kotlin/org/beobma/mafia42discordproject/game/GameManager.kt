@@ -782,6 +782,10 @@ object GameManager {
             DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
             return
         }
+
+        val mention = DiscordMessageManager.mention(event.interaction.user)
+        DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
+
         safelyDeleteGameChannels(gameToStop)
 
         currentGame = null
@@ -790,9 +794,6 @@ object GameManager {
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
-
-        val mention = DiscordMessageManager.mention(event.interaction.user)
-        DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
     }
 
     suspend fun stop(event: MessageCreateEvent) {
@@ -802,6 +803,10 @@ object GameManager {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return
         }
+
+        val mention = event.message.author?.mention.orEmpty()
+        event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
+
         safelyDeleteGameChannels(gameToStop)
 
         currentGame = null
@@ -810,9 +815,6 @@ object GameManager {
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
-
-        val mention = event.message.author?.mention.orEmpty()
-        event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
     }
 
     private suspend fun safelyDeleteGameChannels(game: Game) {
