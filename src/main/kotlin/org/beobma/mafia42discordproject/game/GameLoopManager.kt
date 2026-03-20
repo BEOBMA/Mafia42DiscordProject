@@ -6,7 +6,6 @@ import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
-import dev.kord.core.behavior.channel.startPublicThread
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.thread.TextChannelThread
@@ -48,12 +47,6 @@ object GameLoopManager {
 
         if (thread == null) {
             thread = mainChannel.startPublicThread("시간")
-            thread?.edit {
-                addRoleOverwrite(game.guild.id) {
-                    allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                    denied = Permissions(Permission.SendMessages, Permission.AddReactions)
-                }
-            }
         }
 
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
