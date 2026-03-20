@@ -224,7 +224,7 @@ object GameLoopManager {
 
         // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
-        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(summary.deaths)
+        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths)
 
         game.sendMainChannelMessageWithImage(
             imageLink = dawnPresentation.imageUrl,
@@ -528,11 +528,12 @@ object GameLoopManager {
     }
 
     private fun buildDawnPresentation(game: Game, deaths: List<PlayerData>): DawnPresentation {
+        val attacks = game.nightAttacks.values.toList()
         val presentationEvent = GameEvent.ResolveDawnPresentation(
             dayCount = game.dayCount,
-            attacks = game.nightAttacks.values.toList(),
+            attacks = attacks,
             deaths = deaths,
-            presentation = buildDefaultDawnPresentation(deaths)
+            presentation = buildDefaultDawnPresentation(attacks, deaths)
         )
 
         game.playerDatas
@@ -549,8 +550,16 @@ object GameLoopManager {
         return presentationEvent.presentation
     }
 
-    private fun buildDefaultDawnPresentation(deaths: List<PlayerData>): DawnPresentation {
-        return if (deaths.isEmpty()) {
+    private fun buildDefaultDawnPresentation(
+        attacks: List<AttackEvent>,
+        deaths: List<PlayerData>
+    ): DawnPresentation {
+        val mafiaKillVictim = attacks
+            .firstOrNull { it.attacker.job?.name == "마피아" }
+            ?.target
+            ?.takeIf { it in deaths }
+
+        return if (mafiaKillVictim == null) {
             DawnPresentation(
                 imageUrl = QUIET_NIGHT_IMAGE_URL,
                 message = "조용하게 밤이 지나갔습니다."
@@ -558,7 +567,7 @@ object GameLoopManager {
         } else {
             DawnPresentation(
                 imageUrl = DEATH_NIGHT_IMAGE_URL,
-                message = "밤 사이 사망자: ${deaths.joinToString { it.member.effectiveName }}"
+                message = "밤 사이 사망자: ${mafiaKillVictim.member.effectiveName}"
             )
         }
     }
