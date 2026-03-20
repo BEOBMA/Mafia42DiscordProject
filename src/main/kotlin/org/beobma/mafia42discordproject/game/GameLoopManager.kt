@@ -473,10 +473,10 @@ object GameLoopManager {
             runPhaseCountdown(game, "밤", NIGHT_DURATION_MS)
 
             val nightSummary = resolveNightPhase(game)
-            checkWinCondition(game)?.let { winner ->
-                endGame(game, winner)
-                break
-            }
+//            checkWinCondition(game)?.let { winner ->
+//                endGame(game, winner)
+//                break
+//            }
 
             resolveDawnPhase(game, nightSummary)
             runPhaseCountdown(game, "새벽", DAWN_DURATION_MS)
@@ -497,10 +497,10 @@ object GameLoopManager {
                 runPhaseCountdown(game, "찬반 투표", PROS_CONS_VOTE_DURATION_MS)
 
                 resolveExecutionPhase(game, target)
-                checkWinCondition(game)?.let { winner ->
-                    endGame(game, winner)
-                    break
-                }
+//                checkWinCondition(game)?.let { winner ->
+//                    endGame(game, winner)
+//                    break
+//                }
             }
         }
     }
