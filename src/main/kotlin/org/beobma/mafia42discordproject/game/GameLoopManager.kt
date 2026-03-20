@@ -333,13 +333,12 @@ object GameLoopManager {
 
         game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483981201428709456/bd6d8d833d736bf2.png?ex=69be8af1&is=69bd3971&hm=1d7a852ae35811bd1122ca3b5490bc870c651b0aee66c88bf2fcc9d9e1b3e9e7&")
         mainChannel.createMessage {
-            content = "🗳️ **투표 시간이 되었습니다.** 처형할 의심자를 선택해주세요.\n*(시간 내에 선택하지 않으면 무효표 처리됩니다.)*"
+            content = "🗳️ **투표 시간이 되었습니다. 의심되는 사람을 투표하세요."
 
             actionRow {
                 stringSelect("main_vote_select") {
-                    placeholder = "처형할 플레이어 선택"
+                    placeholder = "투표"
 
-                    // 💡 기권 없이 오직 생존자 목록만 옵션으로 제공
                     for (player in alivePlayers) {
                         option(player.member.effectiveName, player.member.id.toString()) {
                             description = "이 플레이어에게 투표합니다."
@@ -391,7 +390,8 @@ object GameLoopManager {
 
         // 예외 1: 무효표가 누군가가 받은 최다 표와 같거나 더 많을 때 (또는 아무도 표를 못 받았을 때)
         if (invalidVoteCount >= maxVotes || maxVotes == 0) {
-            mainChannel.createMessage("⚖️ 무효표가 가장 많거나 같아, 오늘 투표는 **부결**되었습니다.")
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            mainChannel.createMessage("처형될 대상을 고르지 못했습니다.")
             return null
         }
 
@@ -399,7 +399,8 @@ object GameLoopManager {
         val maxVotedPlayers = voteCounts.filter { it.value == maxVotes }.keys.toList()
 
         if (maxVotedPlayers.size > 1) {
-            mainChannel.createMessage("⚖️ 최다 득표자가 여러 명(동률)이므로, 오늘 투표는 **부결**되었습니다.")
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            mainChannel.createMessage("처형될 대상을 고르지 못했습니다.")
             return null
         }
 
@@ -407,14 +408,14 @@ object GameLoopManager {
         // 3. 정상 도출
         // ==========================================
         val finalTarget = maxVotedPlayers.first()
-        mainChannel.createMessage("⚖️ 투표 결과, **${finalTarget.member.effectiveName}**님이 최다 득표(${maxVotes}표)로 선정되었습니다.")
 
         return finalTarget
     }
     suspend fun startDefensePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
 
-        mainChannel.createMessage("⚖️ **${target.member.effectiveName}**님이 최다 득표자로 선정되었습니다. 15초 동안 최후의 반론을 시작합니다.")
+        game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484595217796567092/b1bb8f82a19e45e3.png?ex=69becc8a&is=69bd7b0a&hm=0facb3df92275cbd87534a5c337cb4c774643de1c0ec93529a105c1573f30f35&")
+        mainChannel.createMessage("**${target.member.effectiveName}**의 최후의 반론")
 
         // 1. 서버 전체(@everyone) 발언권 박탈
         mainChannel.edit {
@@ -441,8 +442,6 @@ object GameLoopManager {
         game.currentProsConsVotes.clear()
 
         mainChannel.createMessage {
-            content = "⚖️ 최후의 반론이 종료되었습니다.\n**${target.member.effectiveName}**님을 처형하시겠습니까? (10초)\n*(미투표 시 반대(부결)로 처리됩니다)*"
-
             // 디스코드 Kord 버튼 UI 추가
             actionRow {
                 interactionButton(ButtonStyle.Success, "vote_pros") {
@@ -495,13 +494,15 @@ object GameLoopManager {
             } else {
                 // 진짜 최종 사망 처리
                 target.state.isDead = true
-                game.sendMainChannerMessage("💀 투표 결과 (찬성 $prosCount : 반대 $consCount)로 **${target.member.effectiveName}**님이 처형되었습니다.")
+                game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233288691895/22SIfKIG4sgmfsgKpScS00MYCCNg70dZoYW9wB3zjuIlnN7d56sqkmFViOFPYrPnPJixJ-BEj5f_mVUp2wcYAzYpHKjyZDuoQyzfp3efnGqc1UYKkMLrk0w5QxCV5tlorhBipi2-c69B7eSYhppyIA.webp?ex=69becb9f&is=69bd7a1f&hm=0b3d5473bbaebb91f2335ef3d07cf315043fde1889930328ea4211c486e792df&")
+                game.sendMainChannerMessage("**${target.member.effectiveName}**님이 투표로 처형당하였습니다.")
 
                 // 유품을 위한 처형 사망 이벤트 기록
                 game.nightEvents.add(GameEvent.PlayerDied(target, isLynch = true))
             }
         } else {
-            game.sendMainChannerMessage("🕊️ 투표 결과 (찬성 $prosCount : 반대 $consCount)로 처형이 **부결**되었습니다.")
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            game.sendMainChannerMessage("**${target.member.effectiveName}**님의 처형이 **부결**되었습니다.")
         }
     }
     fun checkWinCondition(game: Game): Team? {
