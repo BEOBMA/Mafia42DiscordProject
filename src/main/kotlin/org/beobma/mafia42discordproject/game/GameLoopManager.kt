@@ -482,7 +482,7 @@ object GameLoopManager {
     }
     
     suspend fun endGame(game: Game, winningTeam: Team) {
-        game.isRunnig = false // 상태 플래그 변경
+        game.isRunning = false // 상태 플래그 변경
 
         // 디스코드 Embed 메시지로 결과 발표
         /*
