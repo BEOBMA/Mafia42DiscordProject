@@ -595,22 +595,10 @@ object GameManager {
                 }
             runCatching {
                 val dmChannel = player.member.getDmChannel()
-                dmChannel.createMessage(
-                    buildString {
-                        appendLine()
-                        appendLine()
-                        appendLine()
-                        appendLine("당신의 직업은 **${job.name}** 입니다.")
-                        appendLine()
-                        appendLine("직업/능력 이미지를 확인해 주세요.")
-                        appendLine()
-                        appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
-                    }
-                )
-
-                dmChannel.createMessage("직업 기본 능력")
                 sendAbilityImages(dmChannel, job.abilities)
-                dmChannel.createMessage("현재 라운드 선택지 능력")
+                repeat(3) {
+                    dmChannel.createMessage(".")
+                }
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {
@@ -729,13 +717,7 @@ object GameManager {
         includeProgress: Boolean
     ): String {
         return buildString {
-            if (includeProgress) {
-                appendLine(
-                    "${session.completedRounds + 1}/${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회 선택 완료"
-                )
-            }
-
-            appendLine("능력 중 하나를 선택해 주세요.")
+            append("능력 중 하나를 선택하세요.")
         }
     }
 
@@ -774,7 +756,9 @@ object GameManager {
         if (session.currentOptions.isEmpty()) return false
 
         val dmChannel = player.member.getDmChannel()
-        dmChannel.createMessage("현재 라운드 선택지 능력 이미지")
+        repeat(3) {
+            dmChannel.createMessage(".")
+        }
         sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }

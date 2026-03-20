@@ -27,7 +27,7 @@ object AbilityPickButtonListener : InteractionListener {
                     content = if (snapshot == null) {
                         resultMessage
                     } else {
-                        "$resultMessage\n\n${snapshot.guideMessage}"
+                        snapshot.guideMessage
                     }
 
                     if (snapshot != null) {
