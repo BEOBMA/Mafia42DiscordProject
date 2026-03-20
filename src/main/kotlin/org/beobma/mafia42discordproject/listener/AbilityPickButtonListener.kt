@@ -5,12 +5,18 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.component.actionRow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.GameManager
 
 object AbilityPickButtonListener : InteractionListener {
+    private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override fun register(kord: Kord) {
         kord.events.filterIsInstance<ButtonInteractionCreateEvent>()
             .onEach { event ->
@@ -40,6 +46,12 @@ object AbilityPickButtonListener : InteractionListener {
                                 }
                             }
                         }
+                    }
+                }
+
+                if (snapshot != null) {
+                    backgroundScope.launch {
+                        GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
                     }
                 }
             }.launchIn(kord)
