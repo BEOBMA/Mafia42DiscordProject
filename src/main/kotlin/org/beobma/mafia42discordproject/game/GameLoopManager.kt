@@ -24,6 +24,44 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 object GameLoopManager {
+    private const val NIGHT_DURATION_MS = 25_000L
+    private const val DAWN_DURATION_MS = 10_000L
+    private const val VOTE_DURATION_MS = 15_000L
+    private const val DEFENSE_DURATION_MS = 15_000L
+    private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
+    private const val TIMER_TICK_MS = 1_000L
+
+    private fun formatRemainingTime(remainingMillis: Long): String {
+        val minutes = remainingMillis / 60_000L
+        val seconds = (remainingMillis % 60_000L) / 1_000L
+        return "${minutes}분 ${seconds}초"
+    }
+
+    private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
+        val mainChannel = game.mainChannel
+        if (mainChannel == null) {
+            delay(durationMillis)
+            return
+        }
+
+        val timerMessage = mainChannel.createMessage("⏳ **$label**\n남은 시간: ${formatRemainingTime(durationMillis)}")
+        var remainingMillis = durationMillis
+        while (remainingMillis > 0) {
+            runCatching {
+                timerMessage.edit {
+                    content = "⏳ **$label**\n남은 시간: ${formatRemainingTime(remainingMillis)}"
+                }
+            }
+            delay(TIMER_TICK_MS)
+            remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
+        }
+
+        runCatching {
+            timerMessage.edit {
+                content = "✅ **$label**\n남은 시간: ${formatRemainingTime(0L)}"
+            }
+        }
+    }
 
     suspend fun startNightPhase(game: Game) {
         game.currentPhase = GamePhase.NIGHT
@@ -517,7 +555,7 @@ object GameLoopManager {
         while (game.isRunning) {
 
             startNightPhase(game)
-            delay(25_000L) // 25초 밤 시간
+            runPhaseCountdown(game, "${game.dayCount}일차 밤", NIGHT_DURATION_MS)
 
             resolveNightPhase(game)
 //            val nightWinner = checkWinCondition(game)
@@ -527,23 +565,23 @@ object GameLoopManager {
 //            }
 
             resolveDawnPhase(game)
-            delay(10_000L) // 낮 정산시간 10초 동안 채팅 못치게
+            runPhaseCountdown(game, "${game.dayCount}일차 낮 정산", DAWN_DURATION_MS)
 
 
             startDayPhase(game)
             val sec = game.playerDatas.count { !it.state.isDead }
-            delay(sec * 15_000L) // 15초 * 살아있는 사람 수 낮 시간
+            runPhaseCountdown(game, "${game.dayCount}일차 낮", sec * 15_000L)
 
             startVotePhase(game)
-            delay(15_000L) // 15초 투표 시간
+            runPhaseCountdown(game, "${game.dayCount}일차 투표", VOTE_DURATION_MS)
 
             val target: PlayerData? = resolveVotePhase(game)
             if (target != null) {
                 startDefensePhase(game, target)
-                delay(15_000L) // 반론 시간
+                runPhaseCountdown(game, "${game.dayCount}일차 최후의 반론", DEFENSE_DURATION_MS)
 
                 startProsConsVotePhase(game, target)
-                delay(10_000L) // 찬반 투표 시간
+                runPhaseCountdown(game, "${game.dayCount}일차 찬반 투표", PROS_CONS_VOTE_DURATION_MS)
 
                 resolveExecutionPhase(game, target)
 //                val voteWinner = checkWinCondition(game)
