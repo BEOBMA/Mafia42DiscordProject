@@ -1,5 +1,7 @@
 package org.beobma.mafia42discordproject.discord
 
+import dev.kord.core.behavior.channel.createMessage
+import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.User
@@ -14,6 +16,20 @@ object DiscordMessageManager {
     suspend fun Game.sendMainChannerMessage(msg: String) {
         val mainChannel = this.mainChannel ?: return
         mainChannel.createMessage(msg)
+    }
+
+    suspend fun Game.sendMainChannerImage(imageLink: String) {
+        val mainChannel = this.mainChannel ?: return
+        mainChannel.createMessage {
+            content = imageLink
+        }
+    }
+
+    suspend fun Game.setMainChannerTitleName(msg: String) {
+        val mainChannel = mainChannel ?: return
+        mainChannel.edit {
+            name = msg
+        }
     }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {

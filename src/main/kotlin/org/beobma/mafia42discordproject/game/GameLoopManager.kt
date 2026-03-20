@@ -12,7 +12,9 @@ import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.component.option
 import kotlinx.coroutines.delay
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.setMainChannerTitleName
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -217,11 +219,20 @@ object GameLoopManager {
 
         // 2. 아침 브리핑 공지
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
-        val deathMessage = if (diedLastNight.isEmpty()) "간밤에 아무 일도 일어나지 않았습니다."
-        else "간밤에 **${diedLastNight.joinToString { it.member.effectiveName }}**님이 살해당했습니다."
+        val deathMessage = if (diedLastNight.isEmpty()) "조용하게 밤이 넘어갔습니다."
+        else "**${diedLastNight.joinToString { it.member.effectiveName }}**이(가) 살해당하였습니다."
 
-        // game.sendMainChannerMessage(...) 같은 커스텀 함수가 있다면 그것을 사용하셔도 됩니다.
-        game.sendMainChannerMessage("🌅 **${game.dayCount}번째 아침이 밝았습니다.**\n$deathMessage\n지금부터 토론을 시작합니다.")
+        if (diedLastNight.isEmpty()) {
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&")
+        }
+        else {
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&")
+        }
+        game.sendMainChannerMessage(deathMessage)
+        delay(3_000L) // 3초 딜레이
+
+        game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&")
+        game.sendMainChannerMessage("날이 밝았습니다.")
 
         // ==========================================
         // 3. 🎯 텍스트 및 음성 채널 권한 완벽 동기화
@@ -471,7 +482,7 @@ object GameLoopManager {
     }
     
     suspend fun endGame(game: Game, winningTeam: Team) {
-        game.isRunning = false // 상태 플래그 변경
+        game.isRunnig = false // 상태 플래그 변경
 
         // 디스코드 Embed 메시지로 결과 발표
         /*
@@ -499,11 +510,9 @@ object GameLoopManager {
         while (game.isRunning) {
 
             startNightPhase(game)
-            game.sendMainChannerMessage("NightPhase")
             delay(25_000L) // 25초 밤 시간
 
             resolveNightPhase(game)
-            game.sendMainChannerMessage("resolveNightPhase")
 //            val nightWinner = checkWinCondition(game)
 //            if (nightWinner != null) {
 //                endGame(game, nightWinner) // 승리 공지 및 게임 종료 처리
@@ -511,12 +520,10 @@ object GameLoopManager {
 //            }
 
             resolveDawnPhase(game)
-            game.sendMainChannerMessage("resolveDawnPhase")
             delay(10_000L) // 낮 정산시간 10초 동안 채팅 못치게
 
 
             startDayPhase(game)
-            game.sendMainChannerMessage("Day")
             val sec = game.playerDatas.count { !it.state.isDead }
             delay(sec * 15_000L) // 15초 * 살아있는 사람 수 낮 시간
 

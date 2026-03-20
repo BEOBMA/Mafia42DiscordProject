@@ -19,9 +19,9 @@ object AbilityPickCommand : DiscordCommand {
         kord.createGlobalChatInputCommand(name, description) {
             integer(pickNumberOption, "현재 제시된 능력 번호 (1~3)") {
                 required = true
-                choice("1번", 1)
-                choice("2번", 2)
-                choice("3번", 3)
+                choice("1", 1)
+                choice("2", 2)
+                choice("3", 3)
             }
         }
     }
@@ -30,9 +30,9 @@ object AbilityPickCommand : DiscordCommand {
         kord.createGuildChatInputCommand(guildId, name, description) {
             integer(pickNumberOption, "현재 제시된 능력 번호 (1~3)") {
                 required = true
-                choice("1번", 1)
-                choice("2번", 2)
-                choice("3번", 3)
+                choice("1", 1)
+                choice("2", 2)
+                choice("3", 3)
             }
         }
     }

@@ -214,7 +214,6 @@ object GameManager {
 
         event.message.channel.createMessage(
             buildString {
-                appendLine("현재 음성채널: ${voiceChannel.mention}")
                 appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
@@ -585,10 +584,21 @@ object GameManager {
             abilitySelectionSessions[player.member.id] = session
 
             val guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = false)
+            job.jobImage
+                ?.takeIf { it.isNotBlank() }
+                ?.let { imageUrl ->
+                    player.member.getDmChannel().createMessage(imageUrl)
+                }
             runCatching {
                 player.member.getDmChannel().createMessage(
                     buildString {
+                        appendLine()
+                        appendLine()
+                        appendLine()
                         appendLine("당신의 직업은 **${job.name}** 입니다.")
+                        appendLine()
+                        appendLine("* "+ job.description)
+                        appendLine()
                         appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
                         appendLine()
                         append(guideMessage)
@@ -737,19 +747,6 @@ object GameManager {
         publishMessageToAllTextChannels(guild, "✅ 모든 플레이어의 부가 능력 선택이 완료되어 게임을 시작합니다.")
         gameLoopJob = gameLoopScope.launch {
             GameLoopManager.runGameLoop(game)
-        }
-    }
-
-    private suspend fun publishMessageToAllTextChannels(guild: GuildBehavior, message: String) {
-        val textChannels = guild.channels
-            .filter { it is TextChannel }
-            .toList()
-            .map { it as TextChannel }
-
-        textChannels.forEach { channel ->
-            runCatching {
-                channel.createMessage(message)
-            }
         }
     }
 
