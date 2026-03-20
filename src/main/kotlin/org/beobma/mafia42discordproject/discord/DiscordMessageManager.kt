@@ -14,15 +14,26 @@ object DiscordMessageManager {
     fun mentions(users: List<User>): String = users.joinToString("\n") { "• ${it.mention}" }
 
     suspend fun Game.sendMainChannerMessage(msg: String) {
+        sendMainChannerCombinedMessage(msg)
+    }
+
+    suspend fun Game.sendMainChannerCombinedMessage(vararg messages: String) {
         val mainChannel = this.mainChannel ?: return
-        mainChannel.createMessage(msg)
+        val content = buildString {
+            messages
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .forEachIndexed { index, message ->
+                    if (index > 0) appendLine()
+                    append(message)
+                }
+        }
+        if (content.isBlank()) return
+        mainChannel.createMessage(content)
     }
 
     suspend fun Game.sendMainChannerImage(imageLink: String) {
-        val mainChannel = this.mainChannel ?: return
-        mainChannel.createMessage {
-            content = imageLink
-        }
+        sendMainChannerCombinedMessage(imageLink)
     }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
