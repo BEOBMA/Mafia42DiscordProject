@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.blindImageLinkIfNeeded
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.Job
@@ -600,7 +601,9 @@ object GameManager {
                     )
                 }
                 if (baseAbilityImages.isNotEmpty()) {
-                    dmChannel.createMessage(baseAbilityImages.joinToString("\n"))
+                    dmChannel.createMessage(
+                        baseAbilityImages.joinToString("\n") { blindImageLinkIfNeeded(it) }
+                    )
                 }
                 val selectableAbilityImages = session.currentOptions
                     .map(Ability::image)
@@ -611,7 +614,7 @@ object GameManager {
                             appendLine(".")
                             appendLine(".")
                             appendLine(".")
-                            append(selectableAbilityImages.joinToString("\n"))
+                            append(selectableAbilityImages.joinToString("\n") { blindImageLinkIfNeeded(it) })
                         }
                     )
                 }
@@ -769,7 +772,7 @@ object GameManager {
                 .filter { it.isNotBlank() }
                 .forEachIndexed { index, image ->
                     if (index > 0) appendLine()
-                    append(image)
+                    append(blindImageLinkIfNeeded(image))
                 }
         }
         dmChannel.createMessage(dm)
