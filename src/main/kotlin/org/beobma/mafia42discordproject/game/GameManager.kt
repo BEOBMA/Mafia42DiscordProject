@@ -669,6 +669,7 @@ object GameManager {
     suspend fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
         val game = currentGame ?: return "진행 중인 게임이 없습니다."
         val player = game.getPlayer(userId) ?: return "현재 게임 참여자만 사용할 수 있는 명령어입니다."
+        val playerJob = player.job ?: return "현재 직업 정보가 없어 능력을 선택할 수 없습니다. 게임 진행자에게 문의해 주세요."
 
         if (pickNumber !in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND) {
             return "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
@@ -687,11 +688,11 @@ object GameManager {
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
         val selectedUniqueAbility = pickedAbility as? JobUniqueAbility
-        if (selectedUniqueAbility != null && player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
-            player.job?.abilities?.add(selectedUniqueAbility)
+        if (selectedUniqueAbility != null && playerJob.abilities.none { it.name == selectedUniqueAbility.name }) {
+            playerJob.abilities.add(selectedUniqueAbility)
         }
-        if (player.job?.extraAbilities?.none { it.name == pickedAbility.name } == true) {
-            player.job?.extraAbilities?.add(pickedAbility)
+        if (playerJob.extraAbilities.none { it.name == pickedAbility.name }) {
+            playerJob.extraAbilities.add(pickedAbility)
         }
         session.selected += pickedAbility
         session.completedRounds += 1
@@ -699,7 +700,11 @@ object GameManager {
         if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
             abilitySelectionSessions.remove(userId)
             currentGuild?.let { guild ->
-                tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+                runCatching {
+                    tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+                }.onFailure { error ->
+                    println("⚠️ 능력 선택 종료 후 게임 루프 시작 실패: ${error.message}")
+                }
             }
             return buildString {
                 appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
@@ -712,7 +717,11 @@ object GameManager {
         if (session.currentOptions.isEmpty()) {
             abilitySelectionSessions.remove(userId)
             currentGuild?.let { guild ->
-                tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+                runCatching {
+                    tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+                }.onFailure { error ->
+                    println("⚠️ 능력 선택 조기 종료 후 게임 루프 시작 실패: ${error.message}")
+                }
             }
             return buildString {
                 appendLine("**${pickedAbility.name}** 능력을 선택했습니다.")
@@ -774,9 +783,14 @@ object GameManager {
         val session = abilitySelectionSessions[userId] ?: return false
         if (session.currentOptions.isEmpty()) return false
 
-        val dmChannel = player.member.getDmChannel()
-        sendAbilityImages(dmChannel, session.currentOptions)
-        return true
+        return runCatching {
+            val dmChannel = player.member.getDmChannel()
+            sendAbilityImages(dmChannel, session.currentOptions)
+            true
+        }.getOrElse { error ->
+            println("⚠️ 현재 능력 이미지 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
+            false
+        }
     }
 
     suspend fun sendCurrentAbilityPickButtons(userId: Snowflake): Boolean {
@@ -785,18 +799,23 @@ object GameManager {
         val session = abilitySelectionSessions[userId] ?: return false
         if (session.currentOptions.isEmpty()) return false
 
-        val dmChannel = player.member.getDmChannel()
-        dmChannel.createMessage {
-            content = buildAbilitySelectionGuideMessage(session, true)
-            actionRow {
-                session.currentOptions.forEachIndexed { index, _ ->
-                    interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
-                        label = "${index + 1}번 선택"
+        return runCatching {
+            val dmChannel = player.member.getDmChannel()
+            dmChannel.createMessage {
+                content = buildAbilitySelectionGuideMessage(session, true)
+                actionRow {
+                    session.currentOptions.forEachIndexed { index, _ ->
+                        interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
+                            label = "${index + 1}번 선택"
+                        }
                     }
                 }
             }
+            true
+        }.getOrElse { error ->
+            println("⚠️ 현재 능력 선택 버튼 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
+            false
         }
-        return true
     }
 
     fun getCurrentGameFor(userId: Snowflake): Game? =
