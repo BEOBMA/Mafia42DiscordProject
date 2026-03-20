@@ -35,7 +35,7 @@ object AbilityUseCommand : DiscordCommand {
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val interaction = event.interaction
-        if (interaction.focusedOption.name != abilityOptionName) return
+        if (interaction.focusedOption.value != abilityOptionName) return
 
         val game = GameManager.getCurrentGameFor(interaction.user.id) ?: return
         val caster = game.getPlayer(interaction.user.id) ?: return
