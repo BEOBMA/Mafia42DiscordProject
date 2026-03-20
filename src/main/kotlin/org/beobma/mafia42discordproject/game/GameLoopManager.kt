@@ -28,13 +28,6 @@ object GameLoopManager {
     private const val VOTE_DURATION_MS = 15_000L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
-    private const val TIMER_TICK_MS = 1_000L
-
-    private fun formatRemainingTime(remainingMillis: Long): String {
-        val minutes = remainingMillis / 60_000L
-        val seconds = (remainingMillis % 60_000L) / 1_000L
-        return "${minutes}분 ${seconds}초"
-    }
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         val mainChannel = game.mainChannel
@@ -43,23 +36,9 @@ object GameLoopManager {
             return
         }
 
-        val timerMessage = mainChannel.createMessage("⏳ **$label**\n남은 시간: ${formatRemainingTime(durationMillis)}")
-        var remainingMillis = durationMillis
-        while (remainingMillis > 0) {
-            runCatching {
-                timerMessage.edit {
-                    content = "⏳ **$label**\n남은 시간: ${formatRemainingTime(remainingMillis)}"
-                }
-            }
-            delay(TIMER_TICK_MS)
-            remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
-        }
-
-        runCatching {
-            timerMessage.edit {
-                content = "✅ **$label**\n남은 시간: ${formatRemainingTime(0L)}"
-            }
-        }
+        val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
+        mainChannel.createMessage("⏳ **$label**\n종료까지 <t:$targetUnixSeconds:R>")
+        delay(durationMillis)
     }
 
     suspend fun startNightPhase(game: Game) {
