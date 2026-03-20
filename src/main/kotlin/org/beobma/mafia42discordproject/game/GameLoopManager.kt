@@ -28,7 +28,6 @@ object GameLoopManager {
     private const val VOTE_DURATION_MS = 15_000L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
-    private const val TIMER_TICK_MS = 1_000L
     private const val QUIET_NIGHT_IMAGE_URL =
         "https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&"
     private const val DEATH_NIGHT_IMAGE_URL =
@@ -45,27 +44,14 @@ object GameLoopManager {
     }
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
-        var remainingMillis = durationMillis
-        updateTimeStatusMessage(game, label, remainingMillis)
-        while (remainingMillis > 0) {
-            delay(TIMER_TICK_MS)
-            remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
-            updateTimeStatusMessage(game, label, remainingMillis)
-        }
+        updateTimeStatusMessage(game, label, durationMillis)
+        delay(durationMillis.coerceAtLeast(0L))
     }
 
     private suspend fun updateTimeStatusMessage(game: Game, phaseLabel: String, remainingMillis: Long) {
         val statusMessage = ensureTimeStatusMessage(game) ?: return
-        val remainingSeconds = (remainingMillis / 1_000L).coerceAtLeast(0L)
-        val minutes = remainingSeconds / 60L
-        val seconds = remainingSeconds % 60L
         val targetEpochSeconds = ((System.currentTimeMillis() + remainingMillis) / 1_000L).coerceAtLeast(0L)
-
-        val content = buildString {
-            append("${game.dayCount}일차 ${phaseLabel} - ${minutes}분 ${seconds}초")
-            appendLine()
-            append("<t:${targetEpochSeconds}:R>")
-        }
+        val content = "${game.dayCount}일차 ${phaseLabel} - <t:${targetEpochSeconds}:R>"
 
         runCatching {
             statusMessage.edit {
