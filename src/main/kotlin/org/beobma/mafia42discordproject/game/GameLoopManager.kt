@@ -51,7 +51,7 @@ object GameLoopManager {
 
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
         val thread = thread ?: return
-        val timerMessage = "📌 단계: **$label**\n⏱️ 남은 시간: <t:$targetUnixSeconds:R>\n(유닉스 시간: `$targetUnixSeconds`)"
+        val timerMessage = "**$label**\n - 남은 시간: <t:$targetUnixSeconds:R>"
 
         if (this.timerMessage == null) {
             this.timerMessage = thread.createMessage(timerMessage)
