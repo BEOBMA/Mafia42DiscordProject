@@ -764,6 +764,26 @@ object GameManager {
         return true
     }
 
+    suspend fun sendCurrentAbilityPickButtons(userId: Snowflake): Boolean {
+        val game = currentGame ?: return false
+        val player = game.getPlayer(userId) ?: return false
+        val session = abilitySelectionSessions[userId] ?: return false
+        if (session.currentOptions.isEmpty()) return false
+
+        val dmChannel = player.member.getDmChannel()
+        dmChannel.createMessage {
+            content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
+            actionRow {
+                session.currentOptions.forEachIndexed { index, _ ->
+                    interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
+                        label = "${index + 1}번 선택"
+                    }
+                }
+            }
+        }
+        return true
+    }
+
     fun getCurrentGameFor(userId: Snowflake): Game? =
         currentGame?.takeIf { game -> game.getPlayer(userId) != null }
 
