@@ -7,9 +7,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
-import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.TextChannel
-import dev.kord.core.entity.channel.thread.TextChannelThread
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
@@ -32,8 +30,10 @@ object GameLoopManager {
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val TIMER_TICK_MS = 1_000L
-    private const val QUIET_NIGHT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&"
-    private const val DEATH_NIGHT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"
+    private const val QUIET_NIGHT_IMAGE_URL =
+        "https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&"
+    private const val DEATH_NIGHT_IMAGE_URL =
+        "https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"
 
     fun resetTimeThreadState() = Unit
 
@@ -75,6 +75,7 @@ object GameLoopManager {
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
+        val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
         game.playerDatas.forEach { player ->
             runCatching {
@@ -86,8 +87,8 @@ object GameLoopManager {
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
-                denied = Permissions(Permission.SendMessages)
-                allowed = Permissions(Permission.UseApplicationCommands)
+                denied = Permissions(Permission.SendMessages, Permission.ReadMessageHistory)
+                allowed = Permissions(Permission.SendMessages, Permission.UseApplicationCommands)
             }
         }
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)

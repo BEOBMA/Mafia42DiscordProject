@@ -6,6 +6,7 @@ import kotlin.reflect.KClass
 interface Ability {
     val name: String
     val description: String
+    val image: String
 }
 
 // 마커용

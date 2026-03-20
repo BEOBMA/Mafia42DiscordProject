@@ -670,7 +670,7 @@ object GameManager {
         }
 
         val pickedAbility = session.currentOptions[pickNumber - 1]
-        val selectedUniqueAbility = pickedAbility.toJobUniqueAbility()
+        val selectedUniqueAbility = pickedAbility as JobUniqueAbility
         if (player.job?.abilities?.none { it.name == selectedUniqueAbility.name } == true) {
             player.job?.abilities?.add(selectedUniqueAbility)
         }
@@ -717,12 +717,6 @@ object GameManager {
         session.availablePool.removeAll { ability -> ability.name in optionNames }
         return options
     }
-
-    private fun Ability.toJobUniqueAbility(): JobUniqueAbility =
-        this as? JobUniqueAbility ?: object : JobUniqueAbility {
-            override val name: String = this@toJobUniqueAbility.name
-            override val description: String = this@toJobUniqueAbility.description
-        }
 
     private fun buildAbilitySelectionGuideMessage(
         session: AbilitySelectionSession,

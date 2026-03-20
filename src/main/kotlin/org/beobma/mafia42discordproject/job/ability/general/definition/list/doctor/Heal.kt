@@ -14,7 +14,8 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.WinO
 
 class Heal : ActiveAbility, JobUniqueAbility {
     override val name: String = "치료"
-    override val description: String = "밤에 한 명을 치료해 일반 공격으로부터 보호합니다."
+    override val description: String = "밤이 되면 플레이어 한 명을 처형으로부터 치료한다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484626955612455174/bef253042e3dab28.png?ex=69beea19&is=69bd9899&hm=99b25a7815280b9c866654be45d3ae55eb1a37c4229fc2216f78e4ca341d49ab&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
