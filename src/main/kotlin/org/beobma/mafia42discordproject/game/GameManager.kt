@@ -599,7 +599,7 @@ object GameManager {
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {
-                    content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
+                    content = buildAbilitySelectionGuideMessage()
                     actionRow {
                         session.currentOptions.forEachIndexed { index, _ ->
                             interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
@@ -710,13 +710,8 @@ object GameManager {
     }
 
     private fun buildAbilitySelectionGuideMessage(
-        session: AbilitySelectionSession,
-        includeProgress: Boolean
     ): String {
         return buildString {
-            appendLine(".")
-            appendLine(".")
-            appendLine(".")
             append("능력 중 하나를 선택하세요.")
         }
     }
@@ -744,7 +739,7 @@ object GameManager {
     fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
         val session = abilitySelectionSessions[userId] ?: return null
         return AbilitySelectionSnapshot(
-            guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = true),
+            guideMessage = buildAbilitySelectionGuideMessage(),
             optionCount = session.currentOptions.size
         )
     }
@@ -772,7 +767,7 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         dmChannel.createMessage {
-            content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
+            content = buildAbilitySelectionGuideMessage()
             actionRow {
                 session.currentOptions.forEachIndexed { index, _ ->
                     interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
