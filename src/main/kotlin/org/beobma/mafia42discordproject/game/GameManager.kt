@@ -594,7 +594,7 @@ object GameManager {
                         appendLine()
                         appendLine("당신의 직업은 **${job.name}** 입니다.")
                         appendLine()
-                        appendLine("* "+ job.description)
+                        appendLine(job.description)
                         appendLine()
                         appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
                         appendLine()
