@@ -143,6 +143,7 @@ object GameManager {
 
         currentGame = this
         currentGuild = guild
+        GameLoopManager.resetTimeThreadState()
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
@@ -203,6 +204,7 @@ object GameManager {
 
         currentGame = this
         currentGuild = guild
+        GameLoopManager.resetTimeThreadState()
         this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
@@ -762,6 +764,7 @@ object GameManager {
 
         currentGame = null
         currentGuild = null
+        GameLoopManager.resetTimeThreadState()
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
@@ -782,6 +785,7 @@ object GameManager {
 
         currentGame = null
         currentGuild = null
+        GameLoopManager.resetTimeThreadState()
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null

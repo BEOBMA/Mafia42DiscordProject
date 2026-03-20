@@ -5,8 +5,10 @@ import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
+import dev.kord.core.behavior.channel.startPublicThread
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
+import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.thread.TextChannelThread
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
@@ -30,6 +32,12 @@ object GameLoopManager {
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private var thread: TextChannelThread? = null
+    private var timerMessage: Message? = null
+
+    fun resetTimeThreadState() {
+        thread = null
+        timerMessage = null
+    }
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         val mainChannel = game.mainChannel
@@ -38,12 +46,21 @@ object GameLoopManager {
             return
         }
 
-        if (thread == null) {mainChannel.startPublicThread("시간")}
+        if (thread == null) {
+            thread = mainChannel.startPublicThread("시간")
+        }
+
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
         val thread = thread ?: return
         val timerMessage = "📌 단계: **$label**\n⏱️ 남은 시간: <t:$targetUnixSeconds:R>\n(유닉스 시간: `$targetUnixSeconds`)"
 
-        thread.createMessage(timerMessage)
+        if (this.timerMessage == null) {
+            this.timerMessage = thread.createMessage(timerMessage)
+        } else {
+            this.timerMessage?.edit {
+                content = timerMessage
+            }
+        }
 
         delay(durationMillis)
     }
