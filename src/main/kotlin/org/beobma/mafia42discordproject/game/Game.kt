@@ -24,6 +24,7 @@ data class Game(
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannelThread? = null
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
+    val nightDeathCandidates: MutableList<PlayerData> = mutableListOf()
     val nightEvents: MutableList<GameEvent> = mutableListOf()
     var lastNightSummary: NightResolutionSummary = NightResolutionSummary()
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()

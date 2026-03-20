@@ -58,6 +58,7 @@ object GameLoopManager {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
         game.nightAttacks.clear()
+        game.nightDeathCandidates.clear()
         game.nightEvents.clear()
         game.lastNightSummary = NightResolutionSummary()
 
@@ -105,7 +106,9 @@ object GameLoopManager {
 
     fun resolveNightPhase(game: Game): NightResolutionSummary {
         val blockedAttacks = mutableListOf<AttackEvent>()
-        val playersToDie = linkedSetOf<PlayerData>()
+        val playersToDie = linkedSetOf<PlayerData>().apply {
+            addAll(game.nightDeathCandidates)
+        }
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
@@ -115,6 +118,7 @@ object GameLoopManager {
 
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent
+                playersToDie.remove(target)
             } else {
                 playersToDie += target
             }
@@ -135,6 +139,7 @@ object GameLoopManager {
         game.lastNightSummary = summary
 
         game.nightAttacks.clear()
+        game.nightDeathCandidates.clear()
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             player.state.resetForNextPhase()
