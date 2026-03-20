@@ -2,102 +2,67 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.interaction.suggestString
-import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.interaction.user
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 
 object AbilityUseCommand : DiscordCommand {
-    override val name: String = "능력사용"
-    override val description: String = "현재 직업이 가진 능력을 사용합니다."
+    override val name: String = "use"
+    override val description: String = "Use your active ability for the current phase."
 
-    private const val abilityOption = "ability"
-    private const val targetOption = "target"
-    private const val maxAutoCompleteChoices = 25
-    private val mentionRegex = Regex("<@!?(\\d+)>")
+    private const val targetOptionName = "target"
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
-            registerOptions()
+            user(targetOptionName, "Select a target if the ability needs one.") {
+                required = false
+            }
         }
     }
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
-            registerOptions()
-        }
-    }
-
-    override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
-        if (event.interaction.focusedOption.name != abilityOption) return
-
-        val query = event.interaction.focusedOption.value.trim()
-        val suggestions = GameManager.getUsableActiveAbilityNames(event.interaction.user.id)
-            .asSequence()
-            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
-            .toList()
-
-        event.interaction.suggestString {
-            suggestions.forEach { abilityName ->
-                choice(abilityName, abilityName)
+            user(targetOptionName, "Select a target if the ability needs one.") {
+                required = false
             }
         }
     }
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val abilityName = event.interaction.command.strings[abilityOption]
-        if (abilityName.isNullOrBlank()) {
-            DiscordMessageManager.respondEphemeral(event, "사용할 능력을 선택해야 합니다.")
+        val interaction = event.interaction
+        val game = GameManager.getCurrentGameFor(interaction.user.id)
+
+        if (game == null) {
+            DiscordMessageManager.respondEphemeral(event, "You must be in the current game to use an ability.")
             return
         }
 
-        val targetUserId = event.interaction.command.users[targetOption]?.id
-        val result = GameManager.activateAbility(
-            userId = event.interaction.user.id,
-            abilityName = abilityName,
-            targetUserId = targetUserId
-        )
-        DiscordMessageManager.respondEphemeral(event, result.message ?: "능력 사용 결과를 확인할 수 없습니다.")
-    }
-
-    override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
-        val userId = event.message.author?.id ?: return
-        val abilityName = args.firstOrNull()
-        if (abilityName.isNullOrBlank()) {
-            event.message.channel.createMessage("${event.message.author?.mention.orEmpty()} 사용법: `!능력사용 <능력명> [@대상]`")
+        val caster = game.getPlayer(interaction.user.id)
+        if (caster == null) {
+            DiscordMessageManager.respondEphemeral(event, "You must be in the current game to use an ability.")
             return
         }
 
-        val targetUserId = parseTargetUserId(args.getOrNull(1))
-        val result = GameManager.activateAbility(
-            userId = userId,
-            abilityName = abilityName,
-            targetUserId = targetUserId
-        )
-        event.message.channel.createMessage("${event.message.author?.mention.orEmpty()} ${result.message.orEmpty()}")
-    }
+        val activeAbility = caster.job?.abilities
+            ?.filterIsInstance<ActiveAbility>()
+            ?.firstOrNull { it.usablePhase == game.currentPhase }
 
-    private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
-        string(abilityOption, "사용할 능력 이름") {
-            required = true
-            autocomplete = true
+        if (activeAbility == null) {
+            DiscordMessageManager.respondEphemeral(event, "There is no active ability you can use right now.")
+            return
         }
-        user(targetOption, "대상 플레이어") {
-            required = false
+
+        val targetDiscordUser = interaction.command.users[targetOptionName]
+        val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        val result = activeAbility.activate(game, caster, target)
+
+        val message = if (result.isSuccess) {
+            result.message ?: "Your ability was used successfully."
+        } else {
+            result.message ?: "Failed to use your ability."
         }
-    }
-
-    private fun parseTargetUserId(raw: String?): Snowflake? {
-        if (raw.isNullOrBlank()) return null
-
-        val mentionId = mentionRegex.matchEntire(raw)?.groupValues?.getOrNull(1)
-        val snowflake = mentionId ?: raw
-        return snowflake.toULongOrNull()?.let(::Snowflake)
+        DiscordMessageManager.respondEphemeral(event, message)
     }
 }

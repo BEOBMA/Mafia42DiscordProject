@@ -6,6 +6,7 @@ object CommandRegistry {
         HelloCommand,
         GameStartCommand,
         GameStopCommand,
+        AbilityUseCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
     )

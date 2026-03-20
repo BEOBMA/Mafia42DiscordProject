@@ -5,6 +5,12 @@ import org.beobma.mafia42discordproject.job.Job
 
 // 게임 내에서 발생하는 주요 사건들
 sealed class GameEvent {
+    data class PlayerHealed(
+        val healer: PlayerData,
+        val target: PlayerData,
+        var defenseTier: DefenseTier
+    ) : GameEvent()
+
     // 💡 누군가 직업을 알아냈을 때 발행되는 이벤트
     data class JobDiscovered(
         val discoverer: PlayerData, // 알아낸 사람

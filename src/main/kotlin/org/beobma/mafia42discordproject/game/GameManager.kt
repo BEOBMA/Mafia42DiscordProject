@@ -755,6 +755,9 @@ object GameManager {
         )
     }
 
+    fun getCurrentGameFor(userId: Snowflake): Game? =
+        currentGame?.takeIf { game -> game.getPlayer(userId) != null }
+
     data class AbilitySelectionSnapshot(
         val guideMessage: String,
         val optionCount: Int
