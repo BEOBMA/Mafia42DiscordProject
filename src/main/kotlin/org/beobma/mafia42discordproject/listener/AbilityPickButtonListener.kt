@@ -1,10 +1,8 @@
 package org.beobma.mafia42discordproject.listener
 
-import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
-import dev.kord.rest.builder.component.actionRow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -21,26 +19,13 @@ object AbilityPickButtonListener : InteractionListener {
                 val resultMessage = GameManager.selectExtraAbility(interaction.user.id, pickNumber)
                 val snapshot = GameManager.getAbilitySelectionSession(interaction.user.id)
 
-                if (snapshot != null) {
-                    GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
+                deferredResponse.respond {
+                    content = resultMessage
                 }
 
-                deferredResponse.respond {
-                    content = if (snapshot == null) {
-                        resultMessage
-                    } else {
-                        snapshot.guideMessage
-                    }
-
-                    if (snapshot != null) {
-                        actionRow {
-                            repeat(snapshot.optionCount) { index ->
-                                interactionButton(ButtonStyle.Primary, GameManager.abilityPickButtonId(index + 1)) {
-                                    label = "${index + 1}번 선택"
-                                }
-                            }
-                        }
-                    }
+                if (snapshot != null) {
+                    GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
+                    GameManager.sendCurrentAbilityPickButtons(interaction.user.id)
                 }
             }.launchIn(kord)
     }
