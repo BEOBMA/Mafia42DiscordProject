@@ -1,19 +1,15 @@
 package org.beobma.mafia42discordproject.game
 
-import dev.kord.common.entity.Permission
-import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
+import dev.kord.core.behavior.channel.startPrivateThread
 import dev.kord.core.behavior.createTextChannel
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.Member
-import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.channel.addMemberOverwrite
-import dev.kord.rest.builder.channel.addRoleOverwrite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -799,22 +795,12 @@ object GameManager {
 
         // 1. 메인 채널 설정 (기본적으로 모두가 말할 수 있도록 초기화)
         val mainChat = guild.createTextChannel("메인채널") {}
-        // (선택 사항: 카테고리를 만들어서 채널들을 묶어둘 수도 있습니다)
 
-        // 2. 마피아 전용 비밀 채널 생성
+        // 2. 마피아 전용 비밀 스레드 생성 (메인 채널 하위)
         val evilPlayers = game.playerDatas.filter { it.job is Evil }
-        val mafiaChat = guild.createTextChannel("마피아전용채널") {
-            // 기본적으로 @everyone 역할은 이 채널을 아예 볼 수 없도록 설정 (ViewChannel 차단)
-            addRoleOverwrite(guild.id) {
-                denied = Permissions(Permission.ViewChannel)
-            }
-
-            // 2. 필터링해 둔 악인 팀원들에게만 보기 및 쓰기 권한 부여
-            for (player in evilPlayers) {
-                addMemberOverwrite(player.member.id) {
-                    allowed = Permissions(Permission.ViewChannel, Permission.SendMessages)
-                }
-            }
+        val mafiaChat = mainChat.startPrivateThread("마피아전용채팅")
+        evilPlayers.forEach { player ->
+            mafiaChat.addUser(player.member.id)
         }
 
         game.mainChannel = mainChat
