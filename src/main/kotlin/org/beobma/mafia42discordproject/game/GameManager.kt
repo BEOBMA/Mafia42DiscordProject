@@ -818,4 +818,25 @@ object GameManager {
 
         mafiaChat.createMessage("마피아 전용채널")
     }
+
+    // 지목투표 데이터 저장
+    fun receiveMainVote(voterId: Snowflake, targetIdString: String): Boolean {
+        val game = currentGame ?: return false
+
+        // 현재 페이즈가 투표(VOTE 단계일 때만 표를 받습니다.
+        if (game.currentPhase != GamePhase.VOTE) return false
+
+        game.currentMainVotes[voterId] = targetIdString
+        return true
+    }
+
+    // 찬반 투표 데이터 저장
+    fun receiveProsConsVote(voterId: Snowflake, isPros: Boolean): Boolean {
+        val game = currentGame ?: return false
+
+        if (game.currentPhase != GamePhase.VOTE) return false
+
+        game.currentProsConsVotes[voterId] = isPros
+        return true
+    }
 }
