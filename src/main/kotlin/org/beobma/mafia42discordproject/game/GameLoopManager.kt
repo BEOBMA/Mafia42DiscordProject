@@ -9,7 +9,7 @@ import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.TextChannel
-import dev.kord.core.entity.channel.ThreadChannel
+import dev.kord.core.entity.channel.thread.ThreadChannel
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
@@ -18,11 +18,7 @@ import kotlinx.coroutines.delay
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.system.AttackEvent
-import org.beobma.mafia42discordproject.game.system.DefenseTier
-import org.beobma.mafia42discordproject.game.system.GameEvent
-import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
-import org.beobma.mafia42discordproject.game.system.Team
+import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
 
@@ -99,9 +95,8 @@ object GameLoopManager {
         timeThreadChannel?.let { return it }
 
         val mainChannel = game.mainChannel ?: return null
-        val starterMessage = mainChannel.createMessage("시간 스레드를 생성합니다.")
         return runCatching {
-            starterMessage.startPublicThread(TIME_THREAD_NAME)
+            mainChannel.startPublicThread(TIME_THREAD_NAME)
         }.onSuccess {
             timeThreadChannel = it
         }.onFailure {
@@ -491,7 +486,7 @@ object GameLoopManager {
 
             startDayPhase(game, nightSummary)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
-            runPhaseCountdown(game, "낮", discussionMillis.toLong())
+            runPhaseCountdown(game, "낮", discussionMillis)
 
             startVotePhase(game)
             runPhaseCountdown(game, "투표", VOTE_DURATION_MS)
