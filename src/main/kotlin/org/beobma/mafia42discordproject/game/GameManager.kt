@@ -1,12 +1,16 @@
 package org.beobma.mafia42discordproject.game
 
 import dev.kord.common.entity.ButtonStyle
+import dev.kord.common.entity.Permission
+import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.createTextChannel
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.rest.builder.channel.addMemberOverwrite
+import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.VoiceChannel
@@ -820,9 +824,9 @@ object GameManager {
     private suspend fun safelyDeleteGameChannels(game: Game) {
         game.mafiaChannel?.let { mafiaChannel ->
             runCatching {
-                mafiaChannel.delete("게임 강제 종료로 인한 스레드 삭제")
+                mafiaChannel.delete("게임 강제 종료로 인한 마피아 채널 삭제")
             }.onFailure { exception ->
-                println("[GameManager] 마피아 스레드 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
+                println("[GameManager] 마피아 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
             }
         }
 
@@ -844,11 +848,26 @@ object GameManager {
         // 1. 메인 채널 설정 (기본적으로 모두가 말할 수 있도록 초기화)
         val mainChat = guild.createTextChannel("메인채널") {}
 
-        // 2. 마피아 전용 비밀 스레드 생성 (메인 채널 하위)
+        // 2. 마피아 전용 비밀 채널 생성
         val evilPlayers = game.playerDatas.filter { it.job is Evil }
-        val mafiaChat = mainChat.startPrivateThread("마피아전용채팅")
-        evilPlayers.forEach { player ->
-            mafiaChat.addUser(player.member.id)
+        val mafiaChat = guild.createTextChannel("마피아전용채팅") {
+            addRoleOverwrite(guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+
+            evilPlayers.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(
+                        Permission.ReadMessageHistory,
+                        Permission.SendMessages
+                    )
+                }
+            }
         }
 
         game.mainChannel = mainChat
