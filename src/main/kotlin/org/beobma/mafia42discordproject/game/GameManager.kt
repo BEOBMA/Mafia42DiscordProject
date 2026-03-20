@@ -587,13 +587,13 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
-            val guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = false)
             job.jobImage
                 ?.takeIf { it.isNotBlank() }
                 ?.let { imageUrl ->
                     player.member.getDmChannel().createMessage(imageUrl)
                 }
             runCatching {
+                val dmChannel = player.member.getDmChannel()
                 player.member.getDmChannel().createMessage(
                     buildString {
                         appendLine()
@@ -601,13 +601,16 @@ object GameManager {
                         appendLine()
                         appendLine("당신의 직업은 **${job.name}** 입니다.")
                         appendLine()
-                        appendLine(job.description)
+                        appendLine("직업/능력 이미지를 확인해 주세요.")
                         appendLine()
                         appendLine("이제 부가 능력을 선택해 주세요. (총 ${EXTRA_ABILITY_SELECTION_REPEAT_COUNT}회)")
                     }
                 )
 
-                player.member.getDmChannel().createMessage {
+                sendAbilityImages(dmChannel, job.abilities)
+                sendAbilityImages(dmChannel, session.currentOptions)
+
+                dmChannel.createMessage {
                     content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
                     actionRow {
                         session.currentOptions.forEachIndexed { index, _ ->
@@ -731,10 +734,22 @@ object GameManager {
 
             appendLine("아래 능력 중 하나를 선택해 주세요.")
             session.currentOptions.forEachIndexed { index, ability ->
-                appendLine("${index + 1}. ${ability.name} - ${ability.description}")
+                appendLine("${index + 1}. ${ability.name}")
             }
-            append("아래 버튼으로 번호를 선택해 주세요.")
+            append("각 번호의 이미지(위에 전송된 URL)를 확인한 뒤 아래 버튼으로 선택해 주세요.")
         }
+    }
+
+    private suspend fun sendAbilityImages(
+        dmChannel: dev.kord.core.behavior.channel.DmChannelBehavior,
+        abilities: List<Ability>
+    ) {
+        abilities
+            .map(Ability::image)
+            .filter { it.isNotBlank() }
+            .forEach { imageUrl ->
+                dmChannel.createMessage(imageUrl)
+            }
     }
 
     fun parseAbilityPickButtonId(componentId: String): Int? {
