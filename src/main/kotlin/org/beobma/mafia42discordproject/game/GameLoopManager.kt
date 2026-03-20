@@ -173,8 +173,6 @@ object GameLoopManager {
         }
 
         playersToDie.forEach { victim ->
-            if (victim.state.isDead) return@forEach
-            victim.state.isDead = true
             game.nightEvents += GameEvent.PlayerDied(victim)
         }
 
@@ -200,7 +198,21 @@ object GameLoopManager {
     }
 
     fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
-        game.lastNightSummary = summary
+        summary.deaths.forEach { victim ->
+            if (victim.state.isDead) return@forEach
+            victim.state.isDead = true
+            game.nightEvents += GameEvent.PlayerDied(victim)
+        }
+
+        val processedDawnEvents = dispatchEvents(game)
+        val dawnPresentation = buildDawnPresentation(game, summary.deaths)
+
+        game.lastNightSummary = summary.copy(
+            processedEvents = summary.processedEvents + processedDawnEvents,
+            dawnPresentation = dawnPresentation
+        )
+
+        game.nightEvents.clear()
     }
 
     suspend fun startDayPhase(
