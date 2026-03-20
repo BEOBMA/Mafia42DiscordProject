@@ -37,26 +37,12 @@ object GameLoopManager {
 
     fun resetTimeThreadState() = Unit
 
-    private suspend fun updateBotTimerName(game: Game, label: String, remainingMillis: Long) {
-        val minutes = remainingMillis / 60_000L
-        val seconds = (remainingMillis % 60_000L) / 1_000L
-        val timerName = "$label ${minutes}m ${seconds}s"
-
-        runCatching {
-            game.guild.getMember(game.guild.kord.selfId).edit {
-                nickname = timerName.take(32)
-            }
-        }
-    }
-
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         var remainingMillis = durationMillis
         while (remainingMillis > 0) {
-            updateBotTimerName(game, label, remainingMillis)
             delay(TIMER_TICK_MS)
             remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
         }
-        updateBotTimerName(game, label, 0L)
     }
 
     suspend fun startNightPhase(game: Game) {
@@ -67,11 +53,8 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.lastNightSummary = NightResolutionSummary()
 
-        game.mainChannel?.edit {
-            name = "night-${game.dayCount}"
-        }
         game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&")
-        game.sendMainChannerMessage("밤이 되었습니다. 각자 능력을 사용해 주세요.")
+        game.sendMainChannerMessage("밤이 되었습니다.")
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
@@ -175,11 +158,8 @@ object GameLoopManager {
         game.sendMainChannerMessage(dawnPresentation.message)
         delay(3_000L)
 
-        mainChannel.edit {
-            name = "day-${game.dayCount}"
-        }
         game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&")
-        game.sendMainChannerMessage("낮이 밝았습니다.")
+        game.sendMainChannerMessage("날이 밝았습니다.")
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -252,7 +232,7 @@ object GameLoopManager {
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
         mainChannel.createMessage {
-            content = "투표 시간입니다. 처형할 플레이어를 선택해 주세요."
+            content = "투표 시간입니다. 의심되는 사람을 투표하세요."
             actionRow {
                 stringSelect("main_vote_select") {
                     placeholder = "처형할 플레이어 선택"
@@ -292,25 +272,28 @@ object GameLoopManager {
         }
 
         val maxVotes = voteCounts.values.maxOrNull() ?: 0
-        if (maxVotes == 0 || invalidVoteCount >= maxVotes) {
-            mainChannel.createMessage("무효표가 가장 많아 오늘 투표는 부결되었습니다.")
+        if (invalidVoteCount >= maxVotes || maxVotes == 0) {
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            mainChannel.createMessage("처형될 대상을 고르지 못했습니다.")
             return null
         }
 
-        val maxVotedPlayers = voteCounts.filterValues { it == maxVotes }.keys.toList()
+        val maxVotedPlayers = voteCounts.filter { it.value == maxVotes }.keys.toList()
+
         if (maxVotedPlayers.size > 1) {
-            mainChannel.createMessage("동률이 발생해 오늘 투표는 부결되었습니다.")
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            mainChannel.createMessage("처형될 대상을 고르지 못했습니다.")
             return null
         }
 
         val finalTarget = maxVotedPlayers.first()
-        mainChannel.createMessage("투표 결과 ${finalTarget.member.effectiveName} 님이 최다 득표자가 되었습니다.")
         return finalTarget
     }
 
     suspend fun startDefensePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
-        mainChannel.createMessage("${target.member.effectiveName} 님의 최후 변론 시간입니다.")
+        game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484595217796567092/b1bb8f82a19e45e3.png?ex=69becc8a&is=69bd7b0a&hm=0facb3df92275cbd87534a5c337cb4c774643de1c0ec93529a105c1573f30f35&")
+        mainChannel.createMessage("${target.member.effectiveName}의 최후의 변론")
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -331,7 +314,6 @@ object GameLoopManager {
         game.currentProsConsVotes.clear()
 
         mainChannel.createMessage {
-            content = "${target.member.effectiveName} 님을 처형할지 찬반 투표를 진행합니다."
             actionRow {
                 interactionButton(ButtonStyle.Success, "vote_pros") {
                     label = "찬성"
@@ -365,7 +347,8 @@ object GameLoopManager {
         }
 
         if (!executionEvent.isApproved) {
-            mainChannel.createMessage("찬반 투표 결과 처형은 부결되었습니다.")
+            game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&")
+            mainChannel.createMessage("${target.member.effectiveName}님의 처형이 부결되었습니다.")
             return
         }
 
@@ -380,7 +363,7 @@ object GameLoopManager {
         }
 
         if (voteExecutionEvent.isCancelled) {
-            mainChannel.createMessage(voteExecutionEvent.cancelReason ?: "처형이 취소되었습니다.")
+            mainChannel.createMessage(voteExecutionEvent.cancelReason ?: "처형 무효")
             return
         }
 
@@ -388,8 +371,8 @@ object GameLoopManager {
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
         dispatchEvents(game)
         game.nightEvents.clear()
-
-        mainChannel.createMessage("찬성 $prosCount / 반대 $consCount 로 ${target.member.effectiveName} 님이 처형되었습니다.")
+        game.sendMainChannerImage("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233288691895/22SIfKIG4sgmfsgKpScS00MYCCNg70dZoYW9wB3zjuIlnN7d56sqkmFViOFPYrPnPJixJ-BEj5f_mVUp2wcYAzYpHKjyZDuoQyzfp3efnGqc1UYKkMLrk0w5QxCV5tlorhBipi2-c69B7eSYhppyIA.webp?ex=69becb9f&is=69bd7a1f&hm=0b3d5473bbaebb91f2335ef3d07cf315043fde1889930328ea4211c486e792df&")
+        mainChannel.createMessage("${target.member.effectiveName}님이 투표로 처형당하였습니다.")
     }
 
     fun checkWinCondition(game: Game): Team? {
@@ -484,7 +467,7 @@ object GameLoopManager {
         return if (deaths.isEmpty()) {
             DawnPresentation(
                 imageUrl = QUIET_NIGHT_IMAGE_URL,
-                message = "조용한 밤이 지나갔습니다."
+                message = "조용하게 밤이 지나갔습니다."
             )
         } else {
             DawnPresentation(

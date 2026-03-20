@@ -717,6 +717,9 @@ object GameManager {
         includeProgress: Boolean
     ): String {
         return buildString {
+            appendLine(".")
+            appendLine(".")
+            appendLine(".")
             append("능력 중 하나를 선택하세요.")
         }
     }
@@ -756,9 +759,13 @@ object GameManager {
         if (session.currentOptions.isEmpty()) return false
 
         val dmChannel = player.member.getDmChannel()
-        repeat(3) {
-            dmChannel.createMessage(".")
+        val dm = buildString {
+            appendLine(".")
+            appendLine(".")
+            appendLine(".")
+            append("능력 중 하나를 선택하세요.")
         }
+        dmChannel.createMessage(dm)
         sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }
