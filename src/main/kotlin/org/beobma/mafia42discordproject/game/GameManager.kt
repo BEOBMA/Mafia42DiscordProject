@@ -753,8 +753,7 @@ object GameManager {
             DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
             return
         }
-        gameToStop.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
-        gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+        safelyDeleteGameChannels(gameToStop)
 
         currentGame = null
         currentGuild = null
@@ -774,8 +773,7 @@ object GameManager {
             event.message.channel.createMessage("진행 중인 게임이 없습니다.")
             return
         }
-        gameToStop.mainChannel?.delete("게임 강제 종료로 인한 채널 삭제")
-        gameToStop.mafiaChannel?.delete("게임 강제 종료로 인한 채널 삭제")
+        safelyDeleteGameChannels(gameToStop)
 
         currentGame = null
         currentGuild = null
@@ -786,6 +784,27 @@ object GameManager {
 
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
+    }
+
+    private suspend fun safelyDeleteGameChannels(game: Game) {
+        game.mafiaChannel?.let { mafiaChannel ->
+            runCatching {
+                mafiaChannel.delete("게임 강제 종료로 인한 스레드 삭제")
+            }.onFailure { exception ->
+                println("[GameManager] 마피아 스레드 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
+            }
+        }
+
+        game.mainChannel?.let { mainChannel ->
+            runCatching {
+                mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
+            }.onFailure { exception ->
+                println("[GameManager] 메인 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
+            }
+        }
+
+        game.mafiaChannel = null
+        game.mainChannel = null
     }
 
     suspend fun setupGameChannels(game: Game) {
