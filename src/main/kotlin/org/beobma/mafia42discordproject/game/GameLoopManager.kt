@@ -30,26 +30,36 @@ object GameLoopManager {
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val TIMER_TICK_MS = 1_000L
 
-    private suspend fun updateBotTimerName(game: Game, label: String, remainingMillis: Long) {
+    private fun formatRemainingTime(remainingMillis: Long): String {
         val minutes = remainingMillis / 60_000L
         val seconds = (remainingMillis % 60_000L) / 1_000L
-        val timerName = "$label - ${minutes}분 ${seconds}초"
-
-        runCatching {
-            game.guild.getMember(game.guild.kord.selfId).edit {
-                nickname = timerName.take(32)
-            }
-        }
+        return "${minutes}분 ${seconds}초"
     }
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
+        val mainChannel = game.mainChannel
+        if (mainChannel == null) {
+            delay(durationMillis)
+            return
+        }
+
+        val timerMessage = mainChannel.createMessage("⏳ **$label**\n남은 시간: ${formatRemainingTime(durationMillis)}")
         var remainingMillis = durationMillis
         while (remainingMillis > 0) {
-            updateBotTimerName(game, label, remainingMillis)
+            runCatching {
+                timerMessage.edit {
+                    content = "⏳ **$label**\n남은 시간: ${formatRemainingTime(remainingMillis)}"
+                }
+            }
             delay(TIMER_TICK_MS)
             remainingMillis = (remainingMillis - TIMER_TICK_MS).coerceAtLeast(0L)
         }
-        updateBotTimerName(game, label, 0L)
+
+        runCatching {
+            timerMessage.edit {
+                content = "✅ **$label**\n남은 시간: ${formatRemainingTime(0L)}"
+            }
+        }
     }
 
     suspend fun startNightPhase(game: Game) {
