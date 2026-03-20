@@ -1,10 +1,13 @@
 package org.beobma.mafia42discordproject.game
 
+import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.createTextChannel
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -601,6 +604,17 @@ object GameManager {
                         append(guideMessage)
                     }
                 )
+
+                player.member.getDmChannel().createMessage {
+                    content = buildAbilitySelectionGuideMessage(session, includeProgress = true)
+                    actionRow {
+                        session.currentOptions.forEachIndexed { index, _ ->
+                            interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
+                                label = "${index + 1}번 선택"
+                            }
+                        }
+                    }
+                }
             }.onFailure { error ->
                 println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
             }
@@ -689,11 +703,7 @@ object GameManager {
             }
         }
 
-        return buildString {
-            appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
-            appendLine()
-            append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
-        }
+        return "✅ ${pickedAbility.name} 능력을 선택했습니다. 다음 능력을 선택해 주세요."
     }
 
     private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
@@ -727,9 +737,30 @@ object GameManager {
             session.currentOptions.forEachIndexed { index, ability ->
                 appendLine("${index + 1}. ${ability.name} - ${ability.description}")
             }
-            append("선택 명령어: `/abilitypick 번호:<1~${session.currentOptions.size}>`")
+            append("아래 버튼으로 번호를 선택해 주세요.")
         }
     }
+
+    fun parseAbilityPickButtonId(componentId: String): Int? {
+        val prefix = "ability_pick_"
+        if (!componentId.startsWith(prefix)) return null
+        return componentId.removePrefix(prefix).toIntOrNull()?.takeIf { it in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND }
+    }
+
+    fun abilityPickButtonId(pickNumber: Int): String = "ability_pick_$pickNumber"
+
+    fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
+        val session = abilitySelectionSessions[userId] ?: return null
+        return AbilitySelectionSnapshot(
+            guideMessage = buildAbilitySelectionGuideMessage(session, includeProgress = true),
+            optionCount = session.currentOptions.size
+        )
+    }
+
+    data class AbilitySelectionSnapshot(
+        val guideMessage: String,
+        val optionCount: Int
+    )
 
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true

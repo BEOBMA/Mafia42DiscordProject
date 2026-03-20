@@ -11,17 +11,12 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.serialization.json.JsonNull.content
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
-import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
-import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
-import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
-import dev.kord.core.behavior.interaction.response.respond
-import org.beobma.mafia42discordproject.game.GameLoopManager
+import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
 
@@ -66,7 +61,8 @@ suspend fun main() {
     // UI 상호작용 버튼 리스너 일괄등록
     val interactionListeners = listOf(
         MainVoteListener,
-        ProsConsVoteListener
+        ProsConsVoteListener,
+        AbilityPickButtonListener
     )
 
     interactionListeners.forEach { listener ->
