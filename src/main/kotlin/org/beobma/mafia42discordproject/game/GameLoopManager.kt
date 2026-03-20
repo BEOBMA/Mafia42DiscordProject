@@ -5,7 +5,6 @@ import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.channel.startPublicThread
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
