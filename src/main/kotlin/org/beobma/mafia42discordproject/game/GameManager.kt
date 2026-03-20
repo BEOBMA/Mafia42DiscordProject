@@ -763,10 +763,6 @@ object GameManager {
         if (session.currentOptions.isEmpty()) return false
 
         val dmChannel = player.member.getDmChannel()
-        val dm = buildString {
-            append("능력 중 하나를 선택하세요.")
-        }
-        dmChannel.createMessage(dm)
         sendAbilityImages(dmChannel, session.currentOptions)
         return true
     }
