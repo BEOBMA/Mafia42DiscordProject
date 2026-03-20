@@ -9,5 +9,6 @@ import kotlin.reflect.KClass
 class Successor : Ability, JobSpecificExtraAbility {
     override val name: String = "후계자"
     override val description: String = "마피아가 없는 상태에서 마피아의 능력을 얻을 수 있으며, 이 상태에서 쏘는 총은 무조건 적중한다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484624021034237952/97c1dfd7f8c1ed9f.png?ex=69bee75d&is=69bd95dd&hm=30c5529dffc570f56e03f6377c4a37dbd14e35492d77b662fbe33b21c14246b0&"
     override val targetJob: List<KClass<out Job>> = listOf(Thief::class)
 }
