@@ -120,14 +120,8 @@ private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, 
         .firstOrNull()
 
     if (existingCommand != null) {
-        runCatching {
-            existingCommand.delete()
-        }.onSuccess {
-            println("기존 길드 명령을 삭제하고 다시 등록합니다: /${command.name} (guildId=$guildId)")
-        }.onFailure { error ->
-            println("길드 명령 삭제 실패: /${command.name} (guildId=$guildId), reason=${error.message}")
-            return
-        }
+        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name} (guildId=$guildId)")
+        return
     }
 
     runCatching {
