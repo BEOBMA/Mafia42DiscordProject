@@ -16,7 +16,7 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
-    override val description: String = "..."
+    override val description: String = "use ability"
 
     private const val abilityOptionName = "use_ability"
     private const val targetOptionName = "use_target"
