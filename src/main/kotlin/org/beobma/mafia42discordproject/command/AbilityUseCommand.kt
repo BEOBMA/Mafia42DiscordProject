@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.command
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.suggestString
+import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.rest.builder.interaction.string
@@ -35,11 +36,13 @@ object AbilityUseCommand : DiscordCommand {
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val interaction = event.interaction
-        if (interaction.focusedOption.value != abilityOptionName) return
+        val focusedEntry = interaction.command.options.entries
+            .firstOrNull { it.value.focused } ?: return
+        if (focusedEntry.key != abilityOptionName) return
 
         val game = GameManager.getCurrentGameFor(interaction.user.id) ?: return
         val caster = game.getPlayer(interaction.user.id) ?: return
-        val query = interaction.focusedOption.value.trim()
+        val query = (focusedEntry.value as? StringOptionValue)?.value?.trim().orEmpty()
 
         val suggestions = getUsableActiveAbilities(game, caster)
             .map(ActiveAbility::name)
