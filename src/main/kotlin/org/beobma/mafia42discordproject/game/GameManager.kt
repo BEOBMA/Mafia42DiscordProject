@@ -590,21 +590,26 @@ object GameManager {
 
             runCatching {
                 val dmChannel = player.member.getDmChannel()
-                val introMessage = buildString {
+                val ownedAbilityMessage = buildString {
                     job.jobImage
                         ?.takeIf { it.isNotBlank() }
                         ?.let { appendLine(it) }
-                    val ownedAbilityImageCount = appendAbilityImages(this, job.abilities)
-                    val selectableAbilityImageCount = session.currentOptions.count { it.image.isNotBlank() }
-                    if (ownedAbilityImageCount > 0 && selectableAbilityImageCount > 0) {
-                        appendLine()
-                    }
-                    appendAbilityImages(this, session.currentOptions)
-                    append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+                    appendAbilityImages(this, job.abilities)
+                }.trim()
+                if (ownedAbilityMessage.isNotBlank()) {
+                    dmChannel.createMessage(ownedAbilityMessage)
                 }
 
+                val selectableAbilityMessage = buildString {
+                    appendAbilityImages(this, session.currentOptions)
+                    if (isNotEmpty()) {
+                        appendLine()
+                    }
+                    append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+                }.trim()
+
                 dmChannel.createMessage {
-                    content = introMessage
+                    content = selectableAbilityMessage
                     actionRow {
                         session.currentOptions.forEachIndexed { index, _ ->
                             interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
