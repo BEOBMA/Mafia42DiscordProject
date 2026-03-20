@@ -33,6 +33,8 @@ object AbilityPickButtonListener : InteractionListener {
                 if (snapshot != null) {
                     GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
                     GameManager.sendCurrentAbilityPickButtons(interaction.user.id)
+                } else {
+                    GameManager.sendFinalSelectedAbilityImages(interaction.user.id)
                 }
             }.launchIn(kord)
     }

@@ -13,7 +13,6 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
-import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -594,12 +593,18 @@ object GameManager {
                     job.jobImage
                         ?.takeIf { it.isNotBlank() }
                         ?.let { appendLine(it) }
-                    val ownedAbilityImageCount = appendAbilityImages(this, job.abilities)
-                    val selectableAbilityImageCount = session.currentOptions.count { it.image.isNotBlank() }
-                    if (ownedAbilityImageCount > 0 && selectableAbilityImageCount > 0) {
-                        appendLine()
-                    }
-                    appendAbilityImages(this, session.currentOptions)
+                    appendAbilitySection(
+                        builder = this,
+                        title = "🧩 현재 직업이 보유한 능력",
+                        abilities = job.abilities
+                    )
+                    appendLine()
+                    appendAbilitySection(
+                        builder = this,
+                        title = "🎯 이번 라운드에서 선택 가능한 능력",
+                        abilities = session.currentOptions
+                    )
+                    appendLine()
                     append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
                 }
 
@@ -621,10 +626,12 @@ object GameManager {
         assignVirtualPlayerExtraAbilities(players)
     }
 
-    private fun appendAbilityImages(
+    private fun appendAbilitySection(
         builder: StringBuilder,
+        title: String,
         abilities: List<Ability>
     ): Int {
+        builder.appendLine(title)
         var count = 0
         abilities
             .map(Ability::image)
@@ -633,6 +640,9 @@ object GameManager {
                 builder.appendLine(imageUrl)
                 count += 1
             }
+        if (count == 0) {
+            builder.appendLine("(이미지가 등록된 능력이 없습니다.)")
+        }
         return count
     }
 
@@ -735,18 +745,6 @@ object GameManager {
         }
     }
 
-    private suspend fun sendAbilityImages(
-        dmChannel: DmChannel,
-        abilities: List<Ability>
-    ) {
-        val imageUrls = abilities
-            .map(Ability::image)
-            .filter { it.isNotBlank() }
-        if (imageUrls.isEmpty()) return
-
-        dmChannel.createMessage(imageUrls.joinToString("\n"))
-    }
-
     fun parseAbilityPickButtonId(componentId: String): Int? {
         val prefix = "ability_pick_"
         if (!componentId.startsWith(prefix)) return null
@@ -770,7 +768,37 @@ object GameManager {
         if (session.currentOptions.isEmpty()) return false
 
         val dmChannel = player.member.getDmChannel()
-        sendAbilityImages(dmChannel, session.currentOptions)
+        dmChannel.createMessage(
+            buildString {
+                appendAbilitySection(
+                    builder = this,
+                    title = "🎯 이번 라운드에서 선택 가능한 능력",
+                    abilities = session.currentOptions
+                )
+            }
+        )
+        return true
+    }
+
+    suspend fun sendFinalSelectedAbilityImages(userId: Snowflake): Boolean {
+        val game = currentGame ?: return false
+        val player = game.getPlayer(userId) ?: return false
+        val job = player.job ?: return false
+        val allAbilities = (job.abilities + job.extraAbilities)
+            .distinctBy(Ability::name)
+        if (allAbilities.none { it.image.isNotBlank() }) return false
+
+        val dmChannel = player.member.getDmChannel()
+        dmChannel.createMessage(
+            buildString {
+                appendLine("🏁 최종 능력 이미지")
+                appendAbilitySection(
+                    builder = this,
+                    title = "✨ ${job.name}의 최종 보유 능력",
+                    abilities = allAbilities
+                )
+            }
+        )
         return true
     }
 
