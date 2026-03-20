@@ -19,6 +19,9 @@ object AbilityPickButtonListener : InteractionListener {
 
                 val resultMessage = GameManager.selectExtraAbility(interaction.user.id, pickNumber)
                 val snapshot = GameManager.getAbilitySelectionSession(interaction.user.id)
+                if (snapshot != null) {
+                    GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
+                }
 
                 interaction.deferPublicResponse().respond {
                     content = if (snapshot == null) {
