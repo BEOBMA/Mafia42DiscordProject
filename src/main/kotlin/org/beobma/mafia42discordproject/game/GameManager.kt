@@ -596,9 +596,7 @@ object GameManager {
             runCatching {
                 val dmChannel = player.member.getDmChannel()
                 sendAbilityImages(dmChannel, job.abilities)
-                repeat(3) {
-                    dmChannel.createMessage(".")
-                }
+                dmChannel.createMessage(".")
                 sendAbilityImages(dmChannel, session.currentOptions)
 
                 dmChannel.createMessage {
@@ -760,9 +758,6 @@ object GameManager {
 
         val dmChannel = player.member.getDmChannel()
         val dm = buildString {
-            appendLine(".")
-            appendLine(".")
-            appendLine(".")
             append("능력 중 하나를 선택하세요.")
         }
         dmChannel.createMessage(dm)
