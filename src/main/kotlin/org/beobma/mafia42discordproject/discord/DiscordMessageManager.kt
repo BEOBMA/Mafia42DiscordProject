@@ -25,13 +25,6 @@ object DiscordMessageManager {
         }
     }
 
-    suspend fun Game.setMainChannerTitleName(msg: String) {
-        val mainChannel = mainChannel ?: return
-        mainChannel.edit {
-            name = msg
-        }
-    }
-
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
         event.interaction.respondPublic {
             this.content = content
