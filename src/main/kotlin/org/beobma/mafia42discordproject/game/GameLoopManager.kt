@@ -6,6 +6,7 @@ import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
+import dev.kord.core.behavior.channel.startPublicThread
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.thread.TextChannelThread
@@ -47,6 +48,12 @@ object GameLoopManager {
 
         if (thread == null) {
             thread = mainChannel.startPublicThread("시간")
+            thread?.edit {
+                addRoleOverwrite(game.guild.id) {
+                    allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                    denied = Permissions(Permission.SendMessages, Permission.AddReactions)
+                }
+            }
         }
 
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
@@ -79,7 +86,7 @@ object GameLoopManager {
         // ==========================================
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mainChannel = game.mainChannel ?: return
-        val mafiaChannel = game.mafiaChannel ?: return
+        game.mafiaChannel ?: return
 
         // 음성 뮤트
         game.playerDatas.forEach { playerData ->
@@ -93,14 +100,6 @@ object GameLoopManager {
             addRoleOverwrite(game.guild.id) {
                 denied = Permissions(Permission.SendMessages)
                 allowed = Permissions(Permission.UseApplicationCommands)
-            }
-        }
-
-        mafiaChannel.edit {
-            addRoleOverwrite(game.guild.id) {
-                allowed = Permissions(Permission.SendMessages)
-                allowed = Permissions(Permission.UseApplicationCommands)
-                denied = Permissions(Permission.ReadMessageHistory)
             }
         }
 
