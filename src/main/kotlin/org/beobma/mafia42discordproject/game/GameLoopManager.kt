@@ -6,8 +6,8 @@ import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
-import dev.kord.core.behavior.channel.threads.startPublicThreadWithMessage
 import dev.kord.core.behavior.edit
+import dev.kord.core.entity.channel.thread.TextChannelThread
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
@@ -29,6 +29,7 @@ object GameLoopManager {
     private const val VOTE_DURATION_MS = 15_000L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
+    private var thread: TextChannelThread? = null
 
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
         val mainChannel = game.mainChannel
@@ -37,17 +38,12 @@ object GameLoopManager {
             return
         }
 
+        if (thread == null) {mainChannel.startPublicThread("시간")}
         val targetUnixSeconds = (System.currentTimeMillis() + durationMillis) / 1_000L
-        val threadStarterMessage = mainChannel.createMessage("⏳ **$label** 타이머")
+        val thread = thread ?: return
         val timerMessage = "📌 단계: **$label**\n⏱️ 남은 시간: <t:$targetUnixSeconds:R>\n(유닉스 시간: `$targetUnixSeconds`)"
 
-        runCatching {
-            val timerThread = threadStarterMessage.startPublicThreadWithMessage("시간")
-            timerThread.createMessage(timerMessage)
-        }.onFailure {
-            // 스레드 생성 실패 시에도 타이머 정보 자체는 메인 채널에서 확인 가능하도록 폴백
-            mainChannel.createMessage(timerMessage)
-        }
+        thread.createMessage(timerMessage)
 
         delay(durationMillis)
     }
