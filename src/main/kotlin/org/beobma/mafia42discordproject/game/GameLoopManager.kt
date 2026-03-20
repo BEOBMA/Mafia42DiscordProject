@@ -51,7 +51,7 @@ object GameLoopManager {
     private suspend fun updateTimeStatusMessage(game: Game, phaseLabel: String, remainingMillis: Long) {
         val statusMessage = ensureTimeStatusMessage(game) ?: return
         val targetEpochSeconds = ((System.currentTimeMillis() + remainingMillis) / 1_000L).coerceAtLeast(0L)
-        val content = "${game.dayCount}일차 ${phaseLabel} - <t:${targetEpochSeconds}:R>"
+        val content = "${game.dayCount}일차 $phaseLabel - <t:${targetEpochSeconds}:R>"
 
         runCatching {
             statusMessage.edit {
