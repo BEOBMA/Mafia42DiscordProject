@@ -805,16 +805,6 @@ object GameLoopManager {
         }
     }
 
-    private fun applyInnateNightDefense(target: PlayerData, attackEvent: AttackEvent) {
-        if (target.job?.name != "군인") return
-        if (target.state.hasUsedOneTimeAbility) return
-
-        target.state.healTier = maxOf(target.state.healTier, DefenseTier.ABSOLUTE)
-        if (target.state.healTier.level >= attackEvent.attackTier.level) {
-            target.state.hasUsedOneTimeAbility = true
-        }
-    }
-
     private fun buildDawnPresentation(game: Game, deaths: List<PlayerData>): DawnPresentation {
         if (game.concealmentForcedQuietNight) {
             return DawnPresentation(

@@ -3,9 +3,19 @@ package org.beobma.mafia42discordproject.game.system
 import dev.kord.core.behavior.channel.createMessage
 
 object JobDiscoveryNotificationManager {
-    suspend fun notifyDiscoveredTargets(events: List<GameEvent>) {
+    suspend fun notifyDiscoveredTargets(events: List<GameEvent>, game: org.beobma.mafia42discordproject.game.Game? = null) {
         events.filterIsInstance<GameEvent.JobDiscovered>()
+            .filter { !it.isCancelled }
             .forEach { event ->
+                if (event.isPublicReveal) {
+                    runCatching {
+                        game?.mainChannel?.createMessage(
+                            "📢 [직업 공개] ${event.target.member.effectiveName}님의 직업은 [${event.revealedJob.name}] 입니다!"
+                        )
+                    }
+                    return@forEach
+                }
+
                 runCatching {
                     event.target.member.getDmChannel().createMessage(
                         buildTargetNotificationMessage(event)
@@ -31,6 +41,10 @@ object JobDiscoveryNotificationManager {
                     append("참고: $note")
                 }
             }
+            event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                appendLine()
+                append(url)
+            }
         }
     }
 
@@ -43,6 +57,10 @@ object JobDiscoveryNotificationManager {
                 appendLine()
                 append("발견 수단: ")
                 append(abilityName)
+            }
+            event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                appendLine()
+                append(url)
             }
         }
     }

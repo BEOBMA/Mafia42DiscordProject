@@ -23,6 +23,10 @@ sealed class GameEvent {
         var isCleanedUp: Boolean = false
     ) : GameEvent()
 
+    data class BeforeAttackEvaluated(
+        val attackEvent: AttackEvent
+    ) : GameEvent()
+
     data class PoliceSearchResolved(
         val police: PlayerData,
         val target: PlayerData,
@@ -50,7 +54,10 @@ sealed class GameEvent {
         var isFalsified: Boolean = false,
         var note: String? = null,
         val sharedByPaparazzi: Boolean = false,
-        val triggeredByTact: Boolean = false
+        val triggeredByTact: Boolean = false,
+        var isCancelled: Boolean = false,
+        val isPublicReveal: Boolean = false,
+        var imageUrl: String? = null
     ) : GameEvent()
 
 
