@@ -17,11 +17,11 @@ object PoliceNotificationManager : BaseNotificationManager() {
         }
 
         val text = if (event.isMafia) {
-            "$${targetName}님은 마피아입니다."
+            "${targetName}님은 마피아입니다."
         } else {
-            "$${targetName}님은 마피아가 아닙니다."
+            "${targetName}님은 마피아가 아닙니다."
         }
-        sendDmWithImage(policePlayer, text, text)
+        sendDmWithImage(policePlayer, text, image)
     }
 
     suspend fun notifyWarrantResult(policePlayer: PlayerData, event: GameEvent.PoliceJobRevealed) {
