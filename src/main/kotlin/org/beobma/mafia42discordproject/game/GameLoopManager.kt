@@ -1358,13 +1358,17 @@ object GameLoopManager {
                 selectedTarget.member.id == sunCabal.pairedPlayerId
 
             if (isMoon) {
+                val newlyFoundMoon = !sunCabal.hasFoundMoon
                 sunCabal.hasFoundMoon = true
-                val moonCabal = selectedTarget?.job as? Cabal
+                val moonCabal = selectedTarget.job as? Cabal
                 moonCabal?.wasFoundBySun = true
                 sendCabalDm(
                     sunPlayer,
-                    "밀사 결과: 맞다. ${selectedTarget.member.effectiveName}님이 달 비밀결사입니다."
+                    "비밀결사 ${selectedTarget.member.effectiveName}님을 찾았습니다."
                 )
+                if (newlyFoundMoon) {
+                    sendCabalDm(selectedTarget, "비밀결사의 표식이 발견되었습니다.")
+                }
             } else {
                 sendCabalDm(sunPlayer, "밀사 결과: 아니다.")
             }
