@@ -11,8 +11,9 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.WinOrDead
+import org.beobma.mafia42discordproject.job.definition.list.Doctor
 
-class Heal : ActiveAbility, JobUniqueAbility {
+class DoctorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "치료"
     override val description: String = "밤이 되면 플레이어 한 명을 처형으로부터 치료한다."
     override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484626955612455174/bef253042e3dab28.png?ex=69beea19&is=69bd9899&hm=99b25a7815280b9c866654be45d3ae55eb1a37c4229fc2216f78e4ca341d49ab&"
