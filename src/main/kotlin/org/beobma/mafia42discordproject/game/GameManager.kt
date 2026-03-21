@@ -1230,6 +1230,8 @@ object GameManager {
         if (game.currentPhase != GamePhase.VOTE) return false
         val voter = game.getPlayer(voterId) ?: return false
         if (voter.state.isDead) return false
+        if (voterId in game.permanentlyDisenfranchisedVoters) return false
+        if (game.activeThreatenedVoters.containsKey(voterId)) return false
 
         game.currentMainVotes[voterId] = targetIdString
         return true
@@ -1242,6 +1244,8 @@ object GameManager {
         if (game.currentPhase != GamePhase.VOTE) return false
         val voter = game.getPlayer(voterId) ?: return false
         if (voter.state.isDead) return false
+        if (voterId in game.permanentlyDisenfranchisedVoters) return false
+        if (game.activeThreatenedVoters.containsKey(voterId)) return false
         if (game.currentProsConsVotes.containsKey(voterId)) return false
 
         game.currentProsConsVotes[voterId] = isPros

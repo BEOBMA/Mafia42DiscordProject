@@ -42,7 +42,10 @@ import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.Arcana
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
+import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
@@ -138,7 +141,11 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.concealmentForcedQuietNight = false
         game.coupleSacrificeMap.clear()
+        game.activeThreatenedVoters.clear()
         game.lastNightSummary = NightResolutionSummary()
+        game.playerDatas.forEach { player ->
+            player.state.isThreatened = false
+        }
         game.playerDatas.forEach { player ->
             (player.job as? Cabal)?.let { cabalJob ->
                 cabalJob.moonMarkedSunTonight = false
@@ -155,6 +162,7 @@ object GameLoopManager {
             (player.job as? Administrator)?.let { administratorJob ->
                 administratorJob.investigationResultPlayerId = null
             }
+            (player.job as? Gangster)?.prepareNightThreatSelection()
         }
         resolveCabalSunInvestigation(game)
 
@@ -210,6 +218,7 @@ object GameLoopManager {
             addAll(game.nightDeathCandidates)
         }
 
+        resolveGangsterThreats(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
         resolveFortunetellerFortunes(game)
@@ -242,6 +251,7 @@ object GameLoopManager {
         } else {
             game.mafiaAttackFailedPreviousNight = false
         }
+        applyTravelCompanionPenalty(game, playersToDie, mafiaAttack)
 
         playersToDie.forEach { victim ->
             game.nightEvents += GameEvent.PlayerDied(victim)
@@ -269,6 +279,7 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
+            (player.job as? Gangster)?.finalizeNightThreatSelection()
             player.state.resetForNextPhase()
         }
 
@@ -583,8 +594,23 @@ object GameLoopManager {
         val voteCounts = mutableMapOf<PlayerData, Int>()
         var invalidVoteCount = 0
         val weightedVoteTargets = mutableListOf<PlayerData>()
+        val gangsterTransferredVoteWeights = mutableMapOf<Snowflake, Int>()
+        game.activeThreatenedVoters.forEach { (threatenedId, gangsterId) ->
+            val threatened = game.getPlayer(threatenedId) ?: return@forEach
+            val gangster = game.getPlayer(gangsterId) ?: return@forEach
+            if (threatened.state.isDead || gangster.state.isDead) return@forEach
+            gangsterTransferredVoteWeights[gangsterId] =
+                (gangsterTransferredVoteWeights[gangsterId] ?: 0) + 1
+        }
 
         alivePlayers.forEach { voter ->
+            if (voter.member.id in game.permanentlyDisenfranchisedVoters) {
+                return@forEach
+            }
+            if (game.activeThreatenedVoters.containsKey(voter.member.id)) {
+                return@forEach
+            }
+
             val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = 1)
             voter.allAbilities
                 .filterIsInstance<PassiveAbility>()
@@ -592,6 +618,10 @@ object GameLoopManager {
                 .forEach { passive ->
                     passive.onEventObserved(game, voter, weightEvent)
                 }
+            weightEvent.weight += gangsterTransferredVoteWeights[voter.member.id] ?: 0
+            if (weightEvent.weight <= 0) {
+                return@forEach
+            }
 
             val targetIdString = game.currentMainVotes[voter.member.id]
             if (targetIdString == null) {
@@ -722,7 +752,12 @@ object GameLoopManager {
         val mainChannel = game.mainChannel ?: return
         val deadChannel = game.deadChannel
         val prosCount = game.currentProsConsVotes.values.count { it }
-        val consCount = game.currentProsConsVotes.values.count { !it }
+        val consCount = game.currentProsConsVotes.values.count { !it } +
+            game.playerDatas.count { player ->
+                !player.state.isDead &&
+                    (player.member.id in game.permanentlyDisenfranchisedVoters ||
+                        game.activeThreatenedVoters.containsKey(player.member.id))
+            }
 
         val executionEvent = GameEvent.DecideExecution(target, prosCount > consCount)
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
@@ -785,7 +820,13 @@ object GameLoopManager {
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mafiaCount = alivePlayers.count { it.job is Evil }
-        val citizenCount = alivePlayers.size - mafiaCount
+        val citizenCount = alivePlayers.sumOf { player ->
+            if (player.job is Evil) {
+                0
+            } else {
+                if (player.job is Gangster) 3 else 1
+            }
+        }
         val aliveCabals = alivePlayers.count { it.job is Cabal }
 
         return when {
@@ -1013,11 +1054,49 @@ object GameLoopManager {
                 // 이후 해로운 효과(예: 저주, 봉인, 추가 상태이상 등)가 확장되면 여기에서 함께 정리한다.
                 target.state.isPoisoned = false
                 target.state.poisonedDeathDay = null
+                target.state.isThreatened = false
+                game.activeThreatenedVoters.remove(target.member.id)
+                game.playerDatas.forEach { gangsterOwner ->
+                    val gangsterJob = gangsterOwner.job as? Gangster ?: return@forEach
+                    gangsterJob.threatenedTargetIdsTonight.remove(target.member.id)
+                }
             }
 
             game.nightEvents += healEvent
             doctorJob.currentHealTarget = null
         }
+    }
+
+    private fun resolveGangsterThreats(game: Game) {
+        game.activeThreatenedVoters.clear()
+        game.playerDatas.forEach { player ->
+            val gangster = player.job as? Gangster ?: return@forEach
+            gangster.threatenedTargetIdsTonight.forEach { targetId ->
+                val target = game.getPlayer(targetId) ?: return@forEach
+                if (target.state.isDead) return@forEach
+                target.state.isThreatened = true
+                game.activeThreatenedVoters[targetId] = player.member.id
+            }
+        }
+    }
+
+    private fun applyTravelCompanionPenalty(
+        game: Game,
+        playersToDie: Set<PlayerData>,
+        mafiaAttack: AttackEvent?
+    ) {
+        val attack = mafiaAttack ?: return
+        if (attack.target !in playersToDie) return
+
+        val deadGangster = attack.target
+        val gangsterJob = deadGangster.job as? Gangster ?: return
+        if (deadGangster.allAbilities.none { it is TravelCompanion }) return
+
+        val killerId = attack.attacker.member.id
+        if (killerId !in gangsterJob.threatenedTargetIdsTonight) return
+
+        game.permanentlyDisenfranchisedVoters += killerId
+        game.activeThreatenedVoters.remove(killerId)
     }
 
     private fun resolveAdministratorInvestigations(game: Game) {
