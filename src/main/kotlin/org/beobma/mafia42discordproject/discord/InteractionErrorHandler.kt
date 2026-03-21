@@ -19,11 +19,11 @@ object InteractionErrorHandler {
             }
 
             if (current is KtorRequestException) {
-                val ktorMessage = current.error.message.orEmpty()
+                val ktorMessage = current.error?.message.orEmpty()
                 if (ignorableTokens.any { token -> ktorMessage.contains(token, ignoreCase = true) }) {
                     return true
                 }
-                val code = current.error.code?.toString().orEmpty()
+                val code = current.error?.code?.toString().orEmpty()
                 if (code == "10062" || code == "40060") {
                     return true
                 }
