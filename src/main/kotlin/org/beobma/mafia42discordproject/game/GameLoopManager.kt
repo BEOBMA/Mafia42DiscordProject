@@ -20,6 +20,8 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 object GameLoopManager {
@@ -174,12 +176,15 @@ object GameLoopManager {
             }
         }
 
+        resolvePoliceSearches(game)
+
         playersToDie.forEach { victim ->
             game.nightEvents += GameEvent.PlayerDied(victim)
         }
 
         val processedEvents = dispatchEvents(game)
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents)
+        PoliceSearchNotificationManager.notifyPoliceSearchResults(processedEvents)
         val deaths = playersToDie.toList()
         val summary = NightResolutionSummary(
             processedEvents = processedEvents,
@@ -645,5 +650,41 @@ object GameLoopManager {
         }
 
         return processedEvents
+    }
+
+    private fun resolvePoliceSearches(game: Game) {
+        game.playerDatas.forEach { player ->
+            val policeJob = player.job as? Police ?: return@forEach
+            val targetId = policeJob.currentSearchTarget ?: return@forEach
+            val target = game.getPlayer(targetId) ?: run {
+                policeJob.currentSearchTarget = null
+                return@forEach
+            }
+
+            val isRepeatedSearch = targetId in policeJob.searchedTargets
+            game.nightEvents += GameEvent.PoliceSearchResolved(
+                police = player,
+                target = target,
+                isMafia = target.job is Evil,
+                isRepeatedSearch = isRepeatedSearch
+            )
+
+            val warrant = player.allAbilities.filterIsInstance<Warrant>().firstOrNull()
+            if (warrant?.shouldRevealJob(targetId, policeJob.searchedTargets) == true) {
+                val actualJob = target.job
+                if (actualJob != null) {
+                    game.nightEvents += GameEvent.PoliceJobRevealed(
+                        police = player,
+                        target = target,
+                        actualJob = actualJob,
+                        revealedJob = actualJob,
+                        resolvedAt = DiscoveryStep.NIGHT
+                    )
+                }
+            }
+
+            policeJob.searchedTargets += targetId
+            policeJob.currentSearchTarget = null
+        }
     }
 }

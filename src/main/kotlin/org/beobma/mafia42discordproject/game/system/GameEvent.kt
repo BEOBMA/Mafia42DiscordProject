@@ -23,6 +23,23 @@ sealed class GameEvent {
         var isCleanedUp: Boolean = false
     ) : GameEvent()
 
+    data class PoliceSearchResolved(
+        val police: PlayerData,
+        val target: PlayerData,
+        val isMafia: Boolean,
+        val isRepeatedSearch: Boolean = false
+    ) : GameEvent()
+
+    data class PoliceJobRevealed(
+        val police: PlayerData,
+        val target: PlayerData,
+        val actualJob: Job,
+        var revealedJob: Job,
+        val resolvedAt: DiscoveryStep,
+        var isFalsified: Boolean = false,
+        var note: String? = null
+    ) : GameEvent()
+
     data class JobDiscovered(
         val discoverer: PlayerData,
         val target: PlayerData,
