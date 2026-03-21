@@ -312,6 +312,9 @@ object GameLoopManager {
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
             message = "밤이 되었습니다."
         )
+        resolveHackerHacks(game)
+        val nightStartEvents = dispatchEvents(game)
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(nightStartEvents, game)
         notifyMercenaryClientsAtFirstNight(game)
 
         val mainChannel = game.mainChannel ?: return
@@ -366,7 +369,6 @@ object GameLoopManager {
         resolveNursePrescriptions(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
-        resolveHackerHacks(game)
         resolveReporterScoops(game)
 
         game.nightAttacks.values.forEach { attackEvent ->
