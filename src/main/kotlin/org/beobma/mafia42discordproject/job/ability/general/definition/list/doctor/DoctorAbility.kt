@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.WinOrDead
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
+import org.beobma.mafia42discordproject.job.definition.list.Nurse
 
 class DoctorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "치료"
@@ -38,9 +39,20 @@ class DoctorAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val doctorJob = caster.job as? Doctor
-            ?: return AbilityResult(false, "")
+        val nurseJob = caster.job as? Nurse
+        if (doctorJob == null && nurseJob == null) {
+            return AbilityResult(false, "")
+        }
+        if (nurseJob != null && !nurseJob.canUseInheritedHeal) {
+            return AbilityResult(false, "의사의 사망 이후에만 치료 능력을 계승받아 사용할 수 있습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        doctorJob.currentHealTarget = effectiveTarget.member.id
+        if (doctorJob != null) {
+            doctorJob.currentHealTarget = effectiveTarget.member.id
+        }
+        if (nurseJob != null) {
+            nurseJob.currentHealTarget = effectiveTarget.member.id
+        }
         caster.state.hasUsedDailyAbility = true
         return AbilityResult(true, "${target.member.effectiveName}님을 치료 대상으로 지정했습니다.")
     }

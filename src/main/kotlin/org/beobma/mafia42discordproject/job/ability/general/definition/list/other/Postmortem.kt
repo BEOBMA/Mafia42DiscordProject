@@ -6,12 +6,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import kotlin.reflect.KClass
 
@@ -28,17 +30,38 @@ class Postmortem : Ability, JobSpecificExtraAbility, PassiveAbility {
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {
         if (event !is GameEvent.PlayerDied) return
 
-        val ownerCabal = owner.job as? Cabal ?: return
-        val pairId = ownerCabal.pairedPlayerId ?: return
-        if (event.victim.member.id != pairId) return
+        when (val job = owner.job) {
+            is Cabal -> {
+                val pairId = job.pairedPlayerId ?: return
+                if (event.victim.member.id != pairId) return
 
-        val met = ownerCabal.hasFoundMoon || ownerCabal.wasFoundBySun
-        if (met) return
-        if (!ownerCabal.notifiedPartnerDeathIds.add(pairId)) return
+                val met = job.hasFoundMoon || job.wasFoundBySun
+                if (met) return
+                if (!job.notifiedPartnerDeathIds.add(pairId)) return
 
-        postmortemDmScope.launch {
-            runCatching {
-                owner.member.getDmChannel().createMessage("검시 발동: 접선 전 상대 비밀결사가 사망했습니다.")
+                postmortemDmScope.launch {
+                    runCatching {
+                        owner.member.getDmChannel().createMessage("검시 발동: 접선 전 상대 비밀결사가 사망했습니다.")
+                    }
+                }
+            }
+
+            is Nurse -> {
+                val victim = event.victim
+                if (victim.job !is Doctor) return
+
+                if (job.hasContactedDoctor) return
+
+                val victimJob = victim.job ?: return
+                game.nightEvents += GameEvent.JobDiscovered(
+                    discoverer = owner,
+                    target = victim,
+                    actualJob = victimJob,
+                    revealedJob = victimJob,
+                    sourceAbilityName = "검시",
+                    resolvedAt = DiscoveryStep.NIGHT,
+                    notifyTarget = false
+                )
             }
         }
     }
