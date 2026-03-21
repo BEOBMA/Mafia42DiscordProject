@@ -2,7 +2,7 @@ package org.beobma.mafia42discordproject.game.system
 
 enum class SystemImage(val imageUrl: String) {
     // 밤/낮 전환 및 안내 이미지
-    DAY_START("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&"),
+    DAY_START("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&"),
     NIGHT_START("https://cdn.discordapp.com/.../43e6c3860a090af9.png..."),
 
     // 투표 관련 이미지
