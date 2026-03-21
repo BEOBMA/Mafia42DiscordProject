@@ -41,15 +41,19 @@ object DiscordMessageManager {
     }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
-        event.interaction.respondPublic {
-            this.content = content
+        InteractionErrorHandler.runSafely("slash-public:${event.interaction.command.rootName}") {
+            event.interaction.respondPublic {
+                this.content = content
+            }
         }
     }
 
     suspend fun respondEphemeral(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
-        val deferred = event.interaction.deferEphemeralResponse()
-        deferred.respond {
-            this.content = content
+        InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
+            val deferred = event.interaction.deferEphemeralResponse()
+            deferred.respond {
+                this.content = content
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GamePhase
@@ -16,8 +17,10 @@ object DebugCommand : DiscordCommand {
     override val description: String = "디버깅용 보조 명령어"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        event.interaction.deferEphemeralResponse().respond {
-            content = "디버그 명령어는 메시지 명령어 `!debug` 로 사용해 주세요."
+        InteractionErrorHandler.runSafely("slash-debug") {
+            event.interaction.deferEphemeralResponse().respond {
+                content = "디버그 명령어는 메시지 명령어 `!debug` 로 사용해 주세요."
+            }
         }
     }
 
