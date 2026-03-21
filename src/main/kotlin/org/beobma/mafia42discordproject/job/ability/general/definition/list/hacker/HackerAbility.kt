@@ -38,7 +38,7 @@ class HackerAbility : ActiveAbility, JobUniqueAbility {
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val existingTargetId = hacker.hackedTargetId
         if (existingTargetId != null && existingTargetId != effectiveTarget.member.id) {
-            return AbilityResult(false, "한번 정한 해킹 대상은 변경할 수 없습니다.")
+            return AbilityResult(false, "한 번 정한 해킹 대상은 변경할 수 없습니다.")
         }
 
         hacker.hackedTargetId = effectiveTarget.member.id
