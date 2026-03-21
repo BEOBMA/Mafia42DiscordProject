@@ -24,6 +24,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
+import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.JobManager
 
 object AbilityUseCommand : DiscordCommand {
@@ -184,7 +185,7 @@ object AbilityUseCommand : DiscordCommand {
         val blockedTargetId = game.unwrittenRuleBlockedTargetIdTonight ?: return false
         val target = directTarget ?: return false
         if (target.member.id != blockedTargetId) return false
-        return target.job is Judge
+        return target.job is Judge || target.job is Politician
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {

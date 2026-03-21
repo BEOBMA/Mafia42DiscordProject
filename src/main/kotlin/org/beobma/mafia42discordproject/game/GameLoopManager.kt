@@ -54,6 +54,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -148,7 +149,6 @@ object GameLoopManager {
         game.dayCount += 1
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
-        game.unwrittenRuleBlockedTargetIdTonight = null
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
@@ -400,6 +400,7 @@ object GameLoopManager {
         game: Game,
         summary: NightResolutionSummary = game.lastNightSummary
     ) {
+        game.unwrittenRuleBlockedTargetIdTonight = null
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
         val coupleChannel = game.coupleChannel ?: return
@@ -628,6 +629,25 @@ object GameLoopManager {
     suspend fun resolveVotePhase(game: Game): PlayerData? {
         val mainChannel = game.mainChannel ?: return null
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
+        if (dictatorshipPolitician != null) {
+            val politicianVoteTargetId = game.currentMainVotes[dictatorshipPolitician.member.id]
+            val politicianTarget = politicianVoteTargetId
+                ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
+                ?.takeUnless { it.state.isDead }
+            return if (politicianTarget != null) {
+                mainChannel.createMessage(
+                    "독재가 발동되어 ${dictatorshipPolitician.member.effectiveName}님의 선택으로 ${politicianTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                )
+                politicianTarget
+            } else {
+                game.sendMainChannelMessageWithImage(
+                    imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
+                    message = "독재 상태에서 정치인의 투표가 없어 처형될 대상을 고르지 못했습니다."
+                )
+                null
+            }
+        }
         val authorityJudge = findRevealedAliveJudge(game)
         if (authorityJudge != null) {
             val judgeVoteTargetId = game.currentMainVotes[authorityJudge.member.id]
@@ -667,7 +687,8 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = 1)
+            val baseWeight = if (voter.job is Politician) 2 else 1
+            val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = baseWeight)
             voter.allAbilities
                 .filterIsInstance<PassiveAbility>()
                 .sortedByDescending(PassiveAbility::priority)
@@ -686,6 +707,10 @@ object GameLoopManager {
             }
 
             val target = game.getPlayer(Snowflake(targetIdString)) ?: return@forEach
+            if (target.state.isDead) {
+                invalidVoteCount += weightEvent.weight
+                return@forEach
+            }
             voteCounts[target] = (voteCounts[target] ?: 0) + weightEvent.weight
             repeat(weightEvent.weight.coerceAtLeast(0)) {
                 weightedVoteTargets += target
@@ -809,8 +834,29 @@ object GameLoopManager {
     suspend fun resolveExecutionPhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
         val deadChannel = game.deadChannel
-        val prosCount = game.currentProsConsVotes.values.count { it }
-        val consCount = game.currentProsConsVotes.values.count { !it } +
+        val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
+        val prosCount = game.currentProsConsVotes
+            .filterValues { it }
+            .keys
+            .sumOf { voterId ->
+                val voter = game.getPlayer(voterId)
+                when {
+                    voter == null || voter.state.isDead -> 0
+                    voter.job is Politician -> 2
+                    else -> 1
+                }
+            }
+        val consCount = game.currentProsConsVotes
+            .filterValues { !it }
+            .keys
+            .sumOf { voterId ->
+                val voter = game.getPlayer(voterId)
+                when {
+                    voter == null || voter.state.isDead -> 0
+                    voter.job is Politician -> 2
+                    else -> 1
+                }
+            } +
             game.playerDatas.count { player ->
                 !player.state.isDead &&
                     (player.member.id in game.permanentlyDisenfranchisedVoters ||
@@ -842,9 +888,10 @@ object GameLoopManager {
             mainChannel.createMessage("판사가 찬반 선고를 하지 않아 이번 처형은 자동으로 반대로 처리됩니다.")
         }
 
-        val finalDecision = when (findRevealedAliveJudge(game)) {
-            null -> aggregateDecision
-            else -> judgeVote ?: false
+        val finalDecision = when {
+            dictatorshipPolitician != null -> game.currentProsConsVotes[dictatorshipPolitician.member.id] ?: false
+            findRevealedAliveJudge(game) != null -> judgeVote ?: false
+            else -> aggregateDecision
         }
 
         val executionEvent = GameEvent.DecideExecution(target, finalDecision)
@@ -889,6 +936,16 @@ object GameLoopManager {
             return
         }
 
+        if (target.job is Politician) {
+            if (!target.state.isJobPubliclyRevealed) {
+                target.state.isJobPubliclyRevealed = true
+                game.unwrittenRuleBlockedTargetIdTonight = target.member.id
+            }
+            mainChannel.createMessage("정치인은 투표로 죽지 않습니다")
+            game.defenseTargetId = null
+            return
+        }
+
         target.state.isDead = true
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
         applyPoliceAutopsy(game, target)
@@ -917,7 +974,11 @@ object GameLoopManager {
             if (player.job is Evil) {
                 0
             } else {
-                if (player.job is Gangster) 3 else 1
+                when (player.job) {
+                    is Gangster -> 3
+                    is Politician -> 2
+                    else -> 1
+                }
             }
         }
         val aliveCabals = alivePlayers.count { it.job is Cabal }
@@ -929,9 +990,19 @@ object GameLoopManager {
 
         return when {
             mafiaCount == 0 -> Team.CITIZEN
-            mafiaCount >= citizenCount && aliveCabals < 2 && !isRevealedJudgeAlive(game) && !activeMercenaryExecution -> Team.MAFIA
+            mafiaCount >= citizenCount &&
+                aliveCabals < 2 &&
+                !isRevealedJudgeAlive(game) &&
+                !activeMercenaryExecution &&
+                findAliveDictatorshipPolitician(game) == null -> Team.MAFIA
             else -> null
         }
+    }
+
+    private fun findAliveDictatorshipPolitician(game: Game): PlayerData? {
+        val aliveCitizens = game.playerDatas.filter { !it.state.isDead && it.job !is Evil }
+        if (aliveCitizens.size != 1) return null
+        return aliveCitizens.firstOrNull { it.job is Politician }
     }
 
     private fun findAliveJudge(game: Game): PlayerData? {
