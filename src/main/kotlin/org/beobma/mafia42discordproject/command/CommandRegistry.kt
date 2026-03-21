@@ -9,6 +9,7 @@ object CommandRegistry {
         AbilityUseCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
+        DebugCommand,
     )
 
     fun all(): List<DiscordCommand> = registeredCommands
