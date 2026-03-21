@@ -1197,10 +1197,10 @@ object GameLoopManager {
 
             resolveDawnPhase(game, nightSummary)
             runPhaseCountdown(game, "새벽", DAWN_DURATION_MS)
-            checkWinCondition(game)?.let { winner ->
-                endGame(game, winner)
-                break
-            }
+//            checkWinCondition(game)?.let { winner ->
+//                endGame(game, winner)
+//                break
+//            }
 
             startDayPhase(game, nightSummary)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
@@ -1220,10 +1220,10 @@ object GameLoopManager {
                 resolveExecutionPhase(game, target)
             }
 
-            checkWinCondition(game)?.let { winner ->
-                endGame(game, winner)
-                break
-            }
+//            checkWinCondition(game)?.let { winner ->
+//                endGame(game, winner)
+//                break
+//            }
         }
     }
 
