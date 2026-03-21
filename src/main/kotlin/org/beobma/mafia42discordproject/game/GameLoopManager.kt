@@ -32,6 +32,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.poli
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.Obituary
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.soldier.MentalStrength
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -1872,9 +1873,13 @@ object GameLoopManager {
         game.activeThreatenedVoters.clear()
         game.playerDatas.forEach { player ->
             val gangster = player.job as? Gangster ?: return@forEach
-            gangster.threatenedTargetIdsTonight.forEach { targetId ->
+            gangster.threatenedTargetIdsTonight.toList().forEach { targetId ->
                 val target = game.getPlayer(targetId) ?: return@forEach
                 if (target.state.isDead) return@forEach
+                if (shouldIgnoreHarmfulEffectByMentalStrength(target)) {
+                    gangster.threatenedTargetIdsTonight.remove(targetId)
+                    return@forEach
+                }
                 target.state.isThreatened = true
                 game.activeThreatenedVoters[targetId] = player.member.id
             }
@@ -2060,10 +2065,22 @@ object GameLoopManager {
         }
 
         if (attacker.allAbilities.any { it is Poisoning }) {
+            if (shouldIgnoreHarmfulEffectByMentalStrength(target)) return
             target.state.isPoisoned = true
             target.state.poisonedDeathDay = game.dayCount + 1
             game.pendingPoisonNotifications[target.member.id] = attacker.member.id
         }
+    }
+
+    private fun shouldIgnoreHarmfulEffectByMentalStrength(target: PlayerData): Boolean {
+        if (target.allAbilities.none { it is MentalStrength }) return false
+
+        cabalNotificationScope.launch {
+            runCatching {
+                target.member.getDmChannel().createMessage("정신력의 힘으로 해로운 효과를 이겨냈습니다.")
+            }
+        }
+        return true
     }
 
     private fun shouldNotifyAtDayStart(event: GameEvent): Boolean {
