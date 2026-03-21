@@ -18,6 +18,7 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
     
     // 상태 변수: 오늘 밤 방탄이 터졌는지 여부
     private var wasTriggeredTonight = false
+    private var triggeredCount = 0
 
     override fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {
         if (newPhase == GamePhase.NIGHT) {
@@ -29,7 +30,8 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
         when (event) {
             is GameEvent.BeforeAttackEvaluated -> {
                 if (event.attackEvent.target != owner) return
-                if (owner.state.hasUsedOneTimeAbility) return
+                val maxTriggerCount = if (owner.allAbilities.any { it is Indomitable }) 2 else 1
+                if (triggeredCount >= maxTriggerCount) return
 
                 // 의사(Doctor)의 힐 등 외부 요인으로 이미 이 공격을 방어할 수 있는 상태라면
                 // 군인의 귀중한 방탄 능력을 소모하지 않고 그대로 보존합니다.
@@ -39,7 +41,8 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
 
                 owner.state.healTier = maxOf(owner.state.healTier, DefenseTier.ABSOLUTE)
                 if (owner.state.healTier.level >= event.attackEvent.attackTier.level) {
-                    owner.state.hasUsedOneTimeAbility = true
+                    triggeredCount += 1
+                    owner.state.hasUsedOneTimeAbility = triggeredCount >= maxTriggerCount
                     wasTriggeredTonight = true
                 }
             }
