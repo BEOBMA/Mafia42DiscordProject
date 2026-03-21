@@ -80,7 +80,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
                 val casterJobName = caster.job?.name ?: "알 수 없음"
                 sendDm(
                     detectivePlayer,
-                    "[함정] ${caster.member.effectiveName}님이 당신에게 능력을 사용했습니다. 직업: $casterJobName"
+                    "함정을 통해 직업을 알아내었습니다! 직업: $casterJobName"
                 )
             }
         }
