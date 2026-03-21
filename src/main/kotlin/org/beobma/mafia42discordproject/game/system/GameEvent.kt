@@ -26,7 +26,7 @@ sealed class GameEvent {
     data class PoliceSearchResolved(
         val police: PlayerData,
         val target: PlayerData,
-        val isMafia: Boolean,
+        var isMafia: Boolean,
         val isRepeatedSearch: Boolean = false
     ) : GameEvent()
 

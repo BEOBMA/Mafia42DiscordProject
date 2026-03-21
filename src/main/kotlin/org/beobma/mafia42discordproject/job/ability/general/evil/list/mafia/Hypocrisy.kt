@@ -19,11 +19,20 @@ class Hypocrisy : PassiveAbility, JobSpecificExtraAbility {
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {
         if (game.dayCount != 1) return
 
-        val revealedEvent = event as? GameEvent.PoliceJobRevealed ?: return
-        if (revealedEvent.target != owner) return
+        when (event) {
+            is GameEvent.PoliceSearchResolved -> {
+                if (event.target != owner) return
+                event.isMafia = false
+            }
 
-        revealedEvent.revealedJob = Doctor()
-        revealedEvent.isFalsified = true
-        revealedEvent.note = "위선에 의해 의사로 표시됨"
+            is GameEvent.PoliceJobRevealed -> {
+                if (event.target != owner) return
+                event.revealedJob = Doctor()
+                event.isFalsified = true
+                event.note = "위선에 의해 의사로 표시됨"
+            }
+
+            else -> Unit
+        }
     }
 }
