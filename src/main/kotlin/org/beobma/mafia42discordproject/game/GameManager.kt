@@ -1159,7 +1159,15 @@ object GameManager {
         if (event.message.content.isBlank()) return
 
         val channelId = event.message.channelId
-        val isNightPrivateChannel = channelId == Snowflake(GAME_MAFIA_CHANNEL_ID) || channelId == Snowflake(GAME_COUPLE_CHANNEL_ID)
+        val mafiaChannelId = game.mafiaChannel?.id ?: Snowflake(GAME_MAFIA_CHANNEL_ID)
+        val coupleChannelId = game.coupleChannel?.id ?: Snowflake(GAME_COUPLE_CHANNEL_ID)
+        val parentChannelId = runCatching { event.message.getChannel().data.parentId }
+            .getOrNull()
+
+        val isNightPrivateChannel = channelId == mafiaChannelId ||
+            channelId == coupleChannelId ||
+            parentChannelId == mafiaChannelId ||
+            parentChannelId == coupleChannelId
         if (!isNightPrivateChannel) return
 
         val watchers = game.playerDatas
