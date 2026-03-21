@@ -353,8 +353,11 @@ object GameLoopManager {
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
+        game.sendMainChannelMessageWithImage(
+            imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483981201428709456/bd6d8d833d736bf2.png?ex=69bfdc71&is=69be8af1&hm=ca26cbd8933d3968240055b67202bfec8b35a278559172435a4515ecf3921ddb&",
+            message = "투표 시간입니다. 의심되는 사람을 투표하세요."
+        )
         mainChannel.createMessage {
-            content = "투표 시간입니다. 의심되는 사람을 투표하세요."
             actionRow {
                 stringSelect("main_vote_select") {
                     placeholder = "처형할 플레이어 선택"
