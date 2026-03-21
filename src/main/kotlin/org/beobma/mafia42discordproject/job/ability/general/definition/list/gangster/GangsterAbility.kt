@@ -58,6 +58,6 @@ class GangsterAbility : ActiveAbility, JobUniqueAbility {
             ""
         }
 
-        return AbilityResult(true, "${target.member.effectiveName}님을 공갈 대상으로 지정했습니다.$remainingUseText")
+        return AbilityResult(true, "${target.member.effectiveName}님에게 위협을 가했습니다. $remainingUseText")
     }
 }
