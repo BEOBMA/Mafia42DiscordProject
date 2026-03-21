@@ -112,7 +112,7 @@ object AbilityUseCommand : DiscordCommand {
         val mafiaChannel = game.mafiaChannel ?: return
         val action = if (previousTarget != null && previousTarget != target) "변경" else "결정"
         mafiaChannel.createMessage(
-            "[마피아 처형 대상 $action] ${caster.member.effectiveName} 님이 ${target.member.effectiveName} 님으로 설정했습니다."
+            "마피아의 처형 대상을 ${caster.member.effectiveName}이(가) ${target.member.effectiveName}으로 ${action}했습니다."
         )
     }
 
