@@ -44,6 +44,7 @@ import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Detective
+import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -1168,6 +1169,7 @@ object GameManager {
                 when (val observerJob = observer.job) {
                     is Police -> observerJob.eavesdroppingTargetId == sender.member.id
                     is Detective -> observerJob.fixedReasoningTargetId == sender.member.id
+                    is Hacker -> observerJob.hackedTargetId == sender.member.id
                     else -> false
                 }
             }

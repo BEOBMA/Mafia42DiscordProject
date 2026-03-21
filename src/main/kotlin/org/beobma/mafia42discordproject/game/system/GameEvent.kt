@@ -57,7 +57,8 @@ sealed class GameEvent {
         val triggeredByTact: Boolean = false,
         var isCancelled: Boolean = false,
         val isPublicReveal: Boolean = false,
-        var imageUrl: String? = null
+        var imageUrl: String? = null,
+        val notifyTarget: Boolean = true
     ) : GameEvent()
 
 

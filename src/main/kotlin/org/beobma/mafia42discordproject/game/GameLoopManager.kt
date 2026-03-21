@@ -40,9 +40,11 @@ import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.Arcana
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
+import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
@@ -223,6 +225,7 @@ object GameLoopManager {
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
         resolveFortunetellerFortunes(game)
+        resolveHackerHacks(game)
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
@@ -1162,6 +1165,35 @@ object GameLoopManager {
                 shownJobs = shownJobs,
                 arcanaTargets = arcanaTargets
             )
+        }
+    }
+
+    private fun resolveHackerHacks(game: Game) {
+        game.playerDatas.forEach { player ->
+            if (player.state.isDead) return@forEach
+
+            val hacker = player.job as? Hacker ?: return@forEach
+            if (hacker.hasResolvedHackDiscovery) return@forEach
+
+            val hackedTargetId = hacker.hackedTargetId ?: return@forEach
+            val target = game.getPlayer(hackedTargetId) ?: return@forEach
+            if (target.state.isDead) return@forEach
+
+            val targetJob = target.job ?: return@forEach
+            val shouldNotifyTarget =
+                player.allAbilities.any { it is Synchronization } &&
+                    targetJob !is Evil
+
+            game.nightEvents += GameEvent.JobDiscovered(
+                discoverer = player,
+                target = target,
+                actualJob = targetJob,
+                revealedJob = targetJob,
+                sourceAbilityName = "해킹",
+                resolvedAt = DiscoveryStep.NIGHT,
+                notifyTarget = shouldNotifyTarget
+            )
+            hacker.hasResolvedHackDiscovery = true
         }
     }
 

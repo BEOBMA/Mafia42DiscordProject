@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.for
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -31,12 +32,13 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
         val fortuneteller = caster.job as? Fortuneteller
             ?: return AbilityResult(false, "점쟁이만 사용할 수 있습니다.")
 
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val fixedTargetId = fortuneteller.fixedFortuneTargetId
-        if (fixedTargetId != null && fixedTargetId != target.member.id) {
+        if (fixedTargetId != null && fixedTargetId != effectiveTarget.member.id) {
             return AbilityResult(false, "한번 정한 운세 대상은 변경할 수 없습니다.")
         }
 
-        fortuneteller.fixedFortuneTargetId = target.member.id
+        fortuneteller.fixedFortuneTargetId = effectiveTarget.member.id
         return AbilityResult(true, "${target.member.effectiveName}님을 운세 대상으로 지정했습니다.")
     }
 }
