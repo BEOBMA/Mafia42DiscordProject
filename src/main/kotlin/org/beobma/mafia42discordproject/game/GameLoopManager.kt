@@ -84,7 +84,7 @@ object GameLoopManager {
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val DAY_TIME_ADJUSTMENT_MS = 15_000L
     private const val TIME_THREAD_NAME = "시간"
-    private const val PROBATION_DISCOVERY_IMAGE_URL = ""
+    private const val PROBATION_DISCOVERY_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485026577610703000/v1-_70Quh-Wmb9ZFVNCbnfkgmA72QZfsKd6CwwUuLiDO25gNgl3l-UiOGyWQNCbxRRfmykJG5UyvAuipvrlfSVWe5mEKilEuBMoaieLofY6Rf5Hdog2Gg7cf-RiqrNrgXRU5GSQxiJwRorEo-JVWIA.webp?ex=69c05e46&is=69bf0cc6&hm=4f084aa32d244df25bafd30549631dc28009f00831b5ad6ed2bbf02df7b5d939&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
