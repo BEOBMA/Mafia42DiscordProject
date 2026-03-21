@@ -4,15 +4,23 @@ import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.player.PlayerData
 
 object PoliceSearchNotificationManager {
+    suspend fun notifyPoliceSearchResult(event: GameEvent.PoliceSearchResolved) {
+        sendPoliceDm(event.police, buildSearchResultMessage(event))
+    }
+
+    suspend fun notifyPoliceRevealedJob(event: GameEvent.PoliceJobRevealed) {
+        sendPoliceDm(event.police, buildRevealedJobMessage(event))
+    }
+
     suspend fun notifyPoliceSearchResults(events: List<GameEvent>) {
         events.filterIsInstance<GameEvent.PoliceSearchResolved>()
             .forEach { event ->
-                sendPoliceDm(event.police, buildSearchResultMessage(event))
+                notifyPoliceSearchResult(event)
             }
 
         events.filterIsInstance<GameEvent.PoliceJobRevealed>()
             .forEach { event ->
-                sendPoliceDm(event.police, buildRevealedJobMessage(event))
+                notifyPoliceRevealedJob(event)
             }
     }
 

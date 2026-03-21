@@ -13,5 +13,6 @@ class Police : Job(), Definition {
     override val abilities: MutableList<JobUniqueAbility> = mutableListOf(PoliceAbility())
 
     var currentSearchTarget: Snowflake? = null
+    var hasUsedSearchThisNight: Boolean = false
     val searchedTargets: MutableSet<Snowflake> = mutableSetOf()
 }
