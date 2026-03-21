@@ -23,6 +23,7 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
@@ -668,7 +669,7 @@ object GameLoopManager {
             game.nightEvents += GameEvent.PoliceSearchResolved(
                 police = player,
                 target = target,
-                isMafia = target.job is Evil,
+                isMafia = target.job is Mafia,
                 isRepeatedSearch = isRepeatedSearch
             )
 
