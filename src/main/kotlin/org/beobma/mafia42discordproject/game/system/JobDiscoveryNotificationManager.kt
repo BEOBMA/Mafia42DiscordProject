@@ -64,6 +64,9 @@ object JobDiscoveryNotificationManager {
                     appendLine()
                     append(HACKER_SUCCESS_IMAGE_URL)
                 }
+                event.sourceAbilityName == "암시" -> {
+                    append("${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
+                }
 
                 else -> {
                     append("당신은 ${event.target.member.effectiveName}님의 직업이 [${event.revealedJob.name}](인) 것을 알아냈습니다.")

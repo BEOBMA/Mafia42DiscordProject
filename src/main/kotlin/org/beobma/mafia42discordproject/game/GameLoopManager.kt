@@ -276,6 +276,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
+        game.pendingDayStartDiscoveries.clear()
         game.concealmentForcedQuietNight = false
         game.coupleSacrificeMap.clear()
         game.activeThreatenedVoters.clear()
@@ -419,14 +420,24 @@ object GameLoopManager {
 
         val processedEvents = dispatchEvents(game)
         cacheReporterDiscoveryResults(processedEvents)
-        JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents)
+        val deferredProcessedEvents = processedEvents.filterIsInstance<GameEvent.JobDiscovered>()
+            .filter(::shouldNotifyAtDayStart)
+        if (deferredProcessedEvents.isNotEmpty()) {
+            game.pendingDayStartDiscoveries += deferredProcessedEvents
+        }
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents.filterNot(::shouldNotifyAtDayStart))
         val deaths = playersToDie.toList()
         val dawnPresentation = buildDawnPresentation(game, deaths)
 
         // 아침 이벤트(예: 도굴꾼 JobDiscovered) 해소를 위한 추가 디스패치 파이프라인 보수 및 유실 파기 방지
         val additionalProcessedEvents = dispatchEvents(game)
         cacheReporterDiscoveryResults(additionalProcessedEvents)
-        JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents)
+        val additionalDeferredEvents = additionalProcessedEvents.filterIsInstance<GameEvent.JobDiscovered>()
+            .filter(::shouldNotifyAtDayStart)
+        if (additionalDeferredEvents.isNotEmpty()) {
+            game.pendingDayStartDiscoveries += additionalDeferredEvents
+        }
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents.filterNot(::shouldNotifyAtDayStart))
 
         val summary = NightResolutionSummary(
             processedEvents = processedEvents + additionalProcessedEvents,
@@ -610,6 +621,10 @@ object GameLoopManager {
             imageLink = SystemImage.DAY_START.imageUrl,
             message = "날이 밝았습니다."
         )
+        if (game.pendingDayStartDiscoveries.isNotEmpty()) {
+            JobDiscoveryNotificationManager.notifyDiscoveredTargets(game.pendingDayStartDiscoveries.toList(), game)
+            game.pendingDayStartDiscoveries.clear()
+        }
         notifyPendingPoisonEffects(game)
 
         mainChannel.edit {
@@ -2044,6 +2059,11 @@ object GameLoopManager {
             target.state.poisonedDeathDay = game.dayCount + 1
             game.pendingPoisonNotifications[target.member.id] = attacker.member.id
         }
+    }
+
+    private fun shouldNotifyAtDayStart(event: GameEvent): Boolean {
+        val discoveredEvent = event as? GameEvent.JobDiscovered ?: return false
+        return discoveredEvent.sourceAbilityName == "암시"
     }
 
     private fun notifyPendingPoisonEffects(game: Game) {
