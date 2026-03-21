@@ -49,6 +49,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -1293,8 +1294,16 @@ object GameManager {
         if (voter.state.isDead) return false
         if (voterId in game.permanentlyDisenfranchisedVoters) return false
         if (game.activeThreatenedVoters.containsKey(voterId)) return false
+        val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
+        val target = game.getPlayer(targetId) ?: return false
+        if (target.state.isDead) return false
+        val dictatorshipPolitician = game.playerDatas
+            .filter { !it.state.isDead && it.job !is Evil }
+            .singleOrNull()
+            ?.takeIf { it.job is Politician }
+        if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
 
-        game.currentMainVotes[voterId] = targetIdString
+        game.currentMainVotes[voterId] = target.member.id.toString()
         return true
     }
 
@@ -1307,6 +1316,11 @@ object GameManager {
         if (voter.state.isDead) return false
         if (voterId in game.permanentlyDisenfranchisedVoters) return false
         if (game.activeThreatenedVoters.containsKey(voterId)) return false
+        val dictatorshipPolitician = game.playerDatas
+            .filter { !it.state.isDead && it.job !is Evil }
+            .singleOrNull()
+            ?.takeIf { it.job is Politician }
+        if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
         if (game.currentProsConsVotes.containsKey(voterId)) return false
 
         game.currentProsConsVotes[voterId] = isPros
