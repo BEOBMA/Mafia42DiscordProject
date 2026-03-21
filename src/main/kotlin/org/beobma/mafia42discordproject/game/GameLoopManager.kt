@@ -21,6 +21,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -169,6 +170,8 @@ object GameLoopManager {
             addAll(game.nightDeathCandidates)
         }
 
+        resolveDoctorHeals(game)
+
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
             if (target.state.isDead) return@forEach
@@ -202,6 +205,7 @@ object GameLoopManager {
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
+            (player.job as? Doctor)?.currentHealTarget = null
             player.state.resetForNextPhase()
         }
 
@@ -657,6 +661,33 @@ object GameLoopManager {
         }
 
         return processedEvents
+    }
+
+    private fun resolveDoctorHeals(game: Game) {
+        game.playerDatas.forEach { player ->
+            val doctorJob = player.job as? Doctor ?: return@forEach
+            val targetId = doctorJob.currentHealTarget ?: return@forEach
+            val target = game.getPlayer(targetId) ?: run {
+                doctorJob.currentHealTarget = null
+                return@forEach
+            }
+
+            val healEvent = GameEvent.PlayerHealed(
+                healer = player,
+                target = target,
+                defenseTier = DefenseTier.NORMAL
+            )
+
+            player.job?.abilities
+                ?.filterIsInstance<PassiveAbility>()
+                ?.forEach { passive ->
+                    passive.onEventObserved(game, player, healEvent)
+                }
+
+            target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
+            game.nightEvents += healEvent
+            doctorJob.currentHealTarget = null
+        }
     }
 
     private fun resolvePoliceSearches(game: Game) {

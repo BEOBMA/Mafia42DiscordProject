@@ -3,14 +3,16 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.doc
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.AttackTier
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.WinOrDead
 
-class DoctorAbility : ActiveAbility, JobUniqueAbility {
+class Heal : ActiveAbility, JobUniqueAbility {
     override val name: String = "치료"
     override val description: String = "밤이 되면 플레이어 한 명을 처형으로부터 치료한다."
     override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484626955612455174/bef253042e3dab28.png?ex=69beea19&is=69bd9899&hm=99b25a7815280b9c866654be45d3ae55eb1a37c4229fc2216f78e4ca341d49ab&"
@@ -33,15 +35,9 @@ class DoctorAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "이미 사망한 플레이어는 치료할 수 없습니다.")
         }
 
-        val healEvent = GameEvent.PlayerHealed(
-            healer = caster,
-            target = target,
-            defenseTier = DefenseTier.NORMAL
-        )
-
-        caster.job?.abilities?.filterIsInstance<PassiveAbility>()?.forEach { passive ->
-            passive.onEventObserved(game, caster, healEvent)
-        }
+        val doctorJob = caster.job as? Doctor
+            ?: return AbilityResult(false, "")
+        doctorJob.currentHealTarget = target.member.id
 
         // 박애가 있으면 적용
         target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
