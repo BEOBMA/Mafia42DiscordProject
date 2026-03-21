@@ -5,7 +5,6 @@ import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
-import dev.kord.core.behavior.createTextChannel
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.getChannelOfOrNull
@@ -69,6 +68,11 @@ object GameManager {
     private const val REQUIRED_POLICE_COUNT = 1
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
+
+    private const val GAME_MAIN_CHANNEL_ID = 1485008595727679690L
+    private const val GAME_MAFIA_CHANNEL_ID = 1485008648886423622L
+    private const val GAME_COUPLE_CHANNEL_ID = 1485008669279125745L
+    private const val GAME_DEAD_CHANNEL_ID = 1485008691961790484L
 
     private val policeJobNames = setOf("경찰", "요원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
@@ -1040,7 +1044,7 @@ object GameManager {
     }
 
     private suspend fun stopGameState(gameToStop: Game) {
-        safelyDeleteGameChannels(gameToStop)
+        clearGameChannelMessages(gameToStop)
 
         currentGame = null
         currentGuild = null
@@ -1050,38 +1054,11 @@ object GameManager {
         gameLoopJob = null
     }
 
-    private suspend fun safelyDeleteGameChannels(game: Game) {
-        game.deadChannel?.let { deadChannel ->
-            runCatching {
-                deadChannel.delete("게임 강제 종료로 인한 죽은자 채널 삭제")
-            }.onFailure { exception ->
-                println("[GameManager] 죽은자 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
-            }
-        }
-
-        game.mafiaChannel?.let { mafiaChannel ->
-            runCatching {
-                mafiaChannel.delete("게임 강제 종료로 인한 마피아 채널 삭제")
-            }.onFailure { exception ->
-                println("[GameManager] 마피아 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
-            }
-        }
-
-        game.coupleChannel?.let { coupleChannel ->
-            runCatching {
-                coupleChannel.delete("게임 강제 종료로 인한 연인 채널 삭제")
-            }.onFailure { exception ->
-                println("[GameManager] 연인 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
-            }
-        }
-
-        game.mainChannel?.let { mainChannel ->
-            runCatching {
-                mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
-            }.onFailure { exception ->
-                println("[GameManager] 메인 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
-            }
-        }
+    private suspend fun clearGameChannelMessages(game: Game) {
+        clearChannelMessages(game.mainChannel, "메인")
+        clearChannelMessages(game.mafiaChannel, "마피아")
+        clearChannelMessages(game.coupleChannel, "연인")
+        clearChannelMessages(game.deadChannel, "죽은자")
 
         game.mainChannel = null
         game.mafiaChannel = null
@@ -1089,63 +1066,32 @@ object GameManager {
         game.deadChannel = null
     }
 
+    private suspend fun clearChannelMessages(channel: TextChannel?, channelName: String) {
+        if (channel == null) return
+
+        runCatching {
+            channel.messages.toList().forEach { message ->
+                runCatching {
+                    message.delete("게임 종료로 인한 채팅 초기화")
+                }.onFailure { exception ->
+                    println("[GameManager] ${channelName} 채널 메시지 삭제 실패(messageId=${message.id}): ${exception.message}")
+                }
+            }
+        }.onFailure { exception ->
+            println("[GameManager] ${channelName} 채널 메시지 조회 실패: ${exception.message}")
+        }
+    }
+
     suspend fun setupGameChannels(game: Game) {
         val guild = game.guild
 
-        // 1. 메인 채널 설정 (기본적으로 모두가 말할 수 있도록 초기화)
-        val mainChat = guild.createTextChannel("메인채널") {}
+        val mainChat = guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAIN_CHANNEL_ID))
+        val mafiaChat = guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAFIA_CHANNEL_ID))
+        val coupleChat = guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_COUPLE_CHANNEL_ID))
+        val deadChat = guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_DEAD_CHANNEL_ID))
 
-        // 2. 마피아 전용 비밀 채널 생성
-        val evilPlayers = game.playerDatas.filter { it.job is Evil }
-        val mafiaChat = guild.createTextChannel("마피아전용채팅") {
-            addRoleOverwrite(guild.id) {
-                denied = Permissions(
-                    Permission.ViewChannel,
-                    Permission.ReadMessageHistory,
-                    Permission.SendMessages
-                )
-            }
-
-            evilPlayers.forEach { player ->
-                addMemberOverwrite(player.member.id) {
-                    allowed = Permissions(Permission.ViewChannel)
-                    denied = Permissions(
-                        Permission.ReadMessageHistory,
-                        Permission.SendMessages
-                    )
-                }
-            }
-        }
-
-        val deadChat = guild.createTextChannel("죽은자들의채팅") {
-            addRoleOverwrite(guild.id) {
-                denied = Permissions(
-                    Permission.ViewChannel,
-                    Permission.ReadMessageHistory,
-                    Permission.SendMessages
-                )
-            }
-        }
-
-        val couplePlayers = game.playerDatas.filter { it.job is Couple }
-        val coupleChat = guild.createTextChannel("연인전용채팅") {
-            addRoleOverwrite(guild.id) {
-                denied = Permissions(
-                    Permission.ViewChannel,
-                    Permission.ReadMessageHistory,
-                    Permission.SendMessages
-                )
-            }
-
-            couplePlayers.forEach { player ->
-                addMemberOverwrite(player.member.id) {
-                    allowed = Permissions(Permission.ViewChannel)
-                    denied = Permissions(
-                        Permission.ReadMessageHistory,
-                        Permission.SendMessages
-                    )
-                }
-            }
+        if (mainChat == null || mafiaChat == null || coupleChat == null || deadChat == null) {
+            error("게임 채널을 찾을 수 없습니다. 채널 ID 설정을 확인해 주세요.")
         }
 
         game.mainChannel = mainChat
