@@ -45,7 +45,7 @@ class Marker : Ability, JobSpecificExtraAbility, PassiveAbility {
 
         markerDmScope.launch {
             runCatching {
-                owner.member.getDmChannel().createMessage("표식 발동: 달 비밀결사가 사망했습니다. 사망 원인 제공자: $killer")
+                owner.member.getDmChannel().createMessage("비밀결사 ${event.victim.member.effectiveName}님이 ${killer}님에게 사망하였습니다.")
             }
         }
     }
