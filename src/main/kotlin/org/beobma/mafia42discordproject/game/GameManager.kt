@@ -44,9 +44,12 @@ import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Detective
+import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
+import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.util.concurrent.ConcurrentHashMap
@@ -334,6 +337,23 @@ object GameManager {
                     candidate.job !is Evil
             }
             mercenaryJob.clientPlayerId = candidates.randomOrNull()?.member?.id
+        }
+    }
+
+    private fun notifyNurseOath(game: Game) {
+        val hasNurseWithOath = game.playerDatas.any { player ->
+            player.job is Nurse && player.allAbilities.any { it is Oath }
+        }
+        if (!hasNurseWithOath) return
+
+        gameLoopScope.launch {
+            game.playerDatas
+                .filter { it.job is Doctor }
+                .forEach { doctorPlayer ->
+                    runCatching {
+                        doctorPlayer.member.getDmChannel().createMessage("간호사의 선서를 받았습니다")
+                    }
+                }
         }
     }
 
@@ -973,6 +993,7 @@ object GameManager {
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
+        notifyNurseOath(game)
         game.isRunning = true
         gameLoopJob = gameLoopScope.launch {
             GameLoopManager.runGameLoop(game)

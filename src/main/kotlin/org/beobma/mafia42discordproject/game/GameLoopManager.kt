@@ -27,6 +27,7 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -49,6 +50,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
+import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
@@ -233,6 +235,7 @@ object GameLoopManager {
         }
 
         resolveGangsterThreats(game)
+        resolveNursePrescriptions(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
         resolveFortunetellerFortunes(game)
@@ -299,6 +302,7 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
+            (player.job as? Nurse)?.currentHealTarget = null
             (player.job as? Gangster)?.finalizeNightThreatSelection()
             (player.job as? Hypnotist)?.let { hypnotist ->
                 if (hypnotist.blockedNightsRemaining > 0) {
@@ -1215,6 +1219,7 @@ object GameLoopManager {
                 }
 
             eventsToProcess.forEach { event ->
+                applyNurseDoctorInheritanceOnDeath(game, event)
                 observers.forEach { (player, passives) ->
                     passives.forEach { passive ->
                         passive.onEventObserved(game, player, event)
@@ -1224,6 +1229,21 @@ object GameLoopManager {
         }
 
         return processedEvents
+    }
+
+    private fun applyNurseDoctorInheritanceOnDeath(game: Game, event: GameEvent) {
+        val deathEvent = event as? GameEvent.PlayerDied ?: return
+        if (deathEvent.victim.job !is Doctor) return
+
+        game.playerDatas.forEach { nursePlayer ->
+            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+            if (!nurseJob.hasContactedDoctor) return@forEach
+
+            nurseJob.canUseInheritedHeal = true
+            if (nursePlayer.job?.abilities?.none { it is DoctorAbility } == true) {
+                nursePlayer.job?.abilities?.add(DoctorAbility())
+            }
+        }
     }
 
     private fun resolveMercenaryAttackOrder(
@@ -1305,26 +1325,84 @@ object GameLoopManager {
         }
     }
 
+    private suspend fun resolveNursePrescriptions(game: Game) {
+        val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
+        val doctorJob = doctorPlayer.job as? Doctor ?: return
+
+        game.playerDatas.forEach { nursePlayer ->
+            if (nursePlayer.state.isDead) return@forEach
+            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+
+            val targetId = nurseJob.prescribedTargetId ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (target.state.isDead) return@forEach
+
+            if (target.job is Doctor) {
+                val targetJob = target.job ?: return@forEach
+                game.nightEvents += GameEvent.JobDiscovered(
+                    discoverer = nursePlayer,
+                    target = target,
+                    actualJob = targetJob,
+                    revealedJob = targetJob,
+                    sourceAbilityName = "처방",
+                    resolvedAt = DiscoveryStep.NIGHT,
+                    notifyTarget = false
+                )
+            }
+
+            val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
+            val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
+            if (contactedByNurseTarget || contactedByDoctorTarget) {
+                val firstContact = !nurseJob.hasContactedDoctor
+                nurseJob.hasContactedDoctor = true
+                nurseJob.contactedDoctorId = doctorPlayer.member.id
+                doctorJob.hasContactedNurse = true
+
+                if (firstContact) {
+                    runCatching {
+                        nursePlayer.member.getDmChannel().createMessage("접선에 성공했습니다. 의사의 치료가 절대 치료로 강화됩니다.")
+                    }
+                    runCatching {
+                        doctorPlayer.member.getDmChannel().createMessage("간호사와 접선했습니다. 치료가 절대 치료로 강화됩니다.")
+                    }
+                }
+            }
+        }
+    }
+
     private fun resolveDoctorHeals(game: Game) {
-        game.playerDatas.forEach { player ->
-            val doctorJob = player.job as? Doctor ?: return@forEach
-            val targetId = doctorJob.currentHealTarget ?: return@forEach
+        val healers = game.playerDatas.filter { player ->
+            val isDoctor = player.job is Doctor
+            val isInheritedNurse = (player.job as? Nurse)?.canUseInheritedHeal == true
+            isDoctor || isInheritedNurse
+        }
+
+        healers.forEach { player ->
+            if (player.state.isDead) return@forEach
+
+            val doctorJob = player.job as? Doctor
+            val nurseJob = player.job as? Nurse
+            val targetId = doctorJob?.currentHealTarget ?: nurseJob?.currentHealTarget ?: return@forEach
             val target = game.getPlayer(targetId) ?: run {
-                doctorJob.currentHealTarget = null
+                doctorJob?.currentHealTarget = null
+                nurseJob?.currentHealTarget = null
                 return@forEach
             }
 
+            val isAbsoluteHeal = doctorJob?.hasContactedNurse == true || nurseJob?.hasContactedDoctor == true
             val healEvent = GameEvent.PlayerHealed(
                 healer = player,
                 target = target,
-                defenseTier = DefenseTier.NORMAL
+                defenseTier = if (isAbsoluteHeal) DefenseTier.ABSOLUTE else DefenseTier.NORMAL
             )
 
-            player.job?.abilities
-                ?.filterIsInstance<PassiveAbility>()
-                ?.forEach { passive ->
-                    passive.onEventObserved(game, player, healEvent)
-                }
+            if (!isAbsoluteHeal) {
+                player.job?.abilities
+                    ?.filterIsInstance<PassiveAbility>()
+                    ?.forEach { passive ->
+                        passive.onEventObserved(game, player, healEvent)
+                    }
+            }
 
             target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
 
@@ -1342,7 +1420,8 @@ object GameLoopManager {
             }
 
             game.nightEvents += healEvent
-            doctorJob.currentHealTarget = null
+            doctorJob?.currentHealTarget = null
+            nurseJob?.currentHealTarget = null
         }
     }
 
