@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -22,6 +23,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.agent.Humint
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Identification
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
@@ -143,6 +146,10 @@ object AbilityUseCommand : DiscordCommand {
             } else {
                 game.abilityTargetByUserThisPhase.remove(caster.member.id)
             }
+        }
+
+        if (result.isSuccess && (selectedAbility is NurseAbility || selectedAbility is DoctorAbility)) {
+            GameLoopManager.notifyNurseDoctorContactImmediately(game)
         }
 
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {

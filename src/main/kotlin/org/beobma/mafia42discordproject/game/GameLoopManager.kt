@@ -1704,6 +1704,42 @@ object GameLoopManager {
         }
     }
 
+    suspend fun notifyNurseDoctorContactImmediately(game: Game) {
+        val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
+        val doctorJob = doctorPlayer.job as? Doctor ?: return
+
+        game.playerDatas.forEach { nursePlayer ->
+            if (nursePlayer.state.isDead) return@forEach
+            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+
+            val targetId = nurseJob.prescribedTargetId ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (target.state.isDead) return@forEach
+
+            val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
+            val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
+            if (!contactedByNurseTarget && !contactedByDoctorTarget) return@forEach
+
+            val firstContact = !nurseJob.hasContactedDoctor
+            nurseJob.hasContactedDoctor = true
+            nurseJob.contactedDoctorId = doctorPlayer.member.id
+            doctorJob.hasContactedNurse = true
+
+            if (!firstContact) return@forEach
+
+            runCatching {
+                nursePlayer.member.getDmChannel().createMessage(
+                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
+                )
+            }
+            runCatching {
+                doctorPlayer.member.getDmChannel().createMessage(
+                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
+                )
+            }
+        }
+    }
+
     private suspend fun resolveNursePrescriptions(game: Game) {
         val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
         val doctorJob = doctorPlayer.job as? Doctor ?: return
@@ -1732,23 +1768,9 @@ object GameLoopManager {
             val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
             val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
             if (contactedByNurseTarget || contactedByDoctorTarget) {
-                val firstContact = !nurseJob.hasContactedDoctor
                 nurseJob.hasContactedDoctor = true
                 nurseJob.contactedDoctorId = doctorPlayer.member.id
                 doctorJob.hasContactedNurse = true
-
-                if (firstContact) {
-                    runCatching {
-                        nursePlayer.member.getDmChannel().createMessage(
-                            "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
-                        )
-                    }
-                    runCatching {
-                        doctorPlayer.member.getDmChannel().createMessage(
-                            "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
-                        )
-                    }
-                }
             }
         }
     }
