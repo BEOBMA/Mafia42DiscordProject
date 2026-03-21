@@ -30,8 +30,9 @@ object AdministratorInvestigationNotificationManager {
             ?.member
             ?.effectiveName
 
+        val adminSuccessImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484984191580901586"
         return if (playerName != null) {
-            "조회 결과: ${selectedJob} 직업은 ${playerName}님입니다."
+            "$adminSuccessImageUrl\n조회 결과: ${playerName}님이 ${selectedJob}로 조회되었습니다."
         } else {
             "조회 결과: ${selectedJob} 직업을 가진 생존자를 찾지 못했습니다."
         }
