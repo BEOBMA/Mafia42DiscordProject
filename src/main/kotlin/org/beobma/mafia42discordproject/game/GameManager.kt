@@ -71,6 +71,7 @@ object GameManager {
     }
 
     private data class AbilitySelectionSession(
+        val playerJob: Job,
         val availablePool: MutableList<Ability>,
         val selected: MutableList<Ability> = mutableListOf(),
         var currentOptions: List<Ability> = emptyList(),
@@ -587,7 +588,10 @@ object GameManager {
                 .shuffled()
                 .toMutableList()
 
-            val session = AbilitySelectionSession(availablePool = pool)
+            val session = AbilitySelectionSession(
+                playerJob = job,
+                availablePool = pool
+            )
             session.currentOptions = drawAbilityOptions(session)
             abilitySelectionSessions[player.member.id] = session
 
@@ -653,16 +657,13 @@ object GameManager {
     }
 
     suspend fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
-        val game = currentGame ?: return "진행 중인 게임이 없습니다."
-        val player = game.getPlayer(userId) ?: return "현재 게임 참여자만 사용할 수 있는 명령어입니다."
-        val playerJob = player.job ?: return "현재 직업 정보가 없어 능력을 선택할 수 없습니다. 게임 진행자에게 문의해 주세요."
+        val session = abilitySelectionSessions[userId]
+            ?: return "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
+        val playerJob = session.playerJob
 
         if (pickNumber !in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND) {
             return "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
         }
-
-        val session = abilitySelectionSessions[userId]
-            ?: return "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
 
         if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT || session.currentOptions.isEmpty()) {
             return "이미 부가 능력 선택이 완료되었습니다."
