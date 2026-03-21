@@ -37,10 +37,15 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
         val casterJob = caster.job
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
-        val attackTier = if (casterJob.abilities.any { it::class == WinOrDead::class }) {
+        var attackTier = if (casterJob.abilities.any { it::class == WinOrDead::class }) {
             AttackTier.PIERCE
         } else {
             AttackTier.NORMAL
+        }
+
+        val hasNightRaid = caster.allAbilities.any { it.name == "야습" }
+        if (game.dayCount == 1 && target.job is org.beobma.mafia42discordproject.job.definition.list.Doctor && hasNightRaid) {
+            attackTier = AttackTier.ABSOLUTE
         }
 
         val previousTarget = game.nightAttacks[attackKey]?.target
