@@ -7,6 +7,7 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GameLoopManager
 
@@ -32,13 +33,23 @@ object DayTimeAdjustCommand : DiscordCommand {
             return
         }
 
-        val result = when (action) {
-            increaseValue -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = true)
-            decreaseValue -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = false)
+        val isIncrease = when (action) {
+            increaseValue -> true
+            decreaseValue -> false
+            else -> null
+        }
+        val result = when (isIncrease) {
+            true -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = true)
+            false -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = false)
             else -> GameLoopManager.DayTimeAdjustmentResult(false, "잘못된 action 값입니다.")
         }
 
         DiscordMessageManager.respondEphemeral(event, result.message)
+        if (result.isSuccess && isIncrease != null) {
+            val playerName = game.getPlayer(interaction.user.id)?.member?.effectiveName ?: interaction.user.username
+            val actionText = if (isIncrease) "증가" else "단축"
+            game.sendMainChannerMessage("${playerName}님이 시간을 ${actionText}시켰습니다.")
+        }
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
@@ -63,6 +74,11 @@ object DayTimeAdjustCommand : DiscordCommand {
         val isIncrease = action == "up" || action == increaseValue
         val result = GameLoopManager.adjustDayTimeByPlayer(game, actorId, isIncrease)
         event.message.channel.createMessage(result.message)
+        if (result.isSuccess) {
+            val playerName = game.getPlayer(actorId)?.member?.effectiveName ?: event.message.author?.username ?: "알 수 없는 플레이어"
+            val actionText = if (isIncrease) "증가" else "단축"
+            game.sendMainChannerMessage("${playerName}님이 시간을 ${actionText}시켰습니다.")
+        }
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
