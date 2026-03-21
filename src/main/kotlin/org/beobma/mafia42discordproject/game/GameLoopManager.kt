@@ -2069,7 +2069,7 @@ object GameLoopManager {
             target.state.isShamaned = true
         }
 
-        if (attacker.allAbilities.any { it is Probation }) {
+        if (attacker.allAbilities.any { it is Probation } && target.job !is Evil) {
             val originalJob = target.job ?: return
             game.nightEvents += GameEvent.JobDiscovered(
                 discoverer = attacker,
