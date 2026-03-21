@@ -35,6 +35,8 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.Calm
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
@@ -58,6 +60,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Priest
+import org.beobma.mafia42discordproject.job.definition.list.Prophet
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -150,6 +153,7 @@ object GameLoopManager {
     suspend fun startNightPhase(game: Game) {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        game.prophetSpecialWinScheduledTeam = null
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
         game.nightAttacks.clear()
@@ -349,6 +353,7 @@ object GameLoopManager {
 
         val processedDawnEvents = dispatchEvents(game)
         resolveCabalSpecialWinReadiness(game)
+        resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnPresentation = buildDawnPresentation(game, summary.deaths)
 
         game.lastNightSummary = summary.copy(
@@ -1018,6 +1023,7 @@ object GameLoopManager {
         if (isCabalSpecialWinReady(game)) {
             return Team.CABAL_SPECIAL
         }
+        resolveProphetSpecialWin(game)?.let { return it }
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mafiaCount = alivePlayers.count { it.job is Evil }
@@ -1043,6 +1049,7 @@ object GameLoopManager {
             mafiaCount == 0 -> Team.CITIZEN
             mafiaCount >= citizenCount &&
                 aliveCabals < 2 &&
+                alivePlayers.none { it.job is Prophet } &&
                 !isRevealedJudgeAlive(game) &&
                 !activeMercenaryExecution &&
                 findAliveDictatorshipPolitician(game) == null -> Team.MAFIA
@@ -1267,6 +1274,47 @@ object GameLoopManager {
             val cabal = player.job as? Cabal ?: return@any false
             cabal.cabalSpecialWinReady
         }
+    }
+
+    private fun resolveProphetPioneerSpecialWinReadiness(game: Game, summary: NightResolutionSummary) {
+        val shouldTrigger = summary.deaths.any { player ->
+            if (player.state.isDead.not()) return@any false
+            if (player.job !is Prophet) return@any false
+            if (player.allAbilities.none { it is Pioneer }) return@any false
+            if (player.member.id in game.probationOriginalJobsByPlayer) return@any false
+
+            val day4RevelationReady = game.dayCount >= 4
+            val apostleRevelationReady = player.allAbilities.any { it is Apostle } &&
+                game.playerDatas.none { candidate ->
+                    !candidate.state.isDead &&
+                        candidate.job !is Evil
+                }
+
+            day4RevelationReady || apostleRevelationReady
+        }
+
+        if (!shouldTrigger) return
+        game.prophetSpecialWinScheduledTeam = Team.CITIZEN
+    }
+
+    private fun resolveProphetSpecialWin(game: Game): Team? {
+        game.prophetSpecialWinScheduledTeam?.let { return it }
+
+        val aliveProphets = game.playerDatas.filter { !it.state.isDead && it.job is Prophet }
+        if (aliveProphets.isEmpty()) return null
+
+        if (game.dayCount >= 4) {
+            return Team.CITIZEN
+        }
+
+        val aliveCitizens = game.playerDatas.filter { !it.state.isDead && it.job !is Evil }
+        val isApostleTriggered = aliveProphets.any { prophet ->
+            prophet.allAbilities.any { it is Apostle } &&
+                aliveCitizens.size == 1 &&
+                aliveCitizens.first().member.id == prophet.member.id
+        }
+
+        return if (isApostleTriggered) Team.CITIZEN else null
     }
 
     private fun sendCabalDm(target: PlayerData, message: String) {

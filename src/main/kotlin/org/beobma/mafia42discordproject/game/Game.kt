@@ -6,6 +6,7 @@ import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.Job
 
 data class DawnPresentation(
@@ -33,6 +34,7 @@ data class Game(
     }
 
     var dayCount: Int = 0
+    var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
     var coupleChannel: TextChannel? = null
