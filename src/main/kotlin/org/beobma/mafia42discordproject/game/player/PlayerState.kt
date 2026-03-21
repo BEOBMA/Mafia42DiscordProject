@@ -8,6 +8,7 @@ class PlayerState {
     var hasUsedOneTimeAbility: Boolean = false // 자경단원, 군인, 성직자 등의 1회용 소모 여부
     var hasUsedDailyAbility: Boolean = false   // 파파라치 등 하루 1회 소모 여부
     var isTamed: Boolean = false               // 짐승인간 길들여짐 여부
+    var isJobPubliclyRevealed: Boolean = false // 모든 플레이어에게 직업이 공개되었는지 여부
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어
