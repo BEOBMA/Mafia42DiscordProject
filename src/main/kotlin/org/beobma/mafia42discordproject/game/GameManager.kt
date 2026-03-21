@@ -24,6 +24,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -35,6 +37,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
 object GameManager {
@@ -53,7 +56,8 @@ object GameManager {
 
     private val policeJobNames = setOf("경찰", "요원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
-    private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = mutableMapOf()
+    private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
+    private val abilitySelectionSessionMutex = Mutex()
 
     private data class AssignmentPlayer(
         val memberId: Snowflake? = null,
@@ -579,7 +583,9 @@ object GameManager {
     }
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
-        abilitySelectionSessions.clear()
+        abilitySelectionSessionMutex.withLock {
+            abilitySelectionSessions.clear()
+        }
 
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
@@ -593,7 +599,9 @@ object GameManager {
                 availablePool = pool
             )
             session.currentOptions = drawAbilityOptions(session)
-            abilitySelectionSessions[player.member.id] = session
+            abilitySelectionSessionMutex.withLock {
+                abilitySelectionSessions[player.member.id] = session
+            }
 
             runCatching {
                 val dmChannel = player.member.getDmChannel()
@@ -657,35 +665,60 @@ object GameManager {
     }
 
     suspend fun selectExtraAbility(userId: Snowflake, pickNumber: Int): String {
-        val session = abilitySelectionSessions[userId]
-            ?: return "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
-        val playerJob = session.playerJob
+        var shouldTryStartGameLoop = false
+        val resultMessage = abilitySelectionSessionMutex.withLock {
+            val session = abilitySelectionSessions[userId]
+                ?: return@withLock "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
+            val playerJob = session.playerJob
 
-        if (pickNumber !in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND) {
-            return "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
+            if (pickNumber !in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND) {
+                return@withLock "선택 번호는 1~${EXTRA_ABILITY_OPTIONS_PER_ROUND} 사이여야 합니다."
+            }
+
+            if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT || session.currentOptions.isEmpty()) {
+                return@withLock "이미 부가 능력 선택이 완료되었습니다."
+            }
+
+            if (pickNumber > session.currentOptions.size) {
+                return@withLock "현재 라운드에서 선택 가능한 번호가 아닙니다. 제시된 번호 중에서 선택해 주세요."
+            }
+
+            val pickedAbility = session.currentOptions[pickNumber - 1]
+            val selectedUniqueAbility = pickedAbility as? JobUniqueAbility
+            if (selectedUniqueAbility != null && playerJob.abilities.none { it.name == selectedUniqueAbility.name }) {
+                playerJob.abilities.add(selectedUniqueAbility)
+            }
+            if (playerJob.extraAbilities.none { it.name == pickedAbility.name }) {
+                playerJob.extraAbilities.add(pickedAbility)
+            }
+            session.selected += pickedAbility
+            session.completedRounds += 1
+
+            if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
+                abilitySelectionSessions.remove(userId)
+                shouldTryStartGameLoop = true
+                return@withLock buildString {
+                    appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
+                    appendLine("부가 능력 선택이 모두 완료되었습니다.")
+                    append("최종 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
+                }
+            }
+
+            session.currentOptions = drawAbilityOptions(session)
+            if (session.currentOptions.isEmpty()) {
+                abilitySelectionSessions.remove(userId)
+                shouldTryStartGameLoop = true
+                return@withLock buildString {
+                    appendLine("**${pickedAbility.name}** 능력을 선택했습니다.")
+                    appendLine("추가로 제시할 수 있는 능력이 없어 선택 단계를 종료합니다.")
+                    append("현재 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
+                }
+            }
+
+            "**${pickedAbility.name}** 능력을 선택했습니다. 다음 능력을 선택해 주세요."
         }
 
-        if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT || session.currentOptions.isEmpty()) {
-            return "이미 부가 능력 선택이 완료되었습니다."
-        }
-
-        if (pickNumber > session.currentOptions.size) {
-            return "현재 라운드에서 선택 가능한 번호가 아닙니다. 제시된 번호 중에서 선택해 주세요."
-        }
-
-        val pickedAbility = session.currentOptions[pickNumber - 1]
-        val selectedUniqueAbility = pickedAbility as? JobUniqueAbility
-        if (selectedUniqueAbility != null && playerJob.abilities.none { it.name == selectedUniqueAbility.name }) {
-            playerJob.abilities.add(selectedUniqueAbility)
-        }
-        if (playerJob.extraAbilities.none { it.name == pickedAbility.name }) {
-            playerJob.extraAbilities.add(pickedAbility)
-        }
-        session.selected += pickedAbility
-        session.completedRounds += 1
-
-        if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
-            abilitySelectionSessions.remove(userId)
+        if (shouldTryStartGameLoop) {
             currentGuild?.let { guild ->
                 runCatching {
                     tryStartGameLoopWhenAbilitySelectionCompleted(guild)
@@ -693,31 +726,9 @@ object GameManager {
                     println("⚠️ 능력 선택 종료 후 게임 루프 시작 실패: ${error.message}")
                 }
             }
-            return buildString {
-                appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
-                appendLine("부가 능력 선택이 모두 완료되었습니다.")
-                append("최종 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
-            }
         }
 
-        session.currentOptions = drawAbilityOptions(session)
-        if (session.currentOptions.isEmpty()) {
-            abilitySelectionSessions.remove(userId)
-            currentGuild?.let { guild ->
-                runCatching {
-                    tryStartGameLoopWhenAbilitySelectionCompleted(guild)
-                }.onFailure { error ->
-                    println("⚠️ 능력 선택 조기 종료 후 게임 루프 시작 실패: ${error.message}")
-                }
-            }
-            return buildString {
-                appendLine("**${pickedAbility.name}** 능력을 선택했습니다.")
-                appendLine("추가로 제시할 수 있는 능력이 없어 선택 단계를 종료합니다.")
-                append("현재 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
-            }
-        }
-
-        return "**${pickedAbility.name}** 능력을 선택했습니다. 다음 능력을 선택해 주세요."
+        return resultMessage
     }
 
     private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
@@ -744,8 +755,10 @@ object GameManager {
 
     fun abilityPickButtonId(pickNumber: Int): String = "ability_pick_$pickNumber"
 
-    fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
-        val session = abilitySelectionSessions[userId] ?: return null
+    suspend fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
+        val session = abilitySelectionSessionMutex.withLock {
+            abilitySelectionSessions[userId]
+        } ?: return null
         return AbilitySelectionSnapshot(
             guideMessage = buildAbilitySelectionGuideMessage(session, true),
             optionCount = session.currentOptions.size
@@ -763,7 +776,9 @@ object GameManager {
     suspend fun sendCurrentAbilitySelectionPrompt(userId: Snowflake): Boolean {
         val game = currentGame ?: return false
         val player = game.getPlayer(userId) ?: return false
-        val session = abilitySelectionSessions[userId] ?: return false
+        val session = abilitySelectionSessionMutex.withLock {
+            abilitySelectionSessions[userId]
+        } ?: return false
         if (session.currentOptions.isEmpty()) return false
 
         return runCatching {
