@@ -13,6 +13,7 @@ class PlayerState {
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어
     var isSilenced: Boolean = false              // 마담 유혹 여부
     var isThreatened: Boolean = false            // 건달 협박 여부
+    var isShamaned: Boolean = false              // 성불 여부
 
     // 새로운 페이즈가 시작될 때 일회성 상태 초기화
     fun resetForNextPhase() {
