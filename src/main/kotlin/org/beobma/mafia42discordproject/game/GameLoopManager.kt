@@ -45,6 +45,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
+import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
@@ -166,6 +167,7 @@ object GameLoopManager {
                 administratorJob.investigationResultPlayerId = null
             }
             (player.job as? Gangster)?.prepareNightThreatSelection()
+            (player.job as? Hypnotist)?.selectedTargetIdTonight = null
         }
         resolveCabalSunInvestigation(game)
 
@@ -284,6 +286,11 @@ object GameLoopManager {
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
             (player.job as? Gangster)?.finalizeNightThreatSelection()
+            (player.job as? Hypnotist)?.let { hypnotist ->
+                if (hypnotist.blockedNightsRemaining > 0) {
+                    hypnotist.blockedNightsRemaining -= 1
+                }
+            }
             player.state.resetForNextPhase()
         }
 
