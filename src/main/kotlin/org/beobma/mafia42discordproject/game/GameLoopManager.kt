@@ -610,6 +610,7 @@ object GameLoopManager {
             imageLink = SystemImage.DAY_START.imageUrl,
             message = "날이 밝았습니다."
         )
+        notifyPendingPoisonEffects(game)
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -2041,9 +2042,31 @@ object GameLoopManager {
         if (attacker.allAbilities.any { it is Poisoning }) {
             target.state.isPoisoned = true
             target.state.poisonedDeathDay = game.dayCount + 1
+            game.pendingPoisonNotifications[target.member.id] = attacker.member.id
+        }
+    }
+
+    private fun notifyPendingPoisonEffects(game: Game) {
+        if (game.pendingPoisonNotifications.isEmpty()) return
+
+        val poisonNotifications = game.pendingPoisonNotifications.toMap()
+        game.pendingPoisonNotifications.clear()
+
+        poisonNotifications.forEach { (targetId, attackerId) ->
+            val target = game.getPlayer(targetId) ?: return@forEach
+            val attacker = game.getPlayer(attackerId)
+
             cabalNotificationScope.launch {
                 runCatching {
                     target.member.getDmChannel().createMessage("중독 상태가 되었습니다.")
+                }
+            }
+
+            if (attacker != null) {
+                cabalNotificationScope.launch {
+                    runCatching {
+                        attacker.member.getDmChannel().createMessage("${target.member.effectiveName}님이 중독 상태가 되었습니다.")
+                    }
                 }
             }
         }
