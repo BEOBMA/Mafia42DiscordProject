@@ -15,6 +15,8 @@ class PlayerState {
     var isSilenced: Boolean = false              // 마담 유혹 여부
     var isThreatened: Boolean = false            // 건달 협박 여부
     var isShamaned: Boolean = false              // 성불 여부
+    var isPoisoned: Boolean = false              // 중독 여부
+    var poisonedDeathDay: Int? = null            // 해당 일차 새벽에 중독사 처리
 
     // 새로운 페이즈가 시작될 때 일회성 상태 초기화
     fun resetForNextPhase() {

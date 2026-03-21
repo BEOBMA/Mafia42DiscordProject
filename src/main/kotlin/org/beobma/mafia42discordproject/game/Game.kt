@@ -41,6 +41,8 @@ data class Game(
     val nightDeathCandidates: MutableList<PlayerData> = mutableListOf()
     val nightEvents: MutableList<GameEvent> = mutableListOf()
     var lastNightSummary: NightResolutionSummary = NightResolutionSummary()
+    var mafiaAttackFailedPreviousNight: Boolean = false
+    var concealmentForcedQuietNight: Boolean = false
 
     // 투표
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()

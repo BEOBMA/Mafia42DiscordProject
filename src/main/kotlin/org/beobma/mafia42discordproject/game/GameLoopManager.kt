@@ -25,10 +25,15 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
+import org.beobma.mafia42discordproject.job.definition.list.Citizen
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -121,6 +126,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
+        game.concealmentForcedQuietNight = false
         game.lastNightSummary = NightResolutionSummary()
         game.playerDatas.forEach { player ->
             (player.job as? Cabal)?.let { cabalJob ->
@@ -204,6 +210,20 @@ object GameLoopManager {
             }
         }
 
+        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"]
+        if (mafiaAttack != null) {
+            val targetSurvived = mafiaAttack.target !in playersToDie
+            game.mafiaAttackFailedPreviousNight = targetSurvived
+
+            if (targetSurvived) {
+                applyMafiaExecutionFailureEffects(game, mafiaAttack)
+            } else {
+                applyMafiaExecutionSuccessEffects(game, mafiaAttack)
+            }
+        } else {
+            game.mafiaAttackFailedPreviousNight = false
+        }
+
         playersToDie.forEach { victim ->
             game.nightEvents += GameEvent.PlayerDied(victim)
         }
@@ -237,6 +257,21 @@ object GameLoopManager {
     }
 
     fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
+        val poisonedVictims = game.playerDatas.filter { player ->
+            !player.state.isDead &&
+                player.state.isPoisoned &&
+                player.state.poisonedDeathDay != null &&
+                game.dayCount >= player.state.poisonedDeathDay!!
+        }
+        poisonedVictims.forEach { victim ->
+            victim.state.isPoisoned = false
+            victim.state.poisonedDeathDay = null
+            if (victim !in summary.deaths) {
+                victim.state.isDead = true
+                game.nightEvents += GameEvent.PlayerDied(victim)
+            }
+        }
+
         summary.deaths.forEach { victim ->
             if (victim.state.isDead) return@forEach
             victim.state.isDead = true
@@ -697,6 +732,13 @@ object GameLoopManager {
     }
 
     private fun buildDawnPresentation(game: Game, deaths: List<PlayerData>): DawnPresentation {
+        if (game.concealmentForcedQuietNight) {
+            return DawnPresentation(
+                imageUrl = QUIET_NIGHT_IMAGE_URL,
+                message = "조용하게 밤이 넘어갔습니다."
+            )
+        }
+
         val attacks = game.nightAttacks.values.toList()
         val presentationEvent = GameEvent.ResolveDawnPresentation(
             dayCount = game.dayCount,
@@ -815,6 +857,42 @@ object GameLoopManager {
                 candidate.job?.name == selectedJob.name
             }
             administratorJob.investigationResultPlayerId = target?.member?.id
+        }
+    }
+
+    private fun applyMafiaExecutionFailureEffects(game: Game, mafiaAttack: AttackEvent) {
+        val attacker = mafiaAttack.attacker
+        val target = mafiaAttack.target
+
+        if (attacker.allAbilities.any { it is Concealment }) {
+            game.concealmentForcedQuietNight = true
+        }
+
+        if (attacker.allAbilities.any { it is Poisoning }) {
+            target.state.isPoisoned = true
+            target.state.poisonedDeathDay = game.dayCount + 1
+        }
+    }
+
+    private fun applyMafiaExecutionSuccessEffects(game: Game, mafiaAttack: AttackEvent) {
+        val attacker = mafiaAttack.attacker
+        val target = mafiaAttack.target
+
+        if (attacker.allAbilities.any { it is Exorcism } && target.job !is Evil) {
+            target.state.isShamaned = true
+        }
+
+        if (attacker.allAbilities.any { it is Probation }) {
+            val originalJob = target.job ?: return
+            game.nightEvents += GameEvent.JobDiscovered(
+                discoverer = attacker,
+                target = target,
+                actualJob = originalJob,
+                revealedJob = originalJob,
+                sourceAbilityName = "수습",
+                resolvedAt = DiscoveryStep.NIGHT
+            )
+            target.job = Citizen()
         }
     }
 

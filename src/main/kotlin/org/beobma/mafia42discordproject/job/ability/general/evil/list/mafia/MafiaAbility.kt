@@ -8,6 +8,10 @@ import org.beobma.mafia42discordproject.game.system.AttackTier
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.definition.list.Agent
+import org.beobma.mafia42discordproject.job.definition.list.Detective
+import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처형"
@@ -37,10 +41,19 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
         val casterJob = caster.job
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
-        var attackTier = if (casterJob.abilities.any { it::class == WinOrDead::class }) {
-            AttackTier.PIERCE
-        } else {
-            AttackTier.NORMAL
+        var attackTier = AttackTier.NORMAL
+
+        if (caster.allAbilities.any { it is Outlaw } && isPoliceLine(target)) {
+            attackTier = AttackTier.PIERCE
+        }
+
+        if (caster.allAbilities.any { it is Sniper } && game.mafiaAttackFailedPreviousNight) {
+            attackTier = AttackTier.PIERCE
+        }
+
+        if (casterJob.abilities.any { it::class == WinOrDead::class } && canUseWinOrDead(game, caster)) {
+            attackTier = AttackTier.PIERCE
+            caster.state.hasUsedOneTimeAbility = true
         }
 
         val hasNightRaid = caster.allAbilities.any { it.name == "야습" }
@@ -63,5 +76,18 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         }
 
         return AbilityResult(true, "${target.member.effectiveName} 님을 처형 대상으로 지정했습니다.")
+    }
+
+    private fun isPoliceLine(target: PlayerData): Boolean {
+        val targetJob = target.job ?: return false
+        return targetJob is Police || targetJob is Detective || targetJob is Agent
+    }
+
+    private fun canUseWinOrDead(game: Game, caster: PlayerData): Boolean {
+        if (caster.job !is Mafia) return false
+        if (caster.state.hasUsedOneTimeAbility) return false
+
+        val aliveMafias = game.playerDatas.filter { !it.state.isDead && it.job is Mafia }
+        return aliveMafias.size == 1 && aliveMafias.first() == caster
     }
 }
