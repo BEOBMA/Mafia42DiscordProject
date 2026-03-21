@@ -31,6 +31,12 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
                 if (event.attackEvent.target != owner) return
                 if (owner.state.hasUsedOneTimeAbility) return
 
+                // 의사(Doctor)의 힐 등 외부 요인으로 이미 이 공격을 방어할 수 있는 상태라면
+                // 군인의 귀중한 방탄 능력을 소모하지 않고 그대로 보존합니다.
+                if (owner.state.healTier.level >= event.attackEvent.attackTier.level) {
+                    return
+                }
+
                 owner.state.healTier = maxOf(owner.state.healTier, DefenseTier.ABSOLUTE)
                 if (owner.state.healTier.level >= event.attackEvent.attackTier.level) {
                     owner.state.hasUsedOneTimeAbility = true
@@ -41,7 +47,7 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
                 if (wasTriggeredTonight) {
                     // 아침 결과 일러스트 및 텍스트 교체 (copy 활용)
                     event.presentation = event.presentation.copy(
-                        imageUrl = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594232378413158/a9faad1f8d4629cb.png",
+                        imageUrl = org.beobma.mafia42discordproject.game.system.SystemImage.SOLDIER_DEFENDED.imageUrl,
                         message = "군인 ${owner.member.effectiveName}님이 공격을 버텨냈습니다."
                     )
                     
