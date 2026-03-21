@@ -35,7 +35,7 @@ class Hint : Ability, JobSpecificExtraAbility, PassiveAbility {
             actualJob = actualJob,
             revealedJob = actualJob,
             sourceAbilityName = name,
-            resolvedAt = DiscoveryStep.DAWN,
+            resolvedAt = DiscoveryStep.DAY,
             notifyTarget = false
         )
     }
