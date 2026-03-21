@@ -275,7 +275,7 @@ object GameLoopManager {
         return summary
     }
 
-    fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
+    suspend fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
         val poisonedVictims = game.playerDatas.filter { player ->
             !player.state.isDead &&
                 player.state.isPoisoned &&
@@ -322,7 +322,7 @@ object GameLoopManager {
         partnerCouple.avengedMafiaIds += mafiaAttack.attacker.member.id
     }
 
-    private fun announceCoupleSacrificeReveal(game: Game, deaths: List<PlayerData>) {
+    private suspend fun announceCoupleSacrificeReveal(game: Game, deaths: List<PlayerData>) {
         val mainChannel = game.mainChannel ?: return
 
         deaths.forEach { deadPlayer ->
