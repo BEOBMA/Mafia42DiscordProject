@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -58,6 +59,8 @@ object GameManager {
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
+    private var abilitySelectionInitializationInProgress: Boolean = false
+    private var abilitySelectionPendingUserIds: MutableSet<Snowflake> = mutableSetOf()
 
     private data class AssignmentPlayer(
         val memberId: Snowflake? = null,
@@ -583,9 +586,7 @@ object GameManager {
     }
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
-        abilitySelectionSessionMutex.withLock {
-            abilitySelectionSessions.clear()
-        }
+        val preparedSessions = mutableMapOf<Snowflake, AbilitySelectionSession>()
 
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
@@ -599,26 +600,49 @@ object GameManager {
                 availablePool = pool
             )
             session.currentOptions = drawAbilityOptions(session)
-            abilitySelectionSessionMutex.withLock {
-                abilitySelectionSessions[player.member.id] = session
+            if (session.currentOptions.isNotEmpty()) {
+                preparedSessions[player.member.id] = session
             }
+        }
 
-            runCatching {
-                val dmChannel = player.member.getDmChannel()
-                val ownedAbilityMessage = buildString {
-                    job.jobImage
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { appendLine(it) }
-                    appendAbilityImages(this, job.abilities)
-                }.trim()
-                if (ownedAbilityMessage.isNotBlank()) {
-                    dmChannel.createMessage(ownedAbilityMessage)
+        abilitySelectionSessionMutex.withLock {
+            abilitySelectionInitializationInProgress = true
+            abilitySelectionSessions.clear()
+            abilitySelectionSessions.putAll(preparedSessions)
+            abilitySelectionPendingUserIds = preparedSessions.keys.toMutableSet()
+        }
+
+        coroutineScope {
+            playerDatas.forEach { player ->
+                launch {
+                    val job = player.job ?: return@launch
+                    val session = preparedSessions[player.member.id]
+                    runCatching {
+                        val dmChannel = player.member.getDmChannel()
+                        val ownedAbilityMessage = buildString {
+                            job.jobImage
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { appendLine(it) }
+                            appendAbilityImages(this, job.abilities)
+                        }.trim()
+                        if (ownedAbilityMessage.isNotBlank()) {
+                            dmChannel.createMessage(ownedAbilityMessage)
+                        }
+
+                        if (session != null) {
+                            sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
+                        } else {
+                            dmChannel.createMessage("ℹ️ 선택 가능한 부가 능력이 없어 능력 선택 단계를 건너뜁니다.")
+                        }
+                    }.onFailure { error ->
+                        println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
+                    }
                 }
-
-                sendAbilitySelectionPrompt(dmChannel, session)
-            }.onFailure { error ->
-                println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
             }
+        }
+
+        abilitySelectionSessionMutex.withLock {
+            abilitySelectionInitializationInProgress = false
         }
 
         assignVirtualPlayerExtraAbilities(players)
@@ -697,6 +721,7 @@ object GameManager {
 
             if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
                 abilitySelectionSessions.remove(userId)
+                abilitySelectionPendingUserIds.remove(userId)
                 shouldTryStartGameLoop = true
                 return@withLock buildString {
                     appendLine("✅ ${pickedAbility.name} 능력을 선택했습니다.")
@@ -708,6 +733,7 @@ object GameManager {
             session.currentOptions = drawAbilityOptions(session)
             if (session.currentOptions.isEmpty()) {
                 abilitySelectionSessions.remove(userId)
+                abilitySelectionPendingUserIds.remove(userId)
                 shouldTryStartGameLoop = true
                 return@withLock buildString {
                     appendLine("**${pickedAbility.name}** 능력을 선택했습니다.")
@@ -758,6 +784,7 @@ object GameManager {
         if (restoredSession.currentOptions.isEmpty()) return null
 
         abilitySelectionSessions[userId] = restoredSession
+        abilitySelectionPendingUserIds.add(userId)
         println("ℹ️ ${player.member.effectiveName}의 부가 능력 선택 세션을 복구했습니다.")
         return restoredSession
     }
@@ -778,13 +805,24 @@ object GameManager {
         }
     }
 
-    fun parseAbilityPickButtonId(componentId: String): Int? {
+    data class AbilityPickButtonPayload(
+        val ownerUserId: Snowflake,
+        val pickNumber: Int
+    )
+
+    fun parseAbilityPickButtonId(componentId: String): AbilityPickButtonPayload? {
         val prefix = "ability_pick_"
         if (!componentId.startsWith(prefix)) return null
-        return componentId.removePrefix(prefix).toIntOrNull()?.takeIf { it in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND }
+        val payload = componentId.removePrefix(prefix)
+        val parts = payload.split("_")
+        if (parts.size != 2) return null
+
+        val ownerId = parts[0].toULongOrNull()?.let(::Snowflake) ?: return null
+        val pickNumber = parts[1].toIntOrNull()?.takeIf { it in 1..EXTRA_ABILITY_OPTIONS_PER_ROUND } ?: return null
+        return AbilityPickButtonPayload(ownerUserId = ownerId, pickNumber = pickNumber)
     }
 
-    fun abilityPickButtonId(pickNumber: Int): String = "ability_pick_$pickNumber"
+    fun abilityPickButtonId(userId: Snowflake, pickNumber: Int): String = "ability_pick_${userId.value}_$pickNumber"
 
     suspend fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
         val session = abilitySelectionSessionMutex.withLock {
@@ -815,7 +853,7 @@ object GameManager {
 
         return runCatching {
             val dmChannel = player.member.getDmChannel()
-            sendAbilitySelectionPrompt(dmChannel, session)
+            sendAbilitySelectionPrompt(dmChannel, userId, session)
             true
         }.getOrElse { error ->
             println("⚠️ 현재 능력 선택 안내 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
@@ -825,6 +863,7 @@ object GameManager {
 
     private suspend fun sendAbilitySelectionPrompt(
         dmChannel: DmChannel,
+        userId: Snowflake,
         session: AbilitySelectionSession
     ) {
         val content = buildString {
@@ -839,7 +878,7 @@ object GameManager {
             this.content = content
             actionRow {
                 session.currentOptions.forEachIndexed { index, _ ->
-                    interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
+                    interactionButton(ButtonStyle.Primary, abilityPickButtonId(userId, index + 1)) {
                         label = "${index + 1}번 선택"
                     }
                 }
@@ -860,7 +899,10 @@ object GameManager {
 
     private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted(guild: GuildBehavior) {
         val game = currentGame ?: return
-        if (abilitySelectionSessions.isNotEmpty()) return
+        val canStart = abilitySelectionSessionMutex.withLock {
+            !abilitySelectionInitializationInProgress && abilitySelectionPendingUserIds.isEmpty()
+        }
+        if (!canStart) return
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
