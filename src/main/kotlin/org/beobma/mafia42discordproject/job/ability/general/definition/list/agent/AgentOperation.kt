@@ -47,7 +47,7 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
 
         agentJob.discoveredCitizenTargetIds += selectedTarget.member.id
         agentJob.discoveredCitizenTargetDayById[selectedTarget.member.id] = game.dayCount
-        sendDm(owner, "지령 도착: ${selectedTarget.member.effectiveName}님의 직업은 ${discoveredJob.name}입니다.")
+        sendDm(owner, "${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
     }
 
     private fun sendDm(owner: PlayerData, message: String) {
