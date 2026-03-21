@@ -110,6 +110,13 @@ object GameLoopManager {
         timeStatusMessage = null
     }
 
+    suspend fun clearTimeThread() {
+        runCatching {
+            timeThreadChannel?.delete("게임 종료로 인한 시간 스레드 정리")
+        }
+        resetTimeThreadState()
+    }
+
     suspend fun adjustDayTimeByPlayer(game: Game, playerId: Snowflake, isIncrease: Boolean): DayTimeAdjustmentResult {
         val player = game.getPlayer(playerId)
             ?: return DayTimeAdjustmentResult(false, "게임 참가자만 시간을 조정할 수 있습니다.")
