@@ -5,7 +5,8 @@ import dev.kord.common.Color
 enum class Team(
     val displayName: String,
     val embedColor: Color,
-    val winMessage: String
+    val winMessage: String,
+    val winImageUrl: String? = null
 ) {
     CITIZEN(
         displayName = "시민 팀",
@@ -20,6 +21,7 @@ enum class Team(
     CABAL_SPECIAL(
         displayName = "시민 팀",
         embedColor = Color(0x3498db),
-        winMessage = "비밀결사의 접선이 완성되어 시민 팀이 특수 승리했습니다! 🌞🌙"
+        winMessage = "비밀결사의 접선이 완성되어 시민 팀이 특수 승리했습니다! 🌞🌙",
+        winImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484986092489937039" // 추가: 비밀결사 승리 전용 이미지
     )
 }
