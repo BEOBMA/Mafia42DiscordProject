@@ -28,6 +28,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -166,7 +168,6 @@ object GameLoopManager {
             (player.job as? Police)?.let { policeJob ->
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
-                policeJob.eavesdroppingTargetId = null
             }
             (player.job as? Detective)?.let {
                 DetectiveAbility.resetNightState(player)
@@ -181,6 +182,7 @@ object GameLoopManager {
             }
         }
         resolveCabalSunInvestigation(game)
+        applyPoliceConfidentialInvestigation(game)
 
         game.sendMainChannelMessageWithImage(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
@@ -328,6 +330,7 @@ object GameLoopManager {
             if (victim !in summary.deaths) {
                 victim.state.isDead = true
                 game.nightEvents += GameEvent.PlayerDied(victim)
+                applyPoliceAutopsy(game, victim)
             }
         }
 
@@ -335,6 +338,7 @@ object GameLoopManager {
             if (victim.state.isDead) return@forEach
             victim.state.isDead = true
             game.nightEvents += GameEvent.PlayerDied(victim)
+            applyPoliceAutopsy(game, victim)
         }
 
         announceCoupleSacrificeReveal(game, summary.deaths)
@@ -887,6 +891,7 @@ object GameLoopManager {
 
         target.state.isDead = true
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
+        applyPoliceAutopsy(game, target)
         resolveMartyrDefenseExplosion(game, target)
         dispatchEvents(game)
         game.nightEvents.clear()
@@ -1019,6 +1024,7 @@ object GameLoopManager {
 
         selectedTarget.state.isDead = true
         game.nightEvents += GameEvent.PlayerDied(selectedTarget, isLynch = true)
+        applyPoliceAutopsy(game, selectedTarget)
 
         executedTarget.state.isJobPubliclyRevealed = true
         selectedTarget.state.isJobPubliclyRevealed = true
@@ -1242,6 +1248,54 @@ object GameLoopManager {
             nurseJob.canUseInheritedHeal = true
             if (nursePlayer.job?.abilities?.none { it is DoctorAbility } == true) {
                 nursePlayer.job?.abilities?.add(DoctorAbility())
+            }
+        }
+    }
+
+    private fun applyPoliceAutopsy(game: Game, victim: PlayerData) {
+        game.playerDatas.forEach { policePlayer ->
+            if (policePlayer.state.isDead) return@forEach
+            if (policePlayer.member.id == victim.member.id) return@forEach
+            if (policePlayer.allAbilities.none { it is Autopsy }) return@forEach
+
+            val policeJob = policePlayer.job as? Police ?: return@forEach
+            policeJob.eavesdroppingTargetId = victim.member.id
+            policeJob.searchedTargets += victim.member.id
+
+            votePresentationScope.launch {
+                runCatching {
+                    policePlayer.member.getDmChannel().createMessage(
+                        "[부검] ${victim.member.effectiveName}님은 ${if (victim.job is Evil) "마피아 팀" else "시민 팀"}입니다."
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyPoliceConfidentialInvestigation(game: Game) {
+        if (game.dayCount != 2) return
+
+        game.playerDatas.forEach { policePlayer ->
+            if (policePlayer.state.isDead) return@forEach
+            if (policePlayer.allAbilities.none { it is Confidential }) return@forEach
+
+            val policeJob = policePlayer.job as? Police ?: return@forEach
+            if (policeJob.hasUsedConfidential) return@forEach
+
+            val candidates = game.playerDatas.filter {
+                !it.state.isDead && it.member.id != policePlayer.member.id
+            }
+            val selectedTarget = candidates.randomOrNull() ?: return@forEach
+
+            policeJob.hasUsedConfidential = true
+            policeJob.searchedTargets += selectedTarget.member.id
+
+            votePresentationScope.launch {
+                runCatching {
+                    policePlayer.member.getDmChannel().createMessage(
+                        "[기밀] ${selectedTarget.member.effectiveName}님 자동 조사 결과: ${if (selectedTarget.job is Evil) "마피아 팀" else "시민 팀"}"
+                    )
+                }
             }
         }
     }

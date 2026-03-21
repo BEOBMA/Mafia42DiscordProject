@@ -15,5 +15,6 @@ class Police : Job(), Definition {
     var currentSearchTarget: Snowflake? = null
     var eavesdroppingTargetId: Snowflake? = null
     var hasUsedSearchThisNight: Boolean = false
+    var hasUsedConfidential: Boolean = false
     val searchedTargets: MutableSet<Snowflake> = mutableSetOf()
 }

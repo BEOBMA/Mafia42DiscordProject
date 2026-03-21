@@ -1260,6 +1260,27 @@ object GameManager {
                 passive.onDeceasedChat(game, player, event)
             }
         }
+
+        val autopsyEavesdroppers = game.playerDatas
+            .asSequence()
+            .filter { !it.state.isDead }
+            .filter { it.member.id != event.chatSender.member.id }
+            .filter { player -> player.allAbilities.any { it is Eavesdropping } }
+            .filter { player ->
+                val policeJob = player.job as? Police ?: return@filter false
+                policeJob.eavesdroppingTargetId == event.chatSender.member.id
+            }
+            .toList()
+
+        autopsyEavesdroppers.forEach { watcher ->
+            gameLoopScope.launch {
+                runCatching {
+                    watcher.member.getDmChannel().createMessage(
+                        "[도청] ${event.chatSender.member.effectiveName}: ${event.chat}"
+                    )
+                }
+            }
+        }
     }
 
     // 지목투표 데이터 저장
