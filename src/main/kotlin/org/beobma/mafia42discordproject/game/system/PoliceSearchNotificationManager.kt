@@ -28,7 +28,7 @@ object PoliceSearchNotificationManager {
         val targetName = event.target.member.effectiveName
 
         return if (event.isMafia) {
-            "그 사람의 직업은 마피아"
+            "${targetName}님은 마피아입니다."
         } else {
             "${targetName}님은 마피아가 아닙니다."
         }
