@@ -1,8 +1,13 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FortunetellerNotificationManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -39,6 +44,81 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
         }
 
         fortuneteller.fixedFortuneTargetId = effectiveTarget.member.id
+        sendFortuneResultImmediately(game, caster, effectiveTarget)
         return AbilityResult(true, "${target.member.effectiveName}님을 운세 대상으로 지정했습니다.")
+    }
+
+    private fun sendFortuneResultImmediately(game: Game, fortuneteller: PlayerData, target: PlayerData) {
+        val targetJobName = target.job?.name ?: return
+        val gameJobNames = game.playerDatas.mapNotNull { it.job?.name }.distinct()
+        if (gameJobNames.isEmpty()) return
+
+        val decoyPool = gameJobNames.filter { it != targetJobName }
+        val decoyJobName = (decoyPool.ifEmpty { gameJobNames }).randomOrNull() ?: return
+        val shownJobs = listOf(targetJobName, decoyJobName).shuffled()
+
+        val arcanaTargets = if (fortuneteller.allAbilities.any { it is Arcana }) {
+            selectArcanaTargets(game, fortuneteller, target, shownJobs, targetJobName)
+        } else {
+            emptyList()
+        }
+
+        fortunetellerDmScope.launch {
+            FortunetellerNotificationManager.notifyFortuneResult(
+                fortuneteller = fortuneteller,
+                target = target,
+                shownJobs = shownJobs,
+                arcanaTargets = arcanaTargets
+            )
+        }
+    }
+
+    private fun selectArcanaTargets(
+        game: Game,
+        fortuneteller: PlayerData,
+        fixedTarget: PlayerData,
+        shownJobs: List<String>,
+        targetJobName: String
+    ): List<PlayerData> {
+        val candidates = game.playerDatas.filter { it.member.id != fixedTarget.member.id }
+        if (candidates.isEmpty()) return emptyList()
+
+        val complementaryRole = shownJobs.firstOrNull { it != targetJobName }
+
+        val complementaryCandidates = candidates.filter { it.job?.name == complementaryRole }.shuffled()
+        val shownJobCandidates = candidates.filter { candidate ->
+            val jobName = candidate.job?.name
+            jobName != null && jobName in shownJobs
+        }.shuffled()
+        val nonShownJobCandidates = candidates.filter { candidate ->
+            val jobName = candidate.job?.name
+            jobName == null || jobName !in shownJobs
+        }.shuffled()
+
+        val selected = mutableListOf<PlayerData>()
+
+        complementaryCandidates.firstOrNull { it.member.id != fortuneteller.member.id }
+            ?.let { selected += it }
+            ?: complementaryCandidates.firstOrNull()?.let { selected += it }
+            ?: shownJobCandidates.firstOrNull { it.member.id != fortuneteller.member.id }?.let { selected += it }
+            ?: shownJobCandidates.firstOrNull()?.let { selected += it }
+
+        nonShownJobCandidates.firstOrNull { it !in selected && it.member.id != fortuneteller.member.id }
+            ?.let { selected += it }
+            ?: nonShownJobCandidates.firstOrNull { it !in selected }?.let { selected += it }
+
+        if (selected.size < 2) {
+            candidates
+                .filter { it !in selected }
+                .shuffled()
+                .take(2 - selected.size)
+                .forEach { selected += it }
+        }
+
+        return selected.take(2)
+    }
+
+    companion object {
+        private val fortunetellerDmScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

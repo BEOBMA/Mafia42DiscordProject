@@ -12,14 +12,14 @@ object FortunetellerNotificationManager {
     ) {
         if (shownJobs.isEmpty()) return
 
-        val fortuneMessage = shownJobs.joinToString(" 또는 ")
-        val baseMessage = "[운세] ${target.member.effectiveName}님의 직업은 ${fortuneMessage} 중 하나입니다."
+        val baseMessage = "(${target.member.effectiveName})의 직업은 (${shownJobs[0]}) 또는 (${shownJobs[1]})."
+        val imageUrl = SystemImage.FORTUNETELLER_NOTICE.imageUrl
 
         val message = if (arcanaTargets.isEmpty()) {
-            baseMessage
+            "$imageUrl\n$baseMessage"
         } else {
             val arcanaNames = arcanaTargets.joinToString(", ") { it.member.effectiveName }
-            "$baseMessage\n[아르카나] ${target.member.effectiveName}, ${arcanaNames} 중에 운세 직업(${shownJobs.joinToString(", ")})이 모두 포함되어 있습니다."
+            "$imageUrl\n$baseMessage\n(${target.member.effectiveName}), (${arcanaNames}) 셋 중 둘의 직업은 (${shownJobs[0]}), (${shownJobs[1]})."
         }
 
         runCatching {

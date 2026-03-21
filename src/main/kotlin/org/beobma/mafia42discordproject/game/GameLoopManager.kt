@@ -47,12 +47,10 @@ import org.beobma.mafia42discordproject.job.definition.list.Citizen
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.Arcana
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 import org.beobma.mafia42discordproject.job.definition.list.Detective
-import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
@@ -366,7 +364,6 @@ object GameLoopManager {
         resolveNursePrescriptions(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
-        resolveFortunetellerFortunes(game)
         resolveHackerHacks(game)
         resolveReporterScoops(game)
 
@@ -1858,49 +1855,6 @@ object GameLoopManager {
     }
 
 
-    private suspend fun resolveFortunetellerFortunes(game: Game) {
-        game.playerDatas.forEach { player ->
-            if (player.state.isDead) return@forEach
-
-            val fortuneteller = player.job as? Fortuneteller ?: return@forEach
-            val fixedTargetId = fortuneteller.fixedFortuneTargetId ?: return@forEach
-            val target = game.getPlayer(fixedTargetId) ?: return@forEach
-
-            if (target.state.isDead) {
-                FortunetellerNotificationManager.notifyUnavailableTarget(player, target)
-                return@forEach
-            }
-
-            val targetJobName = target.job?.name ?: return@forEach
-            val gameJobNames = game.playerDatas
-                .mapNotNull { it.job?.name }
-                .distinct()
-
-            val decoyPool = gameJobNames.filter { it != targetJobName }
-            val decoyJobName = (decoyPool.ifEmpty { gameJobNames }).randomOrNull() ?: return@forEach
-            val shownJobs = listOf(targetJobName, decoyJobName).shuffled()
-
-            val arcanaTargets = if (player.allAbilities.any { it is Arcana }) {
-                selectArcanaTargets(
-                    game = game,
-                    fortuneteller = player,
-                    fixedTarget = target,
-                    shownJobs = shownJobs,
-                    targetJobName = targetJobName
-                )
-            } else {
-                emptyList()
-            }
-
-            FortunetellerNotificationManager.notifyFortuneResult(
-                fortuneteller = player,
-                target = target,
-                shownJobs = shownJobs,
-                arcanaTargets = arcanaTargets
-            )
-        }
-    }
-
     private fun resolveHackerHacks(game: Game) {
         game.playerDatas.forEach { player ->
             if (player.state.isDead) return@forEach
@@ -2020,51 +1974,6 @@ object GameLoopManager {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game)
             reporter.hasPublishedArticle = true
         }
-    }
-
-    private fun selectArcanaTargets(
-        game: Game,
-        fortuneteller: PlayerData,
-        fixedTarget: PlayerData,
-        shownJobs: List<String>,
-        targetJobName: String
-    ): List<PlayerData> {
-        val candidates = game.playerDatas.filter { it.member.id != fixedTarget.member.id }
-        if (candidates.isEmpty()) return emptyList()
-
-        val complementaryRole = shownJobs.firstOrNull { it != targetJobName }
-
-        val complementaryCandidates = candidates.filter { it.job?.name == complementaryRole }.shuffled()
-        val shownJobCandidates = candidates.filter { candidate ->
-            val jobName = candidate.job?.name
-            jobName != null && jobName in shownJobs
-        }.shuffled()
-        val nonShownJobCandidates = candidates.filter { candidate ->
-            val jobName = candidate.job?.name
-            jobName == null || jobName !in shownJobs
-        }.shuffled()
-
-        val selected = mutableListOf<PlayerData>()
-
-        complementaryCandidates.firstOrNull { it.member.id != fortuneteller.member.id }
-            ?.let { selected += it }
-            ?: complementaryCandidates.firstOrNull()?.let { selected += it }
-            ?: shownJobCandidates.firstOrNull { it.member.id != fortuneteller.member.id }?.let { selected += it }
-            ?: shownJobCandidates.firstOrNull()?.let { selected += it }
-
-        nonShownJobCandidates.firstOrNull { it !in selected && it.member.id != fortuneteller.member.id }
-            ?.let { selected += it }
-            ?: nonShownJobCandidates.firstOrNull { it !in selected }?.let { selected += it }
-
-        if (selected.size < 2) {
-            candidates
-                .filter { it !in selected }
-                .shuffled()
-                .take(2 - selected.size)
-                .forEach { selected += it }
-        }
-
-        return selected.take(2)
     }
 
     private fun applyMafiaExecutionFailureEffects(game: Game, mafiaAttack: AttackEvent) {
