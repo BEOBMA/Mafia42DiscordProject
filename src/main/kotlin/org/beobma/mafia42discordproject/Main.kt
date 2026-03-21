@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
@@ -39,7 +40,9 @@ suspend fun main() {
 
     kord.on<GuildChatInputCommandInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
-        command.handle(this)
+        InteractionErrorHandler.runSafely("slash-command:${interaction.command.rootName}") {
+            command.handle(this@on)
+        }
     }
 
     kord.on<MessageCreateEvent> {
@@ -63,7 +66,9 @@ suspend fun main() {
 
     kord.on<GuildAutoCompleteInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
-        command.handleAutoComplete(this)
+        InteractionErrorHandler.runSafely("autocomplete:${interaction.command.rootName}") {
+            command.handleAutoComplete(this@on)
+        }
     }
 
     // UI 상호작용 버튼 리스너 일괄등록
