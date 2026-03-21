@@ -69,7 +69,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
                 sendDm(
                     detectivePlayer,
-                    "[추리] ${caster.member.effectiveName}님이 ${usedAbility.name} 대상을 ${selectedTarget.member.effectiveName}님으로 지정했습니다."
+                    "추리를 시작합니다. ${usedAbility.name} 대상을 ${selectedTarget.member.effectiveName}님으로 지정했습니다."
                 )
 
                 val hasTrap = detectivePlayer.allAbilities.any { it is Trap }
