@@ -62,6 +62,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.definition.list.Prophet
 import org.beobma.mafia42discordproject.job.definition.list.Reporter
+import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -685,15 +686,19 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
-                if (player.job is Evil) {
-                    val canSend = isNight && !player.state.isDead
+                if (player.state.isDead) {
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel)
-                        denied = if (canSend) {
-                            Permissions(Permission.ReadMessageHistory)
-                        } else {
-                            Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
-                        }
+                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        denied = Permissions(Permission.SendMessages)
+                    }
+                    return@forEach
+                }
+
+                if (player.job is Evil) {
+                    val canSend = isNight
+                    addMemberOverwrite(player.member.id) {
+                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
                     }
                 } else {
                     addMemberOverwrite(player.member.id) {
@@ -719,19 +724,19 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
-                if (player.job is Couple) {
-                    val canAccess = isNight && !player.state.isDead
+                if (player.state.isDead) {
                     addMemberOverwrite(player.member.id) {
-                        allowed = if (canAccess) {
-                            Permissions(Permission.ViewChannel)
-                        } else {
-                            Permissions()
-                        }
-                        denied = if (canAccess) {
-                            Permissions(Permission.ReadMessageHistory)
-                        } else {
-                            Permissions(Permission.ViewChannel, Permission.ReadMessageHistory, Permission.SendMessages)
-                        }
+                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        denied = Permissions(Permission.SendMessages)
+                    }
+                    return@forEach
+                }
+
+                if (player.job is Couple) {
+                    val canAccess = isNight
+                    addMemberOverwrite(player.member.id) {
+                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        denied = if (canAccess) Permissions() else Permissions(Permission.SendMessages)
                     }
                 } else {
                     addMemberOverwrite(player.member.id) {
@@ -757,7 +762,7 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
-                if (!player.state.isDead) {
+                if (!player.state.isDead && player.job !is Shaman) {
                     addMemberOverwrite(player.member.id) {
                         denied = Permissions(
                             Permission.ViewChannel,
@@ -768,10 +773,9 @@ object GameLoopManager {
                     return@forEach
                 }
 
-                val canSend = !player.state.isShamaned
                 addMemberOverwrite(player.member.id) {
                     allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                    denied = if (canSend) {
+                    denied = if (player.state.isDead) {
                         Permissions()
                     } else {
                         Permissions(Permission.SendMessages)
@@ -2097,7 +2101,11 @@ object GameLoopManager {
         val attacker = mafiaAttack.attacker
         val target = mafiaAttack.target
 
-        if (attacker.allAbilities.any { it is Exorcism } && target.job !is Evil) {
+        if (
+            attacker.allAbilities.any { it is Exorcism } &&
+            target.job !is Evil &&
+            ShamaningPolicy.canBeShamaned(target)
+        ) {
             target.state.isShamaned = true
         }
 

@@ -39,6 +39,7 @@ import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Couple
@@ -50,6 +51,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Politician
+import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -74,6 +76,13 @@ object GameManager {
     private const val GAME_MAFIA_CHANNEL_ID = 1485008648886423622L
     private const val GAME_COUPLE_CHANNEL_ID = 1485008669279125745L
     private const val GAME_DEAD_CHANNEL_ID = 1485008691961790484L
+    private const val SHAMAN_RELAY_COMMAND = "접신"
+    private const val SHAMANED_RELAY_COMMAND = "강령"
+
+    data class SpiritRelayResult(
+        val isSuccess: Boolean,
+        val message: String
+    )
 
     private val policeJobNames = setOf("경찰", "요원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
@@ -1125,11 +1134,9 @@ object GameManager {
         if (!player.state.isDead) return false
 
         val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
-        val canSendInDeadChannel = !player.state.isShamaned
         val textChannel = event.message.channel as? TextChannel
 
-        if (isDeadChannel && canSendInDeadChannel) {
-            textChannel?.let { grantDeadPlayerChatPermission(it, player) }
+        if (isDeadChannel && !player.state.isShamaned) {
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
@@ -1139,15 +1146,64 @@ object GameManager {
             return false
         }
 
-        textChannel?.let { denyDeadPlayerChatPermission(it, player) }
-
-        if (isDeadChannel && !canSendInDeadChannel) {
+        if (isDeadChannel && player.state.isShamaned) {
+            runCatching { event.message.delete("성불 상태 일반 채팅 차단") }
             runCatching {
                 textChannel?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
             }
         }
 
         return true
+    }
+
+    suspend fun handleSpiritCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
+        val message = args.joinToString(" ").trim()
+
+        return when (commandName) {
+            SHAMAN_RELAY_COMMAND -> {
+                val memberId = event.member?.id ?: return false
+                val result = relayShamanMessage(memberId, message)
+                result.isSuccess
+            }
+            SHAMANED_RELAY_COMMAND -> {
+                val memberId = event.member?.id ?: return false
+                val result = relayShamanedMessage(memberId, event.message.channelId, message)
+                if (result.isSuccess) {
+                    runCatching { event.message.delete("성불 플레이어 강령 전달 처리") }
+                }
+                result.isSuccess
+            }
+            else -> false
+        }
+    }
+
+    suspend fun relayShamanMessage(memberId: Snowflake, message: String): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "메시지를 입력해 주세요.")
+        if (sender.job !is Shaman || sender.state.isDead) return SpiritRelayResult(false, "생존한 영매만 사용할 수 있습니다.")
+        if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "접신 메시지는 밤에만 보낼 수 있습니다.")
+        val deadChannel = game.deadChannel ?: return SpiritRelayResult(false, "죽은 자들의 채널을 찾을 수 없습니다.")
+
+        runCatching {
+            deadChannel.createMessage("[접신] ${sender.member.effectiveName}: $message")
+        }
+        return SpiritRelayResult(true, "죽은 자들의 채널에 접신 메시지를 보냈습니다.")
+    }
+
+    suspend fun relayShamanedMessage(
+        memberId: Snowflake,
+        channelId: Snowflake,
+        message: String
+    ): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "메시지를 입력해 주세요.")
+        if (channelId != Snowflake(GAME_DEAD_CHANNEL_ID)) return SpiritRelayResult(false, "죽은 자들의 채널에서만 사용할 수 있습니다.")
+        if (!sender.state.isDead || !sender.state.isShamaned) return SpiritRelayResult(false, "성불된 사망자만 사용할 수 있습니다.")
+
+        relayShamanedPlayerMessage(game, sender, message)
+        return SpiritRelayResult(true, "강령 메시지를 전달했습니다.")
     }
 
     suspend fun relayNightPrivateChat(event: MessageCreateEvent) {
@@ -1196,26 +1252,6 @@ object GameManager {
         }
     }
 
-    private suspend fun denyDeadPlayerChatPermission(channel: TextChannel, player: PlayerData) {
-        runCatching {
-            channel.edit {
-                addMemberOverwrite(player.member.id) {
-                    denied = Permissions(Permission.SendMessages)
-                }
-            }
-        }
-    }
-
-    private suspend fun grantDeadPlayerChatPermission(channel: TextChannel, player: PlayerData) {
-        runCatching {
-            channel.edit {
-                addMemberOverwrite(player.member.id) {
-                    denied = Permissions()
-                }
-            }
-        }
-    }
-
     private fun dispatchDeceasedChatEvent(game: Game, event: GameEvent.DeceasedChat) {
         val observers = game.playerDatas
             .filter { !it.state.isDead }
@@ -1250,6 +1286,24 @@ object GameManager {
                     watcher.member.getDmChannel().createMessage(
                         "[도청] ${event.chatSender.member.effectiveName}: ${event.chat}"
                     )
+                }
+            }
+        }
+    }
+
+    private fun relayShamanedPlayerMessage(game: Game, sender: PlayerData, message: String) {
+        val manifestShamans = game.playerDatas
+            .asSequence()
+            .filter { !it.state.isDead }
+            .filter { it.job is Shaman }
+            .filter { player -> player.allAbilities.any { it is Manifesto } }
+            .toList()
+        if (manifestShamans.isEmpty()) return
+
+        manifestShamans.forEach { shaman ->
+            gameLoopScope.launch {
+                runCatching {
+                    shaman.member.getDmChannel().createMessage("[강령] ${sender.member.effectiveName}: $message")
                 }
             }
         }
