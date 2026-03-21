@@ -16,7 +16,7 @@ enum class SystemImage(val imageUrl: String) {
     DEATH_BY_MAFIA("https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"),
     DEATH_MALE_COUPLE("https://cdn.discordapp.com/attachments/1483977619258212392/1484991316755480667/GND1rUq6_E1w0EvzDPnVmBn2OlQ81KeacX5vP_yTBfXgKfndQ1hTHJ8ntkkL7scPQww3lJng2uh2v9-dgi2tGlpz80zrz6_mHxbZQtkdlLYycoMzVQhUc7Ve3AeYfThvwle1dVshpX0EabMpV-JNrA.png?ex=69c03d6f&is=69beebef&hm=405199818d86776d7ad6ad22f90c64e2aee2993903359faf1af36a5994aee16a&"),
     DEATH_WOMAN_COUPLE("https://cdn.discordapp.com/attachments/1483977619258212392/1484991486377464000/ufIo3ISluSJdrz3V2mWwIvYB37jHye-2-I4PYAaQaMwKorwfbwEZwaxYwSJ2-_PF2t0edGjL90GCPsfyp57XSYMBwcSBc_F5jvepYIE0tQxULt_FG5__TLdbfXe0FKrqDhTM5F7C6xSODLo9suH0YA.png?ex=69c03d98&is=69beec18&hm=dbc8ade33d25050bb2663252d9895a8cbdcffd0818cb2e3cddaecd55b277263d&"),
-    // 확장: 추후 독살, 폭사 등 추가 가능
+    SOLDIER_DEFENDED("https://cdn.discordapp.com/attachments/1483977619258212392/1485026577174761552/tDrhfZgWgty6Q9kFMqfxr5HQnMMP1cWYYjcba66zLfZvXZvXZJMeNNApMoL7i6j90o9jlSpbqmwYOyTZ8qOvauWdOVICQ2IDYLbjhfrYQeBTYqzmU6bD49K46HsE4mRxANcYFfHoQWDPAn8dnyB4WQ.webp?ex=69c05e46&is=69bf0cc6&hm=3eadc3e0fc151e40539a1da614eac05591ffdb2f8eadd62a0a083c206accd9a0&"),
 
     // 직업별 고유 이미지
     ADMINISTRATOR_NOTICE("https://cdn.discordapp.com/attachments/1483977619258212392/1484984191216128010/pew0EnsJXxCS4Gg7sVmstxjgA7dv6awCfaJ9EzpOP5WaXArfaf_W93sT3xMyPZViyAn0_O239q8f32OMEaz6WHosUFdZ_15FE4t4Tbg4y2xuATS9ImLgSFW_m-MNaUGv058sHVTZWNOLZCfsg_tX-Q.png?ex=69c036cc&is=69bee54c&hm=5a4816e7f50aac2060a0c31662fc74c1f373bd93166d3449e0453d90f1040b40&"),
