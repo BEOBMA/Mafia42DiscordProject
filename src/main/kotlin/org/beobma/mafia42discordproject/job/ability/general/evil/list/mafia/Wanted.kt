@@ -24,7 +24,7 @@ class Wanted : Ability, JobSpecificExtraAbility, PassiveAbility {
     override val targetJob: List<KClass<out Job>> = listOf(Mafia::class)
 
     override fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {
-        if (newPhase != GamePhase.DAY || game.dayCount != 1 || owner.state.isDead) return
+        if (newPhase != GamePhase.DAY || game.dayCount != 1) return
 
         val unknownMafiaTeam = game.playerDatas.filter { candidate ->
             candidate != owner && candidate.job is Evil && candidate.job !is Mafia
@@ -36,7 +36,7 @@ class Wanted : Ability, JobSpecificExtraAbility, PassiveAbility {
             buildString {
                 appendLine("수배 결과: 접선하지 않은 마피아팀 정보")
                 unknownMafiaTeam.forEach { candidate ->
-                    appendLine("- ${candidate.member.effectiveName}: ${candidate.job?.name ?: "알 수 없음"}")
+                    appendLine("${candidate.member.effectiveName}의 직업은 ${candidate.job?.name ?: "알 수 없음"}")
                 }
             }
         }

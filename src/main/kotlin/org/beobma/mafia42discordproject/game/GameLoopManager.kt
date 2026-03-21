@@ -84,6 +84,7 @@ object GameLoopManager {
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val DAY_TIME_ADJUSTMENT_MS = 15_000L
     private const val TIME_THREAD_NAME = "시간"
+    private const val PROBATION_DISCOVERY_IMAGE_URL = ""
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -2077,7 +2078,8 @@ object GameLoopManager {
                 actualJob = originalJob,
                 revealedJob = originalJob,
                 sourceAbilityName = "수습",
-                resolvedAt = DiscoveryStep.NIGHT
+                resolvedAt = DiscoveryStep.NIGHT,
+                imageUrl = PROBATION_DISCOVERY_IMAGE_URL
             )
             game.probationOriginalJobsByPlayer[target.member.id] = originalJob
             target.job = Citizen()

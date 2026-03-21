@@ -25,7 +25,7 @@ class NightRaid : JobUniqueAbility, PassiveAbility {
 
         event.presentation = DawnPresentation(
             imageUrl = nightRaidImageUrl,
-            message = "의사 ${mafiaAttack.target.member.nickname}님이 마피아의 야습으로 사망하였습니다."
+            message = "의사 ${mafiaAttack.target.member.effectiveName}님이 마피아의 야습으로 사망하였습니다."
         )
     }
 }
