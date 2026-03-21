@@ -1090,6 +1090,8 @@ object GameManager {
 
         // 현재 페이즈가 투표(VOTE 단계일 때만 표를 받습니다.
         if (game.currentPhase != GamePhase.VOTE) return false
+        val voter = game.getPlayer(voterId) ?: return false
+        if (voter.state.isDead) return false
 
         game.currentMainVotes[voterId] = targetIdString
         return true
@@ -1100,6 +1102,8 @@ object GameManager {
         val game = currentGame ?: return false
 
         if (game.currentPhase != GamePhase.VOTE) return false
+        val voter = game.getPlayer(voterId) ?: return false
+        if (voter.state.isDead) return false
 
         game.currentProsConsVotes[voterId] = isPros
         return true
