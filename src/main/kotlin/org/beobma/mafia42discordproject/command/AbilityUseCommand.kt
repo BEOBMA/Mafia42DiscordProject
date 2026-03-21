@@ -135,6 +135,15 @@ object AbilityUseCommand : DiscordCommand {
             selectedAbility.activate(game, caster, target)
         }
 
+        if (result.isSuccess) {
+            game.abilityUsersThisPhase += caster.member.id
+            if (effectiveTarget != null) {
+                game.abilityTargetByUserThisPhase[caster.member.id] = effectiveTarget.member.id
+            } else {
+                game.abilityTargetByUserThisPhase.remove(caster.member.id)
+            }
+        }
+
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }

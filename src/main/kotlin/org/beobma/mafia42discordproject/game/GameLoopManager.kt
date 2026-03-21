@@ -26,6 +26,7 @@ import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -55,6 +56,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.mart
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
+import org.beobma.mafia42discordproject.job.definition.list.Mentalist
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
@@ -143,6 +145,8 @@ object GameLoopManager {
     suspend fun startNightPhase(game: Game) {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        game.abilityUsersThisPhase.clear()
+        game.abilityTargetByUserThisPhase.clear()
         game.unwrittenRuleBlockedTargetIdTonight = null
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
@@ -173,6 +177,9 @@ object GameLoopManager {
             }
             (player.job as? Gangster)?.prepareNightThreatSelection()
             (player.job as? Hypnotist)?.selectedTargetIdTonight = null
+            (player.job as? Mentalist)?.let {
+                MentalistAbility.resetDayState(player)
+            }
         }
         resolveCabalSunInvestigation(game)
 
@@ -392,6 +399,8 @@ object GameLoopManager {
 
         // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
+        game.abilityUsersThisPhase.clear()
+        game.abilityTargetByUserThisPhase.clear()
         val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths)
 
         game.sendMainChannelMessageWithImage(

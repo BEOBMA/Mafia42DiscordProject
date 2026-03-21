@@ -59,6 +59,8 @@ data class Game(
     val graveRobTargetsByGhoul: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val ghostTriggeredGhouls: MutableSet<Snowflake> = mutableSetOf()
     val probationOriginalJobsByPlayer: MutableMap<Snowflake, Job> = mutableMapOf()
+    val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
+    val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()
 
     fun replacePlayers(players: MutableList<PlayerData>) {
         playerDatas = players
