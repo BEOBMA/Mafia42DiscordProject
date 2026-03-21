@@ -43,6 +43,9 @@ import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
+import org.beobma.mafia42discordproject.job.definition.list.Detective
+import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
@@ -1142,6 +1145,43 @@ object GameManager {
         }
 
         return true
+    }
+
+    suspend fun relayNightPrivateChat(event: MessageCreateEvent) {
+        val game = currentGame ?: return
+        if (game.currentPhase != GamePhase.NIGHT) return
+
+        val sender = event.member?.let { game.getPlayer(it.id) } ?: return
+        if (sender.state.isDead) return
+        if (event.message.content.isBlank()) return
+
+        val channelId = event.message.channelId
+        val isNightPrivateChannel = channelId == game.mafiaChannel?.id || channelId == game.coupleChannel?.id
+        if (!isNightPrivateChannel) return
+
+        val watchers = game.playerDatas
+            .asSequence()
+            .filter { !it.state.isDead }
+            .filter { it.member.id != sender.member.id }
+            .filter { observer -> observer.allAbilities.any { it is Eavesdropping } }
+            .filter { observer ->
+                when (val observerJob = observer.job) {
+                    is Police -> observerJob.eavesdroppingTargetId == sender.member.id
+                    is Detective -> observerJob.fixedReasoningTargetId == sender.member.id
+                    else -> false
+                }
+            }
+            .toList()
+
+        if (watchers.isEmpty()) return
+
+        watchers.forEach { watcher ->
+            runCatching {
+                watcher.member.getDmChannel().createMessage(
+                    "[도청] ${sender.member.effectiveName}: ${event.message.content}"
+                )
+            }
+        }
     }
 
     private suspend fun denyDeadPlayerChatPermission(channel: TextChannel, player: PlayerData) {

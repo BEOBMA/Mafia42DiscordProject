@@ -19,6 +19,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Cooperation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.agent.Humint
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Identification
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.JobManager
 
@@ -131,6 +132,7 @@ object AbilityUseCommand : DiscordCommand {
         }
         if (result.isSuccess && target != null) {
             Humint.notifyIfTriggered(game, caster, target, selectedAbility)
+            DetectiveAbility.notifyTargetSelection(game, caster, target, selectedAbility)
         }
 
         val message = if (result.isSuccess) {

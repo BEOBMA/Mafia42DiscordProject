@@ -25,6 +25,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -37,6 +38,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Citizen
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
+import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -142,6 +144,10 @@ object GameLoopManager {
             (player.job as? Police)?.let { policeJob ->
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
+                policeJob.eavesdroppingTargetId = null
+            }
+            (player.job as? Detective)?.let {
+                DetectiveAbility.resetNightState(player)
             }
             (player.job as? Administrator)?.let { administratorJob ->
                 administratorJob.investigationResultPlayerId = null

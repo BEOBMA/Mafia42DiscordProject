@@ -81,6 +81,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
 
         policeJob.currentSearchTarget = null
         policeJob.hasUsedSearchThisNight = true
+        policeJob.eavesdroppingTargetId = target.member.id
         policeJob.searchedTargets += target.member.id
         return AbilityResult(true, "")
     }
