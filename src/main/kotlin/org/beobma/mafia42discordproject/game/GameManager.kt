@@ -18,6 +18,7 @@ import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1052,14 +1053,14 @@ object GameManager {
     }
 
     private suspend fun stopGameState(gameToStop: Game) {
-        clearGameChannelMessages(gameToStop)
-
         currentGame = null
         currentGuild = null
+        gameLoopJob?.cancelAndJoin()
+        gameLoopJob = null
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
-        gameLoopJob?.cancel()
-        gameLoopJob = null
+
+        clearGameChannelMessages(gameToStop)
     }
 
     private suspend fun clearGameChannelMessages(game: Game) {
