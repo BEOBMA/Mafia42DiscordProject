@@ -82,22 +82,134 @@ object GameLoopManager {
     private const val FINAL_VOTE_TALLY_STEP_MS = 500L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
+    private const val DAY_TIME_ADJUSTMENT_MS = 15_000L
     private const val TIME_THREAD_NAME = "시간"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
+    private val countdownLock = Any()
+    private var activeCountdown: ActiveCountdown? = null
     private val cabalNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val votePresentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    data class DayTimeAdjustmentResult(
+        val isSuccess: Boolean,
+        val message: String
+    )
+
+    private data class ActiveCountdown(
+        val guildId: Snowflake,
+        val phase: GamePhase,
+        val label: String,
+        var endAtMillis: Long,
+        var forceFinished: Boolean = false
+    )
 
     fun resetTimeThreadState() {
         timeThreadChannel = null
         timeStatusMessage = null
     }
 
+    suspend fun adjustDayTimeByPlayer(game: Game, playerId: Snowflake, isIncrease: Boolean): DayTimeAdjustmentResult {
+        val player = game.getPlayer(playerId)
+            ?: return DayTimeAdjustmentResult(false, "게임 참가자만 시간을 조정할 수 있습니다.")
+
+        if (player.state.isDead) {
+            return DayTimeAdjustmentResult(false, "사망한 플레이어는 시간을 조정할 수 없습니다.")
+        }
+
+        if (game.currentPhase != GamePhase.DAY) {
+            return DayTimeAdjustmentResult(false, "시간 조정은 낮 페이즈에서만 가능합니다.")
+        }
+
+        val delta = if (isIncrease) DAY_TIME_ADJUSTMENT_MS else -DAY_TIME_ADJUSTMENT_MS
+        val remainingAfterAdjustment = synchronized(countdownLock) {
+            if (game.dayTimeAdjustmentUsedPlayers.contains(playerId)) {
+                return@synchronized null
+            }
+
+            val countdown = activeCountdown
+            if (countdown == null ||
+                countdown.guildId != game.guild.id ||
+                countdown.phase != GamePhase.DAY ||
+                countdown.label != "낮"
+            ) {
+                return@synchronized null
+            }
+
+            countdown.endAtMillis += delta
+            val remaining = countdown.endAtMillis - System.currentTimeMillis()
+            if (remaining <= 0L) {
+                countdown.forceFinished = true
+            }
+            game.dayTimeAdjustmentUsedPlayers += playerId
+            remaining
+        } ?: return DayTimeAdjustmentResult(
+            false,
+            if (game.dayTimeAdjustmentUsedPlayers.contains(playerId)) {
+                "하루에 한 번만 시간 조정을 사용할 수 있습니다."
+            } else {
+                "현재 조정 가능한 낮 카운트다운이 없습니다."
+            }
+        )
+
+        updateTimeStatusMessage(game, "낮", remainingAfterAdjustment.coerceAtLeast(0L))
+
+        if (!isIncrease && remainingAfterAdjustment <= 0L) {
+            return DayTimeAdjustmentResult(
+                true,
+                "남은 시간이 0초 이하가 되어 즉시 다음 페이즈로 넘어갑니다."
+            )
+        }
+
+        val actionText = if (isIncrease) "증가" else "감소"
+        return DayTimeAdjustmentResult(
+            true,
+            "낮 시간을 15초 $actionText 했습니다. (하루 1회 사용 완료)"
+        )
+    }
+
     private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
-        updateTimeStatusMessage(game, label, durationMillis)
-        delay(durationMillis.coerceAtLeast(0L))
+        val initialDuration = durationMillis.coerceAtLeast(0L)
+        synchronized(countdownLock) {
+            activeCountdown = ActiveCountdown(
+                guildId = game.guild.id,
+                phase = game.currentPhase,
+                label = label,
+                endAtMillis = System.currentTimeMillis() + initialDuration
+            )
+        }
+
+        var previousWholeSecond = Long.MIN_VALUE
+        while (true) {
+            val remainingMillis = synchronized(countdownLock) {
+                val countdown = activeCountdown
+                if (countdown == null || countdown.guildId != game.guild.id || countdown.phase != game.currentPhase) {
+                    0L
+                } else if (countdown.forceFinished) {
+                    0L
+                } else {
+                    countdown.endAtMillis - System.currentTimeMillis()
+                }
+            }
+
+            if (remainingMillis <= 0L) {
+                break
+            }
+
+            val remainingWholeSecond = (remainingMillis + 999L) / 1_000L
+            if (remainingWholeSecond != previousWholeSecond) {
+                previousWholeSecond = remainingWholeSecond
+                updateTimeStatusMessage(game, label, remainingMillis)
+            }
+
+            delay(200L)
+        }
+
         updateTimeStatusMessageAtZero(game, label)
+        synchronized(countdownLock) {
+            activeCountdown = null
+        }
     }
 
     private suspend fun updateTimeStatusMessage(game: Game, phaseLabel: String, remainingMillis: Long) {
@@ -470,6 +582,7 @@ object GameLoopManager {
 
         // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
+        game.dayTimeAdjustmentUsedPlayers.clear()
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
         val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths, game)

@@ -63,6 +63,7 @@ data class Game(
     val probationOriginalJobsByPlayer: MutableMap<Snowflake, Job> = mutableMapOf()
     val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
     val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val dayTimeAdjustmentUsedPlayers: MutableSet<Snowflake> = mutableSetOf()
 
     fun replacePlayers(players: MutableList<PlayerData>) {
         playerDatas = players
