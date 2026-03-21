@@ -1779,11 +1779,25 @@ object GameLoopManager {
         }
 
         if (target.job is Politician) {
+            val politicianJob = target.job ?: return
             if (!target.state.isJobPubliclyRevealed) {
                 target.state.isJobPubliclyRevealed = true
                 game.unwrittenRuleBlockedTargetIdTonight = target.member.id
             }
-            mainChannel.createMessage("정치인은 투표로 죽지 않습니다")
+            
+            // 단순 텍스트 대신, 처세 컷신 송출을 위한 직업 공개 퍼블릭 이벤트 방출
+            val event = GameEvent.JobDiscovered(
+                discoverer = target, // 시스템 브로드캐스트의 주체이므로 본인으로 세팅
+                target = target,
+                actualJob = politicianJob,
+                revealedJob = politicianJob,
+                sourceAbilityName = "처세",
+                resolvedAt = DiscoveryStep.DAY,
+                isPublicReveal = true,
+                imageUrl = SystemImage.POLITICIAN_DICTATORSHIP.imageUrl
+            )
+            JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game)
+            
             game.defenseTargetId = null
             return
         }
