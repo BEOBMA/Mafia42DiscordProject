@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
@@ -114,6 +115,7 @@ object AbilityUseCommand : DiscordCommand {
 
         val targetDiscordUser = interaction.command.users[targetOptionName]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
@@ -130,9 +132,9 @@ object AbilityUseCommand : DiscordCommand {
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
-        if (result.isSuccess && target != null) {
-            Humint.notifyIfTriggered(game, caster, target, selectedAbility)
-            DetectiveAbility.notifyTargetSelection(game, caster, target, selectedAbility)
+        if (result.isSuccess && effectiveTarget != null) {
+            Humint.notifyIfTriggered(game, caster, effectiveTarget, selectedAbility)
+            DetectiveAbility.notifyTargetSelection(game, caster, effectiveTarget, selectedAbility)
         }
 
         val message = if (result.isSuccess) {

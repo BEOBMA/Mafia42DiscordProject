@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.PoliceSearchNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -50,20 +51,21 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "")
         }
 
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
-            target = target,
-            isMafia = target.job is Evil,
-            isRepeatedSearch = target.member.id in policeJob.searchedTargets
+            target = effectiveTarget,
+            isMafia = effectiveTarget.job is Evil,
+            isRepeatedSearch = effectiveTarget.member.id in policeJob.searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)
 
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()
-        val revealEvent = if (warrant?.shouldRevealJob(target.member.id, policeJob.searchedTargets) == true) {
-            val actualJob = target.job ?: return AbilityResult(false, "")
+        val revealEvent = if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
+            val actualJob = effectiveTarget.job ?: return AbilityResult(false, "")
             GameEvent.PoliceJobRevealed(
                 police = caster,
-                target = target,
+                target = effectiveTarget,
                 actualJob = actualJob,
                 revealedJob = actualJob,
                 resolvedAt = DiscoveryStep.NIGHT
@@ -81,8 +83,8 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
 
         policeJob.currentSearchTarget = null
         policeJob.hasUsedSearchThisNight = true
-        policeJob.eavesdroppingTargetId = target.member.id
-        policeJob.searchedTargets += target.member.id
+        policeJob.eavesdroppingTargetId = effectiveTarget.member.id
+        policeJob.searchedTargets += effectiveTarget.member.id
         return AbilityResult(true, "")
     }
 

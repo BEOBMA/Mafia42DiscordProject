@@ -5,6 +5,7 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.AttackTier
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -62,7 +63,8 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.ABSOLUTE
         }
 
-        val redirectedTarget = resolveCoupleRedirectTarget(game, target)
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        val redirectedTarget = resolveCoupleRedirectTarget(game, effectiveTarget)
         if (redirectedTarget != target) {
             game.coupleSacrificeMap[redirectedTarget.member.id] = target.member.id
         }

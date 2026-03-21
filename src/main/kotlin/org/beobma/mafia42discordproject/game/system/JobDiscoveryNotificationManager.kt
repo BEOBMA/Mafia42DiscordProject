@@ -16,10 +16,12 @@ object JobDiscoveryNotificationManager {
                     return@forEach
                 }
 
-                runCatching {
-                    event.target.member.getDmChannel().createMessage(
-                        buildTargetNotificationMessage(event)
-                    )
+                if (event.notifyTarget) {
+                    runCatching {
+                        event.target.member.getDmChannel().createMessage(
+                            buildTargetNotificationMessage(event)
+                        )
+                    }
                 }
                 runCatching {
                     event.discoverer.member.getDmChannel().createMessage(

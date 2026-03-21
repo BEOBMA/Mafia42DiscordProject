@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.cab
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -40,11 +41,12 @@ class SunCabalAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 지목할 수 없습니다.")
         }
 
-        if (target.member.id == caster.member.id) {
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        if (effectiveTarget.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신은 지목할 수 없습니다.")
         }
 
-        cabal.selectedTargetId = target.member.id
+        cabal.selectedTargetId = effectiveTarget.member.id
         return AbilityResult(true, "${target.member.effectiveName}님을 밀사 대상으로 지정했습니다. 낮 동안 자유롭게 변경할 수 있습니다.")
     }
 }

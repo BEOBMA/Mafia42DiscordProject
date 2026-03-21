@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.gan
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -37,17 +38,18 @@ class GangsterAbility : ActiveAbility, JobUniqueAbility {
         if (gangster.remainingThreatUsesTonight <= 0) {
             return AbilityResult(false, "오늘 밤에는 더 이상 공갈을 사용할 수 없습니다.")
         }
-        if (target.member.id in gangster.threatenedTargetIdsTonight) {
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        if (effectiveTarget.member.id in gangster.threatenedTargetIdsTonight) {
             return AbilityResult(false, "이미 오늘 밤 공갈 대상으로 지정한 플레이어입니다.")
         }
 
-        gangster.threatenedTargetIdsTonight += target.member.id
+        gangster.threatenedTargetIdsTonight += effectiveTarget.member.id
         gangster.remainingThreatUsesTonight -= 1
 
         val canTriggerCombinedAttack =
             caster.allAbilities.any { it is CombinedAttack } &&
-                target.member.id in gangster.threatenedTargetIdsLastNight &&
-                !target.state.isDead
+                effectiveTarget.member.id in gangster.threatenedTargetIdsLastNight &&
+                !effectiveTarget.state.isDead
         if (canTriggerCombinedAttack) {
             gangster.remainingThreatUsesTonight += 1
         }

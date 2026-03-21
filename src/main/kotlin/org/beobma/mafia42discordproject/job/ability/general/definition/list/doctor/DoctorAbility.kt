@@ -6,6 +6,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackTier
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -38,7 +39,8 @@ class DoctorAbility : ActiveAbility, JobUniqueAbility {
 
         val doctorJob = caster.job as? Doctor
             ?: return AbilityResult(false, "")
-        doctorJob.currentHealTarget = target.member.id
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        doctorJob.currentHealTarget = effectiveTarget.member.id
         caster.state.hasUsedDailyAbility = true
         return AbilityResult(true, "${target.member.effectiveName}님을 치료 대상으로 지정했습니다.")
     }

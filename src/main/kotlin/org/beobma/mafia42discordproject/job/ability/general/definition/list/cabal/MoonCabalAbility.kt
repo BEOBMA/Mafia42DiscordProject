@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.cab
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -45,8 +46,9 @@ class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 지목할 수 없습니다.")
         }
 
-        cabal.selectedTargetId = target.member.id
-        val isSunTarget = target.member.id == cabal.pairedPlayerId
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        cabal.selectedTargetId = effectiveTarget.member.id
+        val isSunTarget = effectiveTarget.member.id == cabal.pairedPlayerId
         cabal.moonMarkedSunTonight = isSunTarget
 
         return if (isSunTarget) {

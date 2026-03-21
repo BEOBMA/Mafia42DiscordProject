@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -36,12 +37,13 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
         val detective = caster.job as? Detective
             ?: return AbilityResult(false, "사립탐정만 사용할 수 있습니다.")
 
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val existingTargetId = detective.fixedReasoningTargetId
-        if (existingTargetId != null && existingTargetId != target.member.id) {
+        if (existingTargetId != null && existingTargetId != effectiveTarget.member.id) {
             return AbilityResult(false, "한번 정한 추리 대상은 변경할 수 없습니다.")
         }
 
-        detective.fixedReasoningTargetId = target.member.id
+        detective.fixedReasoningTargetId = effectiveTarget.member.id
         return AbilityResult(true, "${target.member.effectiveName}님을 추리 대상으로 지정했습니다.")
     }
 
