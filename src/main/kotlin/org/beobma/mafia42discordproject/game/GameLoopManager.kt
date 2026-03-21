@@ -187,7 +187,8 @@ object GameLoopManager {
             )
         }
 
-        var previousWholeSecond = Long.MIN_VALUE
+        updateTimeStatusMessage(game, label, initialDuration)
+
         while (true) {
             val remainingMillis = synchronized(countdownLock) {
                 val countdown = activeCountdown
@@ -204,13 +205,7 @@ object GameLoopManager {
                 break
             }
 
-            val remainingWholeSecond = (remainingMillis + 999L) / 1_000L
-            if (remainingWholeSecond != previousWholeSecond) {
-                previousWholeSecond = remainingWholeSecond
-                updateTimeStatusMessage(game, label, remainingMillis)
-            }
-
-            delay(200L)
+            delay(minOf(remainingMillis, 500L))
         }
 
         updateTimeStatusMessageAtZero(game, label)
