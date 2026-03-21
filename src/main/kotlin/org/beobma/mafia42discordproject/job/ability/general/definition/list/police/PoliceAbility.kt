@@ -10,7 +10,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
-import org.beobma.mafia42discordproject.game.system.PoliceSearchNotificationManager
+import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -59,25 +59,25 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             isRepeatedSearch = effectiveTarget.member.id in policeJob.searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)
+        policeSearchScope.launch {
+            PoliceNotificationManager.notifySearchResult(caster, searchEvent)
+        }
 
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()
-        val revealEvent = if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
+        if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
             val actualJob = effectiveTarget.job ?: return AbilityResult(false, "")
-            GameEvent.PoliceJobRevealed(
+
+            val revealEvent = GameEvent.PoliceJobRevealed(
                 police = caster,
                 target = effectiveTarget,
                 actualJob = actualJob,
                 revealedJob = actualJob,
                 resolvedAt = DiscoveryStep.NIGHT
-            ).also { dispatchPoliceEvent(game, it) }
-        } else {
-            null
-        }
+            )
+            dispatchPoliceEvent(game, revealEvent)
 
-        policeSearchScope.launch {
-            PoliceSearchNotificationManager.notifyPoliceSearchResult(searchEvent)
-            if (revealEvent != null) {
-                PoliceSearchNotificationManager.notifyPoliceRevealedJob(revealEvent)
+            policeSearchScope.launch {
+                PoliceNotificationManager.notifyWarrantResult(caster, revealEvent)
             }
         }
 
