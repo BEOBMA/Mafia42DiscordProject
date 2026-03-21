@@ -14,6 +14,7 @@ import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.DmChannel
+import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -862,6 +863,14 @@ object GameManager {
     }
 
     private suspend fun safelyDeleteGameChannels(game: Game) {
+        game.deadChannel?.let { deadChannel ->
+            runCatching {
+                deadChannel.delete("게임 강제 종료로 인한 죽은자 채널 삭제")
+            }.onFailure { exception ->
+                println("[GameManager] 죽은자 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
+            }
+        }
+
         game.mafiaChannel?.let { mafiaChannel ->
             runCatching {
                 mafiaChannel.delete("게임 강제 종료로 인한 마피아 채널 삭제")
@@ -878,8 +887,9 @@ object GameManager {
             }
         }
 
-        game.mafiaChannel = null
         game.mainChannel = null
+        game.mafiaChannel = null
+        game.deadChannel = null
     }
 
     suspend fun setupGameChannels(game: Game) {
@@ -910,8 +920,46 @@ object GameManager {
             }
         }
 
+        val deadChat = guild.createTextChannel("죽은자들의채팅") {
+            addRoleOverwrite(guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+        }
+
         game.mainChannel = mainChat
         game.mafiaChannel = mafiaChat
+        game.deadChannel = deadChat
+    }
+
+    suspend fun enforceDeadPlayerChatRestriction(event: MessageCreateEvent): Boolean {
+        val game = currentGame ?: return false
+        val member = event.member ?: return false
+        val player = game.getPlayer(member.id) ?: return false
+        if (!player.state.isDead) return false
+
+        val deadChannelId = game.deadChannel?.id
+        val isDeadChannel = event.message.channelId == deadChannelId
+        val canSendInDeadChannel = !player.state.isShamaned
+
+        if (isDeadChannel && canSendInDeadChannel) {
+            return false
+        }
+
+        runCatching {
+            event.message.delete()
+        }
+
+        if (isDeadChannel && !canSendInDeadChannel) {
+            runCatching {
+                (event.message.channel as? TextChannel)?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
+            }
+        }
+
+        return true
     }
 
     // 지목투표 데이터 저장

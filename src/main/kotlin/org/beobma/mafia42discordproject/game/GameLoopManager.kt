@@ -117,6 +117,7 @@ object GameLoopManager {
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
+        val deadChannel = game.deadChannel ?: return
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
         game.playerDatas.forEach { player ->
@@ -134,6 +135,7 @@ object GameLoopManager {
             }
         }
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
+        updateDeadChannelPermissions(game, deadChannel)
 
         mafiaChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -221,6 +223,7 @@ object GameLoopManager {
     ) {
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
+        val deadChannel = game.deadChannel ?: return
 
         // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
@@ -264,6 +267,9 @@ object GameLoopManager {
                 }
             }
         }
+
+        updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
+        updateDeadChannelPermissions(game, deadChannel)
     }
 
     private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
@@ -294,6 +300,41 @@ object GameLoopManager {
                             Permission.ReadMessageHistory,
                             Permission.SendMessages
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun updateDeadChannelPermissions(game: Game, deadChannel: TextChannel) {
+        deadChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+
+            game.playerDatas.forEach { player ->
+                if (!player.state.isDead) {
+                    addMemberOverwrite(player.member.id) {
+                        denied = Permissions(
+                            Permission.ViewChannel,
+                            Permission.ReadMessageHistory,
+                            Permission.SendMessages
+                        )
+                    }
+                    return@forEach
+                }
+
+                val canSend = !player.state.isShamaned
+                addMemberOverwrite(player.member.id) {
+                    allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                    denied = if (canSend) {
+                        Permissions()
+                    } else {
+                        Permissions(Permission.SendMessages)
                     }
                 }
             }
@@ -408,6 +449,7 @@ object GameLoopManager {
 
     suspend fun resolveExecutionPhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
+        val deadChannel = game.deadChannel
         val prosCount = game.currentProsConsVotes.values.count { it }
         val consCount = game.currentProsConsVotes.values.count { !it }
 
@@ -459,6 +501,10 @@ object GameLoopManager {
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233288691895/22SIfKIG4sgmfsgKpScS00MYCCNg70dZoYW9wB3zjuIlnN7d56sqkmFViOFPYrPnPJixJ-BEj5f_mVUp2wcYAzYpHKjyZDuoQyzfp3efnGqc1UYKkMLrk0w5QxCV5tlorhBipi2-c69B7eSYhppyIA.webp?ex=69becb9f&is=69bd7a1f&hm=0b3d5473bbaebb91f2335ef3d07cf315043fde1889930328ea4211c486e792df&",
             message = "${target.member.effectiveName}님이 투표로 처형당하였습니다."
         )
+
+        if (deadChannel != null) {
+            updateDeadChannelPermissions(game, deadChannel)
+        }
     }
 
     fun checkWinCondition(game: Game): Team? {

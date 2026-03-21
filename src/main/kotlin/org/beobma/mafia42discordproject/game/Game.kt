@@ -34,6 +34,7 @@ data class Game(
     var dayCount: Int = 0
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
+    var deadChannel: TextChannel? = null
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
