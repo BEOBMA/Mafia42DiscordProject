@@ -27,11 +27,13 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil
 import kotlin.random.Random
 
@@ -946,6 +948,12 @@ object GameManager {
         val canSendInDeadChannel = !player.state.isShamaned
 
         if (isDeadChannel && canSendInDeadChannel) {
+            val deceasedChatEvent = GameEvent.DeceasedChat(
+                dayCount = game.dayCount,
+                chatSender = player,
+                chat = event.message.content
+            )
+            dispatchDeceasedChatEvent(game, deceasedChatEvent)
             return false
         }
 
@@ -960,6 +968,24 @@ object GameManager {
         }
 
         return true
+    }
+
+    private fun dispatchDeceasedChatEvent(game: Game, event: GameEvent.DeceasedChat) {
+        val observers = game.playerDatas
+            .filter { !it.state.isDead }
+            .mapNotNull { player ->
+                val passives = player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .sortedByDescending(PassiveAbility::priority)
+                if (passives.isEmpty()) null else player to passives
+            }
+
+        observers.forEach { (player, passives) ->
+            passives.forEach { passive ->
+                passive.onEventObserved(game, player, event)
+                passive.onDeceasedChat(game, player, event)
+            }
+        }
     }
 
     // 지목투표 데이터 저장
