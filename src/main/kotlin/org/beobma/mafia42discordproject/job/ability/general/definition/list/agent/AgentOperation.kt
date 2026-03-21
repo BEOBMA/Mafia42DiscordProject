@@ -47,9 +47,10 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
 
         agentJob.discoveredCitizenTargetIds += selectedTarget.member.id
         agentJob.discoveredCitizenTargetDayById[selectedTarget.member.id] = game.dayCount
-        sendDm(owner, "${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
-    }
+        val operationImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484982478434209803"
 
+        sendDm(owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
+    }
     private fun sendDm(owner: PlayerData, message: String) {
         agentDmScope.launch {
             runCatching {
