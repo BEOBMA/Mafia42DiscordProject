@@ -40,7 +40,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             ?: return AbilityResult(false, "경찰이 아닙니다")
 
         if (policeJob.hasUsedSearchThisNight) {
-            return AbilityResult(false, "")
+            return AbilityResult(false, " ")
         }
 
         if (target == null) {
@@ -48,7 +48,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(true, null)
         }
         if (target.state.isDead) {
-            return AbilityResult(false, "")
+            return AbilityResult(false, " ")
         }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target

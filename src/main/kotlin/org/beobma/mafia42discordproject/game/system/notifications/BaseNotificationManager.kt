@@ -7,7 +7,7 @@ import org.beobma.mafia42discordproject.game.system.GameEvent
 
 abstract class BaseNotificationManager {
     protected suspend fun sendDmWithImage(targetPlayer: PlayerData, text: String, imageUrl: String? = null) {
-        val finalMessage = if (imageUrl != null) "$text\n$imageUrl" else text
+        val finalMessage = if (imageUrl != null) "$imageUrl\n$text" else text
 
         try {
             val dmChannel = targetPlayer.member.getDmChannel()

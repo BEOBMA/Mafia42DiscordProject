@@ -11,9 +11,9 @@ object PoliceNotificationManager : BaseNotificationManager() {
     suspend fun notifySearchResult(policePlayer: PlayerData, event: GameEvent.PoliceSearchResolved) {
         val targetName = event.target.member.effectiveName
         val image = if (event.isMafia) {
-            SystemImage.POLICE_FOUND_MAFIA
+            SystemImage.POLICE_FOUND_MAFIA.imageUrl
         } else {
-            SystemImage.POLICE_FOUND_FAIL
+            SystemImage.POLICE_FOUND_FAIL.imageUrl
         }
 
         val text = if (event.isMafia) {
