@@ -1042,8 +1042,10 @@ object GameManager {
         val deadChannelId = game.deadChannel?.id
         val isDeadChannel = event.message.channelId == deadChannelId
         val canSendInDeadChannel = !player.state.isShamaned
+        val textChannel = event.message.channel as? TextChannel
 
         if (isDeadChannel && canSendInDeadChannel) {
+            textChannel?.let { grantDeadPlayerChatPermission(it, player) }
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
@@ -1053,17 +1055,35 @@ object GameManager {
             return false
         }
 
-        runCatching {
-            event.message.delete()
-        }
+        textChannel?.let { denyDeadPlayerChatPermission(it, player) }
 
         if (isDeadChannel && !canSendInDeadChannel) {
             runCatching {
-                (event.message.channel as? TextChannel)?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
+                textChannel?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
             }
         }
 
         return true
+    }
+
+    private suspend fun denyDeadPlayerChatPermission(channel: TextChannel, player: PlayerData) {
+        runCatching {
+            channel.edit {
+                addMemberOverwrite(player.member.id) {
+                    denied = Permissions(Permission.SendMessages)
+                }
+            }
+        }
+    }
+
+    private suspend fun grantDeadPlayerChatPermission(channel: TextChannel, player: PlayerData) {
+        runCatching {
+            channel.edit {
+                addMemberOverwrite(player.member.id) {
+                    denied = Permissions()
+                }
+            }
+        }
     }
 
     private fun dispatchDeceasedChatEvent(game: Game, event: GameEvent.DeceasedChat) {
