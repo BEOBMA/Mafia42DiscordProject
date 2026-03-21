@@ -1048,7 +1048,7 @@ object GameManager {
 
         currentGame = null
         currentGuild = null
-        GameLoopManager.resetTimeThreadState()
+        GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
