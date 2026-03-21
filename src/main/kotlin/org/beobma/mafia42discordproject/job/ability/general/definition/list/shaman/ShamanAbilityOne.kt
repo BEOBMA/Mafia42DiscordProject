@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,7 +22,7 @@ class ShamanAbilityOne : PassiveAbility, JobUniqueAbility {
             runCatching {
                 val senderName = deceasedChatEvent.chatSender.member.effectiveName
                 val dm = owner.member.getDmChannelOrNull() ?: owner.member.getDmChannel()
-                dm.createMessage("💀 [죽은 자 채팅] $senderName: ${deceasedChatEvent.chat}")
+                dm.createMessage("[죽은 자 채팅] $senderName: ${deceasedChatEvent.chat}")
             }
         }
     }
