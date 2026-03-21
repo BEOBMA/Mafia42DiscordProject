@@ -27,7 +27,7 @@ class Wanted : Ability, JobSpecificExtraAbility, PassiveAbility {
         if (newPhase != GamePhase.DAY || game.dayCount != 1 || owner.state.isDead) return
 
         val unknownMafiaTeam = game.playerDatas.filter { candidate ->
-            candidate != owner && !candidate.state.isDead && candidate.job is Evil && candidate.job !is Mafia
+            candidate != owner && candidate.job is Evil && candidate.job !is Mafia
         }
 
         val message = if (unknownMafiaTeam.isEmpty()) {
