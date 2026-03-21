@@ -58,6 +58,20 @@ data class Game(
         }
     }
 
-    fun getPlayer(userId: Snowflake): PlayerData? =
-        playerById[userId]
+    fun getPlayer(userId: Snowflake): PlayerData? {
+        val indexedPlayer = playerById[userId]
+        if (indexedPlayer != null) {
+            return indexedPlayer
+        }
+
+        val fallbackPlayer = playerDatas.firstOrNull { player ->
+            player.member.id == userId
+        }
+
+        if (fallbackPlayer != null) {
+            playerById[userId] = fallbackPlayer
+        }
+
+        return fallbackPlayer
+    }
 }
