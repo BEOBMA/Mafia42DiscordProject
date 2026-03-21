@@ -1104,6 +1104,7 @@ object GameManager {
         if (game.currentPhase != GamePhase.VOTE) return false
         val voter = game.getPlayer(voterId) ?: return false
         if (voter.state.isDead) return false
+        if (game.currentProsConsVotes.containsKey(voterId)) return false
 
         game.currentProsConsVotes[voterId] = isPros
         return true
