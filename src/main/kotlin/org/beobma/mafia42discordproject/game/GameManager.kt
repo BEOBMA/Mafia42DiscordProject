@@ -916,12 +916,18 @@ object GameManager {
         val gameToStop = currentGame
 
         if (gameToStop == null) {
-            DiscordMessageManager.respondEphemeral(event, "진행 중인 게임이 없습니다.")
+            val deferred = event.interaction.deferEphemeralResponse()
+            deferred.respond {
+                content = "진행 중인 게임이 없습니다."
+            }
             return
         }
 
+        val deferred = event.interaction.deferPublicResponse()
         val mention = DiscordMessageManager.mention(event.interaction.user)
-        DiscordMessageManager.respondPublic(event, "${mention}이(가) 게임을 종료했습니다.")
+        deferred.respond {
+            content = "${mention}이(가) 게임을 종료했습니다."
+        }
 
         safelyDeleteGameChannels(gameToStop)
 
