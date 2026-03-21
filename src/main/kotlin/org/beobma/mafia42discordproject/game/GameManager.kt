@@ -1055,10 +1055,15 @@ object GameManager {
     }
 
     private suspend fun clearGameChannelMessages(game: Game) {
-        clearChannelMessages(game.mainChannel, "메인")
-        clearChannelMessages(game.mafiaChannel, "마피아")
-        clearChannelMessages(game.coupleChannel, "연인")
-        clearChannelMessages(game.deadChannel, "죽은자")
+        val mainChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAIN_CHANNEL_ID))
+        val mafiaChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAFIA_CHANNEL_ID))
+        val coupleChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_COUPLE_CHANNEL_ID))
+        val deadChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_DEAD_CHANNEL_ID))
+
+        clearChannelMessages(mainChannel, "메인")
+        clearChannelMessages(mafiaChannel, "마피아")
+        clearChannelMessages(coupleChannel, "연인")
+        clearChannelMessages(deadChannel, "죽은자")
 
         game.mainChannel = null
         game.mafiaChannel = null
@@ -1106,8 +1111,7 @@ object GameManager {
         val player = game.getPlayer(member.id) ?: return false
         if (!player.state.isDead) return false
 
-        val deadChannelId = game.deadChannel?.id
-        val isDeadChannel = event.message.channelId == deadChannelId
+        val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
         val canSendInDeadChannel = !player.state.isShamaned
         val textChannel = event.message.channel as? TextChannel
 
@@ -1142,7 +1146,7 @@ object GameManager {
         if (event.message.content.isBlank()) return
 
         val channelId = event.message.channelId
-        val isNightPrivateChannel = channelId == game.mafiaChannel?.id || channelId == game.coupleChannel?.id
+        val isNightPrivateChannel = channelId == Snowflake(GAME_MAFIA_CHANNEL_ID) || channelId == Snowflake(GAME_COUPLE_CHANNEL_ID)
         if (!isNightPrivateChannel) return
 
         val watchers = game.playerDatas
