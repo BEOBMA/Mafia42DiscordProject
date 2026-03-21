@@ -7,6 +7,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.createTextChannel
 import dev.kord.core.behavior.channel.createMessage
+import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.rest.builder.channel.addMemberOverwrite
