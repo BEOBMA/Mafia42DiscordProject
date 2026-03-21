@@ -11,7 +11,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처형"
-    override val description: String = "밤에 대상을 지정해 사망 후보 리스트에 올립니다."
+    override val description: String = "밤마다 한 명의 플레이어를 죽일 수 있으며 마피아끼리 대화가 가능하다."
     override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619430263521330/930fdad0076c57b6.png?ex=69bee317&is=69bd9197&hm=a0fb01e23944eb5f0cab3ad595509ef41f6716f9a897e2f1a204de8c083a7d3e&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
@@ -25,6 +25,7 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         }
         if (caster.state.isSilenced) {
+            // 마피아는 마담의 능력이나 마녀의 능력에 효과를 받지 않음.
             return AbilityResult(false, "침묵 상태에서는 처형 대상을 지정할 수 없습니다.")
         }
         if (target == null) {
