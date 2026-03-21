@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -917,27 +918,24 @@ object GameManager {
         val gameToStop = currentGame
 
         if (gameToStop == null) {
-            val deferred = event.interaction.deferEphemeralResponse()
-            deferred.respond {
-                content = "진행 중인 게임이 없습니다."
+            InteractionErrorHandler.runSafely("gamestop:no-game") {
+                val deferred = event.interaction.deferEphemeralResponse()
+                deferred.respond {
+                    content = "진행 중인 게임이 없습니다."
+                }
             }
             return
         }
 
-        val deferred = event.interaction.deferPublicResponse()
-        val mention = DiscordMessageManager.mention(event.interaction.user)
-        deferred.respond {
-            content = "${mention}이(가) 게임을 종료했습니다."
+        InteractionErrorHandler.runSafely("gamestop:announce-stop") {
+            val deferred = event.interaction.deferPublicResponse()
+            val mention = DiscordMessageManager.mention(event.interaction.user)
+            deferred.respond {
+                content = "${mention}이(가) 게임을 종료했습니다."
+            }
         }
 
-        safelyDeleteGameChannels(gameToStop)
-
-        currentGame = null
-        currentGuild = null
-        GameLoopManager.resetTimeThreadState()
-        abilitySelectionSessions.clear()
-        gameLoopJob?.cancel()
-        gameLoopJob = null
+        stopGameState(gameToStop)
     }
 
     suspend fun stop(event: MessageCreateEvent) {
@@ -951,6 +949,10 @@ object GameManager {
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
 
+        stopGameState(gameToStop)
+    }
+
+    private suspend fun stopGameState(gameToStop: Game) {
         safelyDeleteGameChannels(gameToStop)
 
         currentGame = null
