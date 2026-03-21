@@ -55,7 +55,6 @@ object GameManager {
     private const val REQUIRED_POLICE_COUNT = 1
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
-    private const val JOB_SELECTION_OPTIONS_PER_PLAYER = 7
 
     private val policeJobNames = setOf("경찰", "요원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
@@ -63,10 +62,6 @@ object GameManager {
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false
     private var abilitySelectionPendingUserIds: MutableSet<Snowflake> = mutableSetOf()
-    private val jobSelectionSessions: MutableMap<Snowflake, JobSelectionSession> = ConcurrentHashMap()
-    private val jobSelectionSessionMutex = Mutex()
-    private var jobSelectionInitializationInProgress: Boolean = false
-    private var jobSelectionPendingUserIds: MutableSet<Snowflake> = mutableSetOf()
 
     private data class AssignmentPlayer(
         val memberId: Snowflake? = null,
@@ -89,10 +84,6 @@ object GameManager {
         val selected: MutableList<Ability> = mutableListOf(),
         var currentOptions: List<Ability> = emptyList(),
         var completedRounds: Int = 0
-    )
-
-    private data class JobSelectionSession(
-        val options: List<Job>
     )
 
     suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
@@ -168,9 +159,12 @@ object GameManager {
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
-        // TODO: 테스트용 임시 처리 - 기존 랜덤/선호 기반 직업 배정(assignJobs/applyAssignedJobs) 로직을 비활성화했습니다.
-        initializeJobSelectionForPlayers(membersInSameVoice)
-        tryStartGameLoopWhenSelectionsCompleted(guild)
+
+        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        assignJobs(assignmentPlayers)
+        this.applyAssignedJobs(assignmentPlayers)
+        initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
+        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         setupGameChannels(this)
 
@@ -226,9 +220,12 @@ object GameManager {
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
-        // TODO: 테스트용 임시 처리 - 기존 랜덤/선호 기반 직업 배정(assignJobs/applyAssignedJobs) 로직을 비활성화했습니다.
-        initializeJobSelectionForPlayers(membersInSameVoice)
-        tryStartGameLoopWhenSelectionsCompleted(guild)
+
+        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        assignJobs(assignmentPlayers)
+        this.applyAssignedJobs(assignmentPlayers)
+        initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
+        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         setupGameChannels(this)
 
@@ -260,45 +257,6 @@ object GameManager {
         }
 
         return players
-    }
-
-    private suspend fun Game.initializeJobSelectionForPlayers(members: List<Member>) {
-        val preparedSessions = mutableMapOf<Snowflake, JobSelectionSession>()
-
-        members.forEach { member ->
-            val options = JobPreferenceManager.get(member.id.value)
-                .orEmpty()
-                .distinctBy(Job::name)
-                .take(JOB_SELECTION_OPTIONS_PER_PLAYER)
-            if (options.isNotEmpty()) {
-                preparedSessions[member.id] = JobSelectionSession(options = options)
-            }
-        }
-
-        jobSelectionSessionMutex.withLock {
-            jobSelectionInitializationInProgress = true
-            jobSelectionSessions.clear()
-            jobSelectionSessions.putAll(preparedSessions)
-            jobSelectionPendingUserIds = preparedSessions.keys.toMutableSet()
-        }
-
-        coroutineScope {
-            playerDatas.forEach { player ->
-                launch {
-                    val session = preparedSessions[player.member.id] ?: return@launch
-                    runCatching {
-                        val dmChannel = player.member.getDmChannel()
-                        sendJobSelectionPrompt(dmChannel, player.member.id, session)
-                    }.onFailure { error ->
-                        println("⚠️ ${player.member.effectiveName} 직업 선택 DM 전송 실패: ${error.message}")
-                    }
-                }
-            }
-        }
-
-        jobSelectionSessionMutex.withLock {
-            jobSelectionInitializationInProgress = false
-        }
     }
 
     private fun Game.applyAssignedJobs(players: List<AssignmentPlayer>) {
@@ -628,68 +586,11 @@ object GameManager {
         trace.add("[3단계] 배정 완료")
     }
 
-    data class JobPickButtonPayload(
-        val ownerUserId: Snowflake,
-        val pickNumber: Int
-    )
+    private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
+        val preparedSessions = mutableMapOf<Snowflake, AbilitySelectionSession>()
 
-    fun parseJobPickButtonId(componentId: String): JobPickButtonPayload? {
-        val prefix = "job_pick_"
-        if (!componentId.startsWith(prefix)) return null
-        val payload = componentId.removePrefix(prefix)
-        val parts = payload.split("_")
-        if (parts.size != 2) return null
-
-        val ownerId = parts[0].toULongOrNull()?.let(::Snowflake) ?: return null
-        val pickNumber = parts[1].toIntOrNull()?.takeIf { it >= 1 } ?: return null
-        return JobPickButtonPayload(ownerUserId = ownerId, pickNumber = pickNumber)
-    }
-
-    fun jobPickButtonId(userId: Snowflake, pickNumber: Int): String = "job_pick_${userId.value}_$pickNumber"
-
-    suspend fun selectJob(userId: Snowflake, pickNumber: Int): String {
-        var shouldInitializeAbilitySelection = false
-        val resultMessage = jobSelectionSessionMutex.withLock {
-            val session = jobSelectionSessions[userId]
-                ?: return@withLock "현재 직업 선택 단계가 아니거나 이미 선택이 완료되었습니다."
-
-            if (pickNumber > session.options.size) {
-                return@withLock "현재 제시된 직업 선택 번호가 아닙니다."
-            }
-
-            val selectedJob = session.options[pickNumber - 1]
-            val game = currentGame ?: return@withLock "진행 중인 게임이 없습니다."
-            val player = game.getPlayer(userId) ?: return@withLock "현재 게임 참여자만 직업을 선택할 수 있습니다."
-            player.job = JobManager.createByName(selectedJob.name)
-
-            jobSelectionSessions.remove(userId)
-            jobSelectionPendingUserIds.remove(userId)
-            shouldInitializeAbilitySelection = true
-            "✅ 직업으로 **${selectedJob.name}** 을(를) 선택했습니다."
-        }
-
-        if (shouldInitializeAbilitySelection) {
-            initializeExtraAbilitySelectionForPlayer(userId)
-            currentGuild?.let { guild ->
-                runCatching {
-                    tryStartGameLoopWhenSelectionsCompleted(guild)
-                }.onFailure { error ->
-                    println("⚠️ 직업 선택 종료 후 게임 루프 시작 실패: ${error.message}")
-                }
-            }
-        }
-
-        return resultMessage
-    }
-
-    private suspend fun initializeExtraAbilitySelectionForPlayer(userId: Snowflake) {
-        val game = currentGame ?: return
-        val player = game.getPlayer(userId) ?: return
-        val job = player.job ?: return
-        var sessionToSend: AbilitySelectionSession? = null
-
-        abilitySelectionSessionMutex.withLock {
-            abilitySelectionInitializationInProgress = true
+        playerDatas.forEach { player ->
+            val job = player.job ?: return@forEach
             val pool = AbilityManager.getAvailableExtraAbilitiesFor(job)
                 .distinctBy(Ability::name)
                 .shuffled()
@@ -701,36 +602,51 @@ object GameManager {
             )
             session.currentOptions = drawAbilityOptions(session)
             if (session.currentOptions.isNotEmpty()) {
-                abilitySelectionSessions[userId] = session
-                abilitySelectionPendingUserIds.add(userId)
-                sessionToSend = session
-            } else {
-                abilitySelectionSessions.remove(userId)
-                abilitySelectionPendingUserIds.remove(userId)
+                preparedSessions[player.member.id] = session
             }
+        }
+
+        abilitySelectionSessionMutex.withLock {
+            abilitySelectionInitializationInProgress = true
+            abilitySelectionSessions.clear()
+            abilitySelectionSessions.putAll(preparedSessions)
+            abilitySelectionPendingUserIds = preparedSessions.keys.toMutableSet()
+        }
+
+        coroutineScope {
+            playerDatas.forEach { player ->
+                launch {
+                    val job = player.job ?: return@launch
+                    val session = preparedSessions[player.member.id]
+                    runCatching {
+                        val dmChannel = player.member.getDmChannel()
+                        val ownedAbilityMessage = buildString {
+                            job.jobImage
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { appendLine(it) }
+                            appendAbilityImages(this, job.abilities)
+                        }.trim()
+                        if (ownedAbilityMessage.isNotBlank()) {
+                            dmChannel.createMessage(ownedAbilityMessage)
+                        }
+
+                        if (session != null) {
+                            sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
+                        } else {
+                            dmChannel.createMessage("ℹ️ 선택 가능한 부가 능력이 없어 능력 선택 단계를 건너뜁니다.")
+                        }
+                    }.onFailure { error ->
+                        println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
+                    }
+                }
+            }
+        }
+
+        abilitySelectionSessionMutex.withLock {
             abilitySelectionInitializationInProgress = false
         }
 
-        runCatching {
-            val dmChannel = player.member.getDmChannel()
-            val ownedAbilityMessage = buildString {
-                job.jobImage
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { appendLine(it) }
-                appendAbilityImages(this, job.abilities)
-            }.trim()
-            if (ownedAbilityMessage.isNotBlank()) {
-                dmChannel.createMessage(ownedAbilityMessage)
-            }
-
-            if (sessionToSend != null) {
-                sendAbilitySelectionPrompt(dmChannel, userId, requireNotNull(sessionToSend))
-            } else {
-                dmChannel.createMessage("ℹ️ 선택 가능한 부가 능력이 없어 능력 선택 단계를 건너뜁니다.")
-            }
-        }.onFailure { error ->
-            println("⚠️ ${player.member.effectiveName} 능력 선택 DM 전송 실패: ${error.message}")
-        }
+        assignVirtualPlayerExtraAbilities(players)
     }
 
     private fun appendAbilityImages(
@@ -746,32 +662,6 @@ object GameManager {
                 count += 1
             }
         return count
-    }
-
-    private suspend fun sendJobSelectionPrompt(
-        dmChannel: DmChannel,
-        userId: Snowflake,
-        session: JobSelectionSession
-    ) {
-        val content = buildString {
-            appendLine("직업을 선택하세요.")
-            appendLine()
-            session.options.forEachIndexed { index, job ->
-                appendLine("${index + 1}. ${job.name}")
-                job.jobImage?.takeIf { it.isNotBlank() }?.let { appendLine(it) }
-            }
-        }.trim()
-
-        dmChannel.createMessage {
-            this.content = content
-            actionRow {
-                session.options.forEachIndexed { index, _ ->
-                    interactionButton(ButtonStyle.Primary, jobPickButtonId(userId, index + 1)) {
-                        label = "${index + 1}번 직업"
-                    }
-                }
-            }
-        }
     }
 
     private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
@@ -859,7 +749,7 @@ object GameManager {
         if (shouldTryStartGameLoop) {
             currentGuild?.let { guild ->
                 runCatching {
-                    tryStartGameLoopWhenSelectionsCompleted(guild)
+                    tryStartGameLoopWhenAbilitySelectionCompleted(guild)
                 }.onFailure { error ->
                     println("⚠️ 능력 선택 종료 후 게임 루프 시작 실패: ${error.message}")
                 }
@@ -1008,15 +898,12 @@ object GameManager {
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true
 
-    private suspend fun tryStartGameLoopWhenSelectionsCompleted(guild: GuildBehavior) {
+    private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted(guild: GuildBehavior) {
         val game = currentGame ?: return
-        val canStartAbilitySelection = abilitySelectionSessionMutex.withLock {
+        val canStart = abilitySelectionSessionMutex.withLock {
             !abilitySelectionInitializationInProgress && abilitySelectionPendingUserIds.isEmpty()
         }
-        val canStartJobSelection = jobSelectionSessionMutex.withLock {
-            !jobSelectionInitializationInProgress && jobSelectionPendingUserIds.isEmpty()
-        }
-        if (!canStartJobSelection || !canStartAbilitySelection) return
+        if (!canStart) return
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
@@ -1048,10 +935,7 @@ object GameManager {
         currentGame = null
         currentGuild = null
         GameLoopManager.resetTimeThreadState()
-        jobSelectionSessions.clear()
-        jobSelectionPendingUserIds.clear()
         abilitySelectionSessions.clear()
-        abilitySelectionPendingUserIds.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
     }
@@ -1072,10 +956,7 @@ object GameManager {
         currentGame = null
         currentGuild = null
         GameLoopManager.resetTimeThreadState()
-        jobSelectionSessions.clear()
-        jobSelectionPendingUserIds.clear()
         abilitySelectionSessions.clear()
-        abilitySelectionPendingUserIds.clear()
         gameLoopJob?.cancel()
         gameLoopJob = null
     }

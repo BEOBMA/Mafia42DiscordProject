@@ -14,12 +14,10 @@ import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
-import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
-import org.beobma.mafia42discordproject.listener.JobPickButtonListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
 
@@ -40,9 +38,7 @@ suspend fun main() {
 
     kord.on<GuildChatInputCommandInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
-        InteractionErrorHandler.runSafely("slash-command:${interaction.command.rootName}") {
-            command.handle(this@on)
-        }
+        command.handle(this)
     }
 
     kord.on<MessageCreateEvent> {
@@ -66,16 +62,13 @@ suspend fun main() {
 
     kord.on<GuildAutoCompleteInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
-        InteractionErrorHandler.runSafely("autocomplete:${interaction.command.rootName}") {
-            command.handleAutoComplete(this@on)
-        }
+        command.handleAutoComplete(this)
     }
 
     // UI 상호작용 버튼 리스너 일괄등록
     val interactionListeners = listOf(
         MainVoteListener,
         ProsConsVoteListener,
-        JobPickButtonListener,
         AbilityPickButtonListener
     )
 
