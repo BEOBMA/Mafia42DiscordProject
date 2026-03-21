@@ -41,21 +41,14 @@ object AbilityPickButtonListener : InteractionListener {
                 var responseMessage = resultMessage
 
                 if (snapshot != null) {
-                    val imageSent = runCatching {
-                        GameManager.sendCurrentAbilityOptionImages(interaction.user.id)
+                    val promptSent = runCatching {
+                        GameManager.sendCurrentAbilitySelectionPrompt(interaction.user.id)
                     }.getOrElse { error ->
-                        println("⚠️ 다음 라운드 능력 이미지 전송 실패: ${error.message}")
+                        println("⚠️ 다음 라운드 능력 선택 안내 전송 실패: ${error.message}")
                         false
                     }
 
-                    val buttonSent = runCatching {
-                        GameManager.sendCurrentAbilityPickButtons(interaction.user.id)
-                    }.getOrElse { error ->
-                        println("⚠️ 다음 라운드 능력 버튼 전송 실패: ${error.message}")
-                        false
-                    }
-
-                    if (!imageSent || !buttonSent) {
+                    if (!promptSent) {
                         responseMessage += "\n⚠️ DM 전송이 지연되거나 실패했습니다. DM 수신 설정을 확인한 뒤 버튼을 다시 시도해 주세요."
                     }
                 }

@@ -146,7 +146,7 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
+        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -207,7 +207,7 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.playerDatas = membersInSameVoice.map(::PlayerData).toMutableList()
+        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -600,24 +600,7 @@ object GameManager {
                     dmChannel.createMessage(ownedAbilityMessage)
                 }
 
-                val selectableAbilityMessage = buildString {
-                    appendAbilityImages(this, session.currentOptions)
-                    if (isNotEmpty()) {
-                        appendLine()
-                    }
-                    append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
-                }.trim()
-
-                dmChannel.createMessage {
-                    content = selectableAbilityMessage
-                    actionRow {
-                        session.currentOptions.forEachIndexed { index, _ ->
-                            interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
-                                label = "${index + 1}번 선택"
-                            }
-                        }
-                    }
-                }
+                sendAbilitySelectionPrompt(dmChannel, session)
             }.onFailure { error ->
                 println("⚠️ ${player.member.effectiveName} DM 전송 실패: ${error.message}")
             }
@@ -749,18 +732,6 @@ object GameManager {
         }
     }
 
-    private suspend fun sendAbilityImages(
-        dmChannel: DmChannel,
-        abilities: List<Ability>
-    ) {
-        val imageUrls = abilities
-            .map(Ability::image)
-            .filter { it.isNotBlank() }
-        if (imageUrls.isEmpty()) return
-
-        dmChannel.createMessage(imageUrls.joinToString("\n"))
-    }
-
     fun parseAbilityPickButtonId(componentId: String): Int? {
         val prefix = "ability_pick_"
         if (!componentId.startsWith(prefix)) return null
@@ -778,6 +749,14 @@ object GameManager {
     }
 
     suspend fun sendCurrentAbilityOptionImages(userId: Snowflake): Boolean {
+        return sendCurrentAbilitySelectionPrompt(userId)
+    }
+
+    suspend fun sendCurrentAbilityPickButtons(userId: Snowflake): Boolean {
+        return sendCurrentAbilitySelectionPrompt(userId)
+    }
+
+    suspend fun sendCurrentAbilitySelectionPrompt(userId: Snowflake): Boolean {
         val game = currentGame ?: return false
         val player = game.getPlayer(userId) ?: return false
         val session = abilitySelectionSessions[userId] ?: return false
@@ -785,36 +764,35 @@ object GameManager {
 
         return runCatching {
             val dmChannel = player.member.getDmChannel()
-            sendAbilityImages(dmChannel, session.currentOptions)
+            sendAbilitySelectionPrompt(dmChannel, session)
             true
         }.getOrElse { error ->
-            println("⚠️ 현재 능력 이미지 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
+            println("⚠️ 현재 능력 선택 안내 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
             false
         }
     }
 
-    suspend fun sendCurrentAbilityPickButtons(userId: Snowflake): Boolean {
-        val game = currentGame ?: return false
-        val player = game.getPlayer(userId) ?: return false
-        val session = abilitySelectionSessions[userId] ?: return false
-        if (session.currentOptions.isEmpty()) return false
+    private suspend fun sendAbilitySelectionPrompt(
+        dmChannel: DmChannel,
+        session: AbilitySelectionSession
+    ) {
+        val content = buildString {
+            appendAbilityImages(this, session.currentOptions)
+            if (isNotEmpty()) {
+                appendLine()
+            }
+            append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+        }.trim()
 
-        return runCatching {
-            val dmChannel = player.member.getDmChannel()
-            dmChannel.createMessage {
-                content = buildAbilitySelectionGuideMessage(session, true)
-                actionRow {
-                    session.currentOptions.forEachIndexed { index, _ ->
-                        interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
-                            label = "${index + 1}번 선택"
-                        }
+        dmChannel.createMessage {
+            this.content = content
+            actionRow {
+                session.currentOptions.forEachIndexed { index, _ ->
+                    interactionButton(ButtonStyle.Primary, abilityPickButtonId(index + 1)) {
+                        label = "${index + 1}번 선택"
                     }
                 }
             }
-            true
-        }.getOrElse { error ->
-            println("⚠️ 현재 능력 선택 버튼 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
-            false
         }
     }
 

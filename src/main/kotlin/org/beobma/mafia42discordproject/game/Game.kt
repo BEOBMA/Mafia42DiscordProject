@@ -25,6 +25,12 @@ data class Game(
     var currentPhase: GamePhase = GamePhase.DAY,
     var isRunning: Boolean = false,
 ) {
+    private val playerById: MutableMap<Snowflake, PlayerData> = mutableMapOf()
+
+    init {
+        rebuildPlayerIndex()
+    }
+
     var dayCount: Int = 0
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
@@ -39,6 +45,18 @@ data class Game(
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
 
+    fun replacePlayers(players: MutableList<PlayerData>) {
+        playerDatas = players
+        rebuildPlayerIndex()
+    }
+
+    fun rebuildPlayerIndex() {
+        playerById.clear()
+        playerDatas.forEach { player ->
+            playerById[player.member.id] = player
+        }
+    }
+
     fun getPlayer(userId: Snowflake): PlayerData? =
-        playerDatas.find { it.member.id == userId }
+        playerById[userId]
 }
