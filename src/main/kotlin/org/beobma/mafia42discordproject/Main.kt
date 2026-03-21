@@ -43,15 +43,20 @@ suspend fun main() {
 
     kord.on<MessageCreateEvent> {
         if (message.author?.isBot == true) return@on
-        if (GameManager.enforceDeadPlayerChatRestriction(this)) return@on
 
         val content = message.content.trim()
-        if (!content.startsWith("!")) return@on
+        if (!content.startsWith("!")) {
+            if (GameManager.enforceDeadPlayerChatRestriction(this)) return@on
+            return@on
+        }
 
         val tokens = content.removePrefix("!").trim().split(Regex("\\s+")).filter { it.isNotBlank() }
         if (tokens.isEmpty()) return@on
 
-        val command = CommandRegistry.find(tokens.first()) ?: return@on
+        val commandName = tokens.first().lowercase()
+        if (commandName != "debug" && GameManager.enforceDeadPlayerChatRestriction(this)) return@on
+
+        val command = CommandRegistry.find(commandName) ?: return@on
         command.handleMessage(this, tokens.drop(1))
     }
 
