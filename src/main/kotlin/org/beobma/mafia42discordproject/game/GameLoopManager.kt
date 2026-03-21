@@ -50,8 +50,11 @@ import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.definition.list.Martyr
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
@@ -244,6 +247,8 @@ object GameLoopManager {
                 playersToDie += target
             }
         }
+
+        resolveMartyrNightExplosions(game, playersToDie)
 
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"]
         if (mafiaAttack != null) {
@@ -556,6 +561,7 @@ object GameLoopManager {
         val mainChannel = game.mainChannel ?: return
         game.currentPhase = GamePhase.VOTE
         game.currentMainVotes.clear()
+        game.defenseTargetId = null
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
@@ -745,6 +751,8 @@ object GameLoopManager {
 
     suspend fun startDefensePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
+        game.defenseTargetId = target.member.id
+        (target.job as? Martyr)?.defenseBombTargetId = null
         game.sendMainChannelMessageWithImage(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484595217796567092/b1bb8f82a19e45e3.png?ex=69becc8a&is=69bd7b0a&hm=0facb3df92275cbd87534a5c337cb4c774643de1c0ec93529a105c1573f30f35&",
             message = "${target.member.effectiveName}의 최후의 변론"
@@ -843,6 +851,7 @@ object GameLoopManager {
                     append("${target.member.effectiveName}님의 처형이 부결되었습니다.")
                 }
             )
+            game.defenseTargetId = null
             return
         }
 
@@ -858,11 +867,13 @@ object GameLoopManager {
 
         if (voteExecutionEvent.isCancelled) {
             mainChannel.createMessage(voteExecutionEvent.cancelReason ?: "처형 무효")
+            game.defenseTargetId = null
             return
         }
 
         target.state.isDead = true
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
+        resolveMartyrDefenseExplosion(game, target)
         dispatchEvents(game)
         game.nightEvents.clear()
         game.sendMainChannelMessageWithImage(
@@ -873,6 +884,7 @@ object GameLoopManager {
         if (deadChannel != null) {
             updateDeadChannelPermissions(game, deadChannel)
         }
+        game.defenseTargetId = null
     }
 
     fun checkWinCondition(game: Game): Team? {
@@ -934,6 +946,69 @@ object GameLoopManager {
                 )
             }
         }
+    }
+
+    private suspend fun resolveMartyrNightExplosions(game: Game, playersToDie: MutableSet<PlayerData>) {
+        val mainChannel = game.mainChannel
+
+        game.playerDatas.forEach { player ->
+            val martyr = player.job as? Martyr ?: return@forEach
+            if (player !in playersToDie) return@forEach
+
+            val selectedTargetId = martyr.nightBombTargetId ?: return@forEach
+            val selectedTarget = game.getPlayer(selectedTargetId) ?: return@forEach
+            if (selectedTarget.state.isDead) return@forEach
+
+            val mafiaExecutionTarget = game.nightAttacks["MAFIA_TEAM"]?.target
+            val isNightBombTriggered = mafiaExecutionTarget == player && selectedTarget.job is Mafia
+
+            val hasExplosion = player.allAbilities.any { it is Explosion }
+            val attackBySelectedNonMafiaEvil = game.nightAttacks.values.any { attack ->
+                attack.target == player &&
+                    attack.attacker.member.id == selectedTarget.member.id &&
+                    attack.attacker.job is Evil &&
+                    attack.attacker.job !is Mafia
+            }
+            val isExplosionTriggered = hasExplosion && attackBySelectedNonMafiaEvil
+
+            if (!isNightBombTriggered && !isExplosionTriggered) return@forEach
+
+            playersToDie += selectedTarget
+
+            val hasFlash = player.allAbilities.any { it is Flash }
+            if (hasFlash) {
+                playersToDie -= player
+            }
+
+            player.state.isJobPubliclyRevealed = true
+            selectedTarget.state.isJobPubliclyRevealed = true
+
+            mainChannel?.createMessage(
+                "테러리스트의 자폭이 발동했습니다. ${player.member.effectiveName}님과 ${selectedTarget.member.effectiveName}님의 정체가 공개됩니다.\n" +
+                    "직업 공개: ${player.member.effectiveName} - ${player.job?.name ?: "알 수 없음"}, " +
+                    "${selectedTarget.member.effectiveName} - ${selectedTarget.job?.name ?: "알 수 없음"}"
+            )
+        }
+    }
+
+    private suspend fun resolveMartyrDefenseExplosion(game: Game, executedTarget: PlayerData) {
+        val martyr = executedTarget.job as? Martyr ?: return
+        val selectedTargetId = martyr.defenseBombTargetId ?: return
+        val selectedTarget = game.getPlayer(selectedTargetId) ?: return
+        if (selectedTarget.state.isDead) return
+        if (selectedTarget.member.id == executedTarget.member.id) return
+
+        selectedTarget.state.isDead = true
+        game.nightEvents += GameEvent.PlayerDied(selectedTarget, isLynch = true)
+
+        executedTarget.state.isJobPubliclyRevealed = true
+        selectedTarget.state.isJobPubliclyRevealed = true
+
+        game.mainChannel?.createMessage(
+            "테러리스트의 산화가 발동했습니다. ${executedTarget.member.effectiveName}님과 ${selectedTarget.member.effectiveName}님이 함께 사망합니다.\n" +
+                "직업 공개: ${executedTarget.member.effectiveName} - ${executedTarget.job?.name ?: "알 수 없음"}, " +
+                "${selectedTarget.member.effectiveName} - ${selectedTarget.job?.name ?: "알 수 없음"}"
+        )
     }
 
     suspend fun endGame(game: Game, winningTeam: Team) {
