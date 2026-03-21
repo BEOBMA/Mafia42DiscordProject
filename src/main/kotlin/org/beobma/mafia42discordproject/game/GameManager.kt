@@ -668,6 +668,7 @@ object GameManager {
         var shouldTryStartGameLoop = false
         val resultMessage = abilitySelectionSessionMutex.withLock {
             val session = abilitySelectionSessions[userId]
+                ?: restoreAbilitySelectionSessionLocked(userId)
                 ?: return@withLock "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
             val playerJob = session.playerJob
 
@@ -731,6 +732,36 @@ object GameManager {
         return resultMessage
     }
 
+    private fun restoreAbilitySelectionSessionLocked(userId: Snowflake): AbilitySelectionSession? {
+        val game = currentGame ?: return null
+        if (game.isRunning) return null
+
+        val player = game.getPlayer(userId) ?: return null
+        val playerJob = player.job ?: return null
+        val alreadySelectedNames = playerJob.extraAbilities.map(Ability::name).toSet()
+        val completedRounds = minOf(playerJob.extraAbilities.size, EXTRA_ABILITY_SELECTION_REPEAT_COUNT)
+        if (completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) return null
+
+        val availablePool = AbilityManager.getAvailableExtraAbilitiesFor(playerJob)
+            .distinctBy(Ability::name)
+            .filterNot { ability -> ability.name in alreadySelectedNames }
+            .toMutableList()
+        if (availablePool.isEmpty()) return null
+
+        val restoredSession = AbilitySelectionSession(
+            playerJob = playerJob,
+            availablePool = availablePool,
+            selected = playerJob.extraAbilities.toMutableList(),
+            completedRounds = completedRounds
+        )
+        restoredSession.currentOptions = drawAbilityOptions(restoredSession)
+        if (restoredSession.currentOptions.isEmpty()) return null
+
+        abilitySelectionSessions[userId] = restoredSession
+        println("ℹ️ ${player.member.effectiveName}의 부가 능력 선택 세션을 복구했습니다.")
+        return restoredSession
+    }
+
     private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
         if (session.availablePool.isEmpty()) return emptyList()
 
@@ -778,6 +809,7 @@ object GameManager {
         val player = game.getPlayer(userId) ?: return false
         val session = abilitySelectionSessionMutex.withLock {
             abilitySelectionSessions[userId]
+                ?: restoreAbilitySelectionSessionLocked(userId)
         } ?: return false
         if (session.currentOptions.isEmpty()) return false
 
