@@ -83,6 +83,7 @@ object GameLoopManager {
     private const val DAY_TIME_ADJUSTMENT_MS = 15_000L
     private const val TIME_THREAD_NAME = "시간"
     private const val PROBATION_DISCOVERY_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485026577610703000/v1-_70Quh-Wmb9ZFVNCbnfkgmA72QZfsKd6CwwUuLiDO25gNgl3l-UiOGyWQNCbxRRfmykJG5UyvAuipvrlfSVWe5mEKilEuBMoaieLofY6Rf5Hdog2Gg7cf-RiqrNrgXRU5GSQxiJwRorEo-JVWIA.webp?ex=69c05e46&is=69bf0cc6&hm=4f084aa32d244df25bafd30549631dc28009f00831b5ad6ed2bbf02df7b5d939&"
+    private const val NURSE_DOCTOR_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485041686743744632/B3X9qY9DRgztfGRfTvOmaWzHqY-GRAJ8OFxFmU-mJWPq0RalAYlysco8cTNxJ1vTBYkabPX3KX6luBLqKylwb5BwiQKvDpJL_2sBLnZmwyNgklA3GW8tbIzwt3Sjba6jnyy-Rgy4K_0ggw2aFse9qw.webp?ex=69c06c58&is=69bf1ad8&hm=f280af1c360cc62dd6c0bdbe79a3f284824f5c221088cb6571e43924d2b8ec98&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -1703,6 +1704,42 @@ object GameLoopManager {
         }
     }
 
+    suspend fun notifyNurseDoctorContactImmediately(game: Game) {
+        val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
+        val doctorJob = doctorPlayer.job as? Doctor ?: return
+
+        game.playerDatas.forEach { nursePlayer ->
+            if (nursePlayer.state.isDead) return@forEach
+            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+
+            val targetId = nurseJob.prescribedTargetId ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (target.state.isDead) return@forEach
+
+            val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
+            val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
+            if (!contactedByNurseTarget && !contactedByDoctorTarget) return@forEach
+
+            val firstContact = !nurseJob.hasContactedDoctor
+            nurseJob.hasContactedDoctor = true
+            nurseJob.contactedDoctorId = doctorPlayer.member.id
+            doctorJob.hasContactedNurse = true
+
+            if (!firstContact) return@forEach
+
+            runCatching {
+                nursePlayer.member.getDmChannel().createMessage(
+                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
+                )
+            }
+            runCatching {
+                doctorPlayer.member.getDmChannel().createMessage(
+                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
+                )
+            }
+        }
+    }
+
     private suspend fun resolveNursePrescriptions(game: Game) {
         val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
         val doctorJob = doctorPlayer.job as? Doctor ?: return
@@ -1731,19 +1768,9 @@ object GameLoopManager {
             val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
             val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
             if (contactedByNurseTarget || contactedByDoctorTarget) {
-                val firstContact = !nurseJob.hasContactedDoctor
                 nurseJob.hasContactedDoctor = true
                 nurseJob.contactedDoctorId = doctorPlayer.member.id
                 doctorJob.hasContactedNurse = true
-
-                if (firstContact) {
-                    runCatching {
-                        nursePlayer.member.getDmChannel().createMessage("접선에 성공했습니다. 의사의 치료가 절대 치료로 강화됩니다.")
-                    }
-                    runCatching {
-                        doctorPlayer.member.getDmChannel().createMessage("간호사와 접선했습니다. 치료가 절대 치료로 강화됩니다.")
-                    }
-                }
             }
         }
     }
