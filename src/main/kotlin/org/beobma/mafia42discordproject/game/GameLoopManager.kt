@@ -1884,7 +1884,7 @@ object GameLoopManager {
     }
 
 
-    private fun resolveHackerHacks(game: Game) {
+    private suspend fun resolveHackerHacks(game: Game) {
         game.playerDatas.forEach { player ->
             if (player.state.isDead) return@forEach
 
@@ -1893,7 +1893,15 @@ object GameLoopManager {
 
             val hackedTargetId = hacker.hackedTargetId ?: return@forEach
             val target = game.getPlayer(hackedTargetId) ?: return@forEach
-            if (target.state.isDead) return@forEach
+            if (target.state.isDead) {
+                runCatching {
+                    player.member.getDmChannel().createMessage(
+                        "해킹에 실패했습니다.\nhttps://cdn.discordapp.com/attachments/1483977619258212392/1485044168127545386/Qyrssa_FCaE6cR1Zdm5w8EtHCtIOXJY8WPL6oS8XKOgDV-ISBsasQdNU7-fFubk06GpxmxQrV1u0CSrqetNj95tnQzz1RiVByQZVvnPhp8D6whxpv42-Pn7FN20qFmT14RzSxvkLjbbUZ09hYKFmug.webp?ex=69c06ea8&is=69bf1d28&hm=47936e6f642cf86983e5a5b88db180c51ef4cb441df66e6c0d741a1968fde93c&"
+                    )
+                }
+                hacker.hasResolvedHackDiscovery = true
+                return@forEach
+            }
 
             val targetJob = target.job ?: return@forEach
             val shouldNotifyTarget =
