@@ -371,7 +371,9 @@ object GameLoopManager {
             val target = attackEvent.target
             if (target.state.isDead) return@forEach
 
-            applyInnateNightDefense(game, target, attackEvent)
+            // 패시브(방탄 등)가 방어력(healTier)에 개입할 기회를 주기 위한 평가 이벤트 통보
+            game.nightEvents += GameEvent.BeforeAttackEvaluated(attackEvent)
+            dispatchEvents(game)
 
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent

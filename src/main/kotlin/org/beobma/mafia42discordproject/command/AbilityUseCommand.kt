@@ -154,9 +154,9 @@ object AbilityUseCommand : DiscordCommand {
         }
 
         val message = if (result.isSuccess) {
-            result.message ?: "Your ability was used successfully."
+            result.message?.takeIf { it.isNotBlank() } ?: "Your ability was used successfully."
         } else {
-            result.message ?: "Failed to use your ability."
+            result.message?.takeIf { it.isNotBlank() } ?: "Failed to use your ability."
         }
         DiscordMessageManager.respondEphemeral(event, message)
     }

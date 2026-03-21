@@ -40,7 +40,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             ?: return AbilityResult(false, "경찰이 아닙니다")
 
         if (policeJob.hasUsedSearchThisNight) {
-            return AbilityResult(false, " ")
+            return AbilityResult(false, "이미 이번 밤에 수색 능력을 사용했습니다.")
         }
 
         if (target == null) {
@@ -48,7 +48,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(true, null)
         }
         if (target.state.isDead) {
-            return AbilityResult(false, " ")
+            return AbilityResult(false, "죽은 플레이어는 수색할 수 없습니다.")
         }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
@@ -65,7 +65,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
 
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()
         if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
-            val actualJob = effectiveTarget.job ?: return AbilityResult(false, "")
+            val actualJob = effectiveTarget.job ?: return AbilityResult(false, "대상의 직업 정보를 확인할 수 없습니다.")
 
             val revealEvent = GameEvent.PoliceJobRevealed(
                 police = caster,
@@ -85,7 +85,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         policeJob.hasUsedSearchThisNight = true
         policeJob.eavesdroppingTargetId = effectiveTarget.member.id
         policeJob.searchedTargets += effectiveTarget.member.id
-        return AbilityResult(true, "")
+        return AbilityResult(true, "수색 대상을 결정했습니다.")
     }
 
     private fun dispatchPoliceEvent(game: Game, event: GameEvent) {

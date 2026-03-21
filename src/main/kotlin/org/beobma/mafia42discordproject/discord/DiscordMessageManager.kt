@@ -43,7 +43,7 @@ object DiscordMessageManager {
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
         InteractionErrorHandler.runSafely("slash-public:${event.interaction.command.rootName}") {
             event.interaction.respondPublic {
-                this.content = content
+                this.content = content.takeIf { it.isNotBlank() } ?: "처리되었습니다."
             }
         }
     }
@@ -52,7 +52,7 @@ object DiscordMessageManager {
         InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
             val deferred = event.interaction.deferEphemeralResponse()
             deferred.respond {
-                this.content = content
+                this.content = content.takeIf { it.isNotBlank() } ?: "처리되었습니다."
             }
         }
     }
