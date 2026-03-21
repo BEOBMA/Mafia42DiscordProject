@@ -11,6 +11,8 @@ object CommandRegistry {
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         DebugCommand,
+        ShamanRelayCommand,
+        ShamanedRelayCommand,
     )
 
     fun all(): List<DiscordCommand> = registeredCommands
