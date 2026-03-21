@@ -45,6 +45,8 @@ import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.Arcana
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
@@ -55,6 +57,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Politician
+import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -340,6 +343,7 @@ object GameLoopManager {
             game.nightEvents += GameEvent.PlayerDied(victim)
             applyPoliceAutopsy(game, victim)
         }
+        resolvePriestResurrection(game, summary)
 
         announceCoupleSacrificeReveal(game, summary.deaths)
 
@@ -354,6 +358,43 @@ object GameLoopManager {
 
         game.nightEvents.clear()
         game.coupleSacrificeMap.clear()
+    }
+
+    private suspend fun resolvePriestResurrection(game: Game, summary: NightResolutionSummary) {
+        game.playerDatas.forEach { priestPlayer ->
+            val priestJob = priestPlayer.job as? Priest ?: return@forEach
+            val targetId = priestJob.pendingResurrectionTargetId ?: return@forEach
+            priestJob.pendingResurrectionTargetId = null
+
+            if (priestPlayer.state.isDead) {
+                game.sendMainChannerMessage("성직자 ${priestPlayer.member.effectiveName}님이 사망하여 소생이 취소되었습니다.")
+                return@forEach
+            }
+
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (!target.state.isDead) {
+                game.sendMainChannerMessage("${target.member.effectiveName}님은 이미 생존 상태여서 소생이 실패했습니다.")
+                return@forEach
+            }
+
+            val hasExorcism = priestPlayer.allAbilities.any { it is PriestExorcism }
+            if (target.state.isShamaned && !hasExorcism) {
+                game.sendMainChannerMessage("${target.member.effectiveName}님은 성불 상태여서 소생이 실패했습니다.")
+                return@forEach
+            }
+
+            val hasBlessing = priestPlayer.allAbilities.any { it is Blessing }
+            if (!hasBlessing) {
+                target.job = Citizen()
+            }
+
+            target.state.isDead = false
+            target.state.isShamaned = false
+            target.state.isPoisoned = false
+            target.state.poisonedDeathDay = null
+
+            game.sendMainChannerMessage("성직자의 소생으로 ${target.member.effectiveName}님이 부활했습니다.")
+        }
     }
 
     private fun registerCoupleResentment(game: Game, mafiaAttack: AttackEvent) {
