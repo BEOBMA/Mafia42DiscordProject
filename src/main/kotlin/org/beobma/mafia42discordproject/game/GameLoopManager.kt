@@ -360,6 +360,7 @@ object GameLoopManager {
         val playersToDie = linkedSetOf<PlayerData>().apply {
             addAll(game.nightDeathCandidates)
         }
+        game.doctorSavedTargetTonight = null
 
         resolveGangsterThreats(game)
         resolveNursePrescriptions(game)
@@ -379,6 +380,11 @@ object GameLoopManager {
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent
                 playersToDie.remove(target)
+
+                val healedByDoctor = game.nightEvents.filterIsInstance<GameEvent.PlayerHealed>().any { it.target == target }
+                if (healedByDoctor) {
+                    game.doctorSavedTargetTonight = target
+                }
             } else {
                 playersToDie += target
             }
@@ -1504,11 +1510,20 @@ object GameLoopManager {
             ?.target
             ?.takeIf { it in deaths }
 
+        val doctorSavedTarget = game.doctorSavedTargetTonight
+
         return if (mafiaKillVictim == null) {
-            DawnPresentation(
-                imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
-                message = "조용하게 밤이 넘어갔습니다."
-            )
+            if (doctorSavedTarget != null) {
+                DawnPresentation(
+                    imageUrl = SystemImage.DOCTOR_HEAL.imageUrl,
+                    message = "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
+                )
+            } else {
+                DawnPresentation(
+                    imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
+                    message = "조용하게 밤이 넘어갔습니다."
+                )
+            }
         } else {
             DawnPresentation(
                 imageUrl = SystemImage.DEATH_BY_MAFIA.imageUrl,
