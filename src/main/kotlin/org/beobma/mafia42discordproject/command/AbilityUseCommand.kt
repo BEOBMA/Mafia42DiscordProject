@@ -11,6 +11,7 @@ import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.interaction.user
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
@@ -22,6 +23,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.agen
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Identification
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
+import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.JobManager
 
 object AbilityUseCommand : DiscordCommand {
@@ -115,6 +117,10 @@ object AbilityUseCommand : DiscordCommand {
 
         val targetDiscordUser = interaction.command.users[targetOptionName]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        if (isBlockedByUnwrittenRule(game, target)) {
+            DiscordMessageManager.respondEphemeral(event, "불문율에 의해 불가능합니다.")
+            return
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
@@ -162,6 +168,14 @@ object AbilityUseCommand : DiscordCommand {
         return caster.allAbilities
             .filterIsInstance<ActiveAbility>()
             .filter { it.usablePhase == game.currentPhase }
+    }
+
+    private fun isBlockedByUnwrittenRule(game: Game, directTarget: PlayerData?): Boolean {
+        if (game.currentPhase != GamePhase.NIGHT) return false
+        val blockedTargetId = game.unwrittenRuleBlockedTargetIdTonight ?: return false
+        val target = directTarget ?: return false
+        if (target.member.id != blockedTargetId) return false
+        return target.job is Judge
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {

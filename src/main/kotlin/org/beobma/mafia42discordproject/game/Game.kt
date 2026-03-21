@@ -50,6 +50,7 @@ data class Game(
     // 투표
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
+    var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
     // 건달 공갈(일시) 및 길동무(영구) 투표권 박탈 상태
     var activeThreatenedVoters: MutableMap<Snowflake, Snowflake> = mutableMapOf() // Key: 대상, Value: 건달
     var permanentlyDisenfranchisedVoters: MutableSet<Snowflake> = mutableSetOf()

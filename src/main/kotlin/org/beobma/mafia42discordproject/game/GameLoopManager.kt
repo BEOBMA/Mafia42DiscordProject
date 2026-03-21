@@ -46,6 +46,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
+import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
@@ -139,6 +140,7 @@ object GameLoopManager {
     suspend fun startNightPhase(game: Game) {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        game.unwrittenRuleBlockedTargetIdTonight = null
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
@@ -602,6 +604,25 @@ object GameLoopManager {
     suspend fun resolveVotePhase(game: Game): PlayerData? {
         val mainChannel = game.mainChannel ?: return null
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val authorityJudge = findRevealedAliveJudge(game)
+        if (authorityJudge != null) {
+            val judgeVoteTargetId = game.currentMainVotes[authorityJudge.member.id]
+            val judgeTarget = judgeVoteTargetId
+                ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
+                ?.takeUnless { it.state.isDead }
+            return if (judgeTarget != null) {
+                mainChannel.createMessage(
+                    "판사의 선고로 ${judgeTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                )
+                judgeTarget
+            } else {
+                game.sendMainChannelMessageWithImage(
+                    imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
+                    message = "판사의 선고가 없어 처형될 대상을 고르지 못했습니다."
+                )
+                null
+            }
+        }
         val voteCounts = mutableMapOf<PlayerData, Int>()
         var invalidVoteCount = 0
         val weightedVoteTargets = mutableListOf<PlayerData>()
@@ -769,8 +790,38 @@ object GameLoopManager {
                     (player.member.id in game.permanentlyDisenfranchisedVoters ||
                         game.activeThreatenedVoters.containsKey(player.member.id))
             }
+        val judgePlayer = findAliveJudge(game)
+        val judgeVote = judgePlayer?.let { game.currentProsConsVotes[it.member.id] }
+        val aggregateDecision = prosCount > consCount
+        val judgeJob = judgePlayer?.job as? Judge
+        val shouldRevealJudge = judgePlayer != null &&
+            judgeJob != null &&
+            !judgeJob.hasRevealedAuthority &&
+            judgeVote != null &&
+            judgeVote != aggregateDecision
 
-        val executionEvent = GameEvent.DecideExecution(target, prosCount > consCount)
+        if (shouldRevealJudge) {
+            judgeJob.hasRevealedAuthority = true
+            judgePlayer.state.isJobPubliclyRevealed = true
+            game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
+
+            mainChannel.createMessage(
+                "판사 ${judgePlayer.member.effectiveName}님이 모습을 드러냈습니다. 선고에 따라 이번 투표는 ${if (judgeVote == true) "찬성" else "반대"}로 결정됩니다."
+            )
+        }
+
+        notifyJudgeProsVoters(game, target)
+
+        if (findRevealedAliveJudge(game) != null && judgeVote == null) {
+            mainChannel.createMessage("판사가 찬반 선고를 하지 않아 이번 처형은 자동으로 반대로 처리됩니다.")
+        }
+
+        val finalDecision = when (findRevealedAliveJudge(game)) {
+            null -> aggregateDecision
+            else -> judgeVote ?: false
+        }
+
+        val executionEvent = GameEvent.DecideExecution(target, finalDecision)
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
         alivePlayers.forEach { player ->
@@ -842,8 +893,46 @@ object GameLoopManager {
 
         return when {
             mafiaCount == 0 -> Team.CITIZEN
-            mafiaCount >= citizenCount && aliveCabals < 2 -> Team.MAFIA
+            mafiaCount >= citizenCount && aliveCabals < 2 && !isRevealedJudgeAlive(game) -> Team.MAFIA
             else -> null
+        }
+    }
+
+    private fun findAliveJudge(game: Game): PlayerData? {
+        return game.playerDatas.firstOrNull { !it.state.isDead && it.job is Judge }
+    }
+
+    private fun findRevealedAliveJudge(game: Game): PlayerData? {
+        return findAliveJudge(game)?.takeIf { player ->
+            val judgeJob = player.job as? Judge ?: return@takeIf false
+            judgeJob.hasRevealedAuthority
+        }
+    }
+
+    private fun isRevealedJudgeAlive(game: Game): Boolean {
+        return findRevealedAliveJudge(game) != null
+    }
+
+    private fun notifyJudgeProsVoters(game: Game, target: PlayerData) {
+        val judgePlayer = findAliveJudge(game) ?: return
+        val prosVoters = game.currentProsConsVotes
+            .filterValues { it }
+            .keys
+            .mapNotNull { voterId -> game.getPlayer(voterId) }
+            .map { voter -> voter.member.effectiveName }
+
+        val prosMessage = if (prosVoters.isEmpty()) {
+            "없음"
+        } else {
+            prosVoters.joinToString(", ")
+        }
+
+        cabalNotificationScope.launch {
+            runCatching {
+                judgePlayer.member.getDmChannel().createMessage(
+                    "관권 발동 정보: ${target.member.effectiveName} 처형 찬성 투표자 - $prosMessage"
+                )
+            }
         }
     }
 
