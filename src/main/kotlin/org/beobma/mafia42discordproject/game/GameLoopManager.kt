@@ -290,6 +290,17 @@ object GameLoopManager {
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
         updateDeadChannelPermissions(game, deadChannel)
         AdministratorInvestigationNotificationManager.notifyResults(game)
+
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { player ->
+                player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onPhaseChanged(game, player, GamePhase.DAY)
+                    }
+            }
     }
 
     private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
