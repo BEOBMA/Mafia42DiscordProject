@@ -35,6 +35,8 @@ object JobDiscoveryNotificationManager {
         return buildString {
             if (event.sourceAbilityName == "도굴") {
                 append("${event.revealedJob.name} 직업을 획득하였습니다.")
+            } else if (event.sourceAbilityName == "수습") {
+                append("${event.target.member.effectiveName}님의 직업은 ${event.revealedJob.name}입니다.")
             } else {
                 append("당신은 ${event.target.member.effectiveName}님의 직업이 [${event.revealedJob.name}](인) 것을 알아냈습니다.")
 
