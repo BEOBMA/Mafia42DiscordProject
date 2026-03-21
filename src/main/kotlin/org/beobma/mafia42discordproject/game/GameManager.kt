@@ -722,6 +722,18 @@ object GameManager {
                             dmChannel.createMessage(ownedAbilityMessage)
                         }
 
+                        val cabalJob = job as? Cabal
+                        if (cabalJob != null) {
+                            val cabalRoleMessage = when (cabalJob.role) {
+                                CabalRole.SUN -> "당신은 해 비밀결사입니다."
+                                CabalRole.MOON -> "당신은 달 비밀결사입니다."
+                                null -> null
+                            }
+                            if (cabalRoleMessage != null) {
+                                dmChannel.createMessage(cabalRoleMessage)
+                            }
+                        }
+
                         if (session != null) {
                             sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
                         } else {

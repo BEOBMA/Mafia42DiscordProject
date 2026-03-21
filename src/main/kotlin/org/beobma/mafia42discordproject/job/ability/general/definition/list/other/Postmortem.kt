@@ -41,7 +41,7 @@ class Postmortem : Ability, JobSpecificExtraAbility, PassiveAbility {
 
                 postmortemDmScope.launch {
                     runCatching {
-                        owner.member.getDmChannel().createMessage("검시 발동: 접선 전 상대 비밀결사가 사망했습니다.")
+                        owner.member.getDmChannel().createMessage("검시 능력을 통해 비밀결사의 사망을 확인하였습니다.")
                     }
                 }
             }
