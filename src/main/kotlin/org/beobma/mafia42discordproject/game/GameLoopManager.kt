@@ -203,7 +203,7 @@ object GameLoopManager {
             val target = attackEvent.target
             if (target.state.isDead) return@forEach
 
-            applyInnateNightDefense(target, attackEvent)
+            applyInnateNightDefense(game, target, attackEvent)
 
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent
@@ -1004,5 +1004,18 @@ object GameLoopManager {
             policeJob.searchedTargets += targetId
             policeJob.currentSearchTarget = null
         }
+    }
+
+    private fun applyInnateNightDefense(game: Game, target: PlayerData, attackEvent: AttackEvent) {
+        // 1. 피격 직전(BeforeAttackEvaluated) 이벤트를 생성합니다.
+        val event = GameEvent.BeforeAttackEvaluated(attackEvent)
+
+        // 2. 타겟이 가진 패시브 능력들에게 이벤트를 전파하여 '방탄' 등이 스스로 방어(healTier 상승)하도록 합니다.
+        target.allAbilities
+            .filterIsInstance<PassiveAbility>()
+            .sortedByDescending(PassiveAbility::priority)
+            .forEach { passive ->
+                passive.onEventObserved(game, target, event)
+            }
     }
 }
