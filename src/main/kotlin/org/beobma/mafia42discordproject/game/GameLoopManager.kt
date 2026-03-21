@@ -34,6 +34,8 @@ import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Citizen
+import org.beobma.mafia42discordproject.job.definition.list.Couple
+import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -130,6 +132,7 @@ object GameLoopManager {
         game.nightDeathCandidates.clear()
         game.nightEvents.clear()
         game.concealmentForcedQuietNight = false
+        game.coupleSacrificeMap.clear()
         game.lastNightSummary = NightResolutionSummary()
         game.playerDatas.forEach { player ->
             (player.job as? Cabal)?.let { cabalJob ->
@@ -153,6 +156,7 @@ object GameLoopManager {
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
+        val coupleChannel = game.coupleChannel ?: return
         val deadChannel = game.deadChannel ?: return
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
@@ -171,6 +175,7 @@ object GameLoopManager {
             }
         }
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
+        updateCoupleChannelPermissions(game, coupleChannel, isNight = true)
         updateDeadChannelPermissions(game, deadChannel)
 
         mafiaChannel.edit {
@@ -221,6 +226,7 @@ object GameLoopManager {
             if (targetSurvived) {
                 applyMafiaExecutionFailureEffects(game, mafiaAttack)
             } else {
+                registerCoupleResentment(game, mafiaAttack)
                 applyMafiaExecutionSuccessEffects(game, mafiaAttack)
             }
         } else {
@@ -281,6 +287,8 @@ object GameLoopManager {
             game.nightEvents += GameEvent.PlayerDied(victim)
         }
 
+        announceCoupleSacrificeReveal(game, summary.deaths)
+
         val processedDawnEvents = dispatchEvents(game)
         resolveCabalSpecialWinReadiness(game)
         val dawnPresentation = buildDawnPresentation(game, summary.deaths)
@@ -291,6 +299,47 @@ object GameLoopManager {
         )
 
         game.nightEvents.clear()
+        game.coupleSacrificeMap.clear()
+    }
+
+    private fun registerCoupleResentment(game: Game, mafiaAttack: AttackEvent) {
+        val victimCouple = mafiaAttack.target.job as? Couple ?: return
+        val partnerId = victimCouple.pairedPlayerId ?: return
+        val partner = game.getPlayer(partnerId) ?: return
+        val partnerCouple = partner.job as? Couple ?: return
+        if (partner.state.isDead) return
+
+        partnerCouple.avengedMafiaIds += mafiaAttack.attacker.member.id
+    }
+
+    private fun announceCoupleSacrificeReveal(game: Game, deaths: List<PlayerData>) {
+        val mainChannel = game.mainChannel ?: return
+
+        deaths.forEach { deadPlayer ->
+            val originalTargetId = game.coupleSacrificeMap[deadPlayer.member.id] ?: return@forEach
+            val originalTarget = game.getPlayer(originalTargetId) ?: return@forEach
+
+            deadPlayer.state.isJobPubliclyRevealed = true
+            originalTarget.state.isJobPubliclyRevealed = true
+
+            val deadRole = (deadPlayer.job as? Couple)?.role.toDisplayName()
+            val originalRole = (originalTarget.job as? Couple)?.role.toDisplayName()
+            val deadJobName = deadPlayer.job?.name ?: "알 수 없음"
+            val originalJobName = originalTarget.job?.name ?: "알 수 없음"
+
+            runCatching {
+                mainChannel.createMessage(
+                    "연인의 희생이 발동했습니다. ${originalTarget.member.effectiveName}(${originalRole})의 대가로 ${deadPlayer.member.effectiveName}(${deadRole})가 대신 사망했습니다.\n" +
+                        "직업 공개: ${originalTarget.member.effectiveName} - ${originalJobName}, ${deadPlayer.member.effectiveName} - ${deadJobName}"
+                )
+            }
+        }
+    }
+
+    private fun CoupleRole?.toDisplayName(): String = when (this) {
+        CoupleRole.MALE -> "남성"
+        CoupleRole.FEMALE -> "여성"
+        null -> "미정"
     }
 
     suspend fun startDayPhase(
@@ -299,6 +348,7 @@ object GameLoopManager {
     ) {
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
+        val coupleChannel = game.coupleChannel ?: return
         val deadChannel = game.deadChannel ?: return
 
         // 1. 게임 상태 및 날짜 변경
@@ -345,6 +395,7 @@ object GameLoopManager {
         }
 
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
+        updateCoupleChannelPermissions(game, coupleChannel, isNight = false)
         updateDeadChannelPermissions(game, deadChannel)
         AdministratorInvestigationNotificationManager.notifyResults(game)
 
@@ -379,6 +430,44 @@ object GameLoopManager {
                             Permissions(Permission.ReadMessageHistory)
                         } else {
                             Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                        }
+                    }
+                } else {
+                    addMemberOverwrite(player.member.id) {
+                        denied = Permissions(
+                            Permission.ViewChannel,
+                            Permission.ReadMessageHistory,
+                            Permission.SendMessages
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun updateCoupleChannelPermissions(game: Game, coupleChannel: TextChannel, isNight: Boolean) {
+        coupleChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+
+            game.playerDatas.forEach { player ->
+                if (player.job is Couple) {
+                    val canAccess = isNight && !player.state.isDead
+                    addMemberOverwrite(player.member.id) {
+                        allowed = if (canAccess) {
+                            Permissions(Permission.ViewChannel)
+                        } else {
+                            Permissions()
+                        }
+                        denied = if (canAccess) {
+                            Permissions(Permission.ReadMessageHistory)
+                        } else {
+                            Permissions(Permission.ViewChannel, Permission.ReadMessageHistory, Permission.SendMessages)
                         }
                     }
                 } else {

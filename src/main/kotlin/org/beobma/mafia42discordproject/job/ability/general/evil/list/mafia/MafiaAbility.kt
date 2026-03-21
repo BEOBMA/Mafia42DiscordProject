@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Agent
+import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -61,21 +62,35 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.ABSOLUTE
         }
 
+        val redirectedTarget = resolveCoupleRedirectTarget(game, target)
+        if (redirectedTarget != target) {
+            game.coupleSacrificeMap[redirectedTarget.member.id] = target.member.id
+        }
+
         val previousTarget = game.nightAttacks[attackKey]?.target
-        if (previousTarget != null && previousTarget != target) {
+        if (previousTarget != null && previousTarget != redirectedTarget) {
             game.nightDeathCandidates.remove(previousTarget)
+            game.coupleSacrificeMap.remove(previousTarget.member.id)
         }
 
         game.nightAttacks[attackKey] = AttackEvent(
             attacker = caster,
-            target = target,
+            target = redirectedTarget,
             attackTier = attackTier
         )
-        if (target !in game.nightDeathCandidates) {
-            game.nightDeathCandidates += target
+        if (redirectedTarget !in game.nightDeathCandidates) {
+            game.nightDeathCandidates += redirectedTarget
         }
 
         return AbilityResult(true, "${target.member.effectiveName} 님을 처형 대상으로 지정했습니다.")
+    }
+
+    private fun resolveCoupleRedirectTarget(game: Game, originalTarget: PlayerData): PlayerData {
+        val targetCouple = originalTarget.job as? Couple ?: return originalTarget
+        val partnerId = targetCouple.pairedPlayerId ?: return originalTarget
+        val partner = game.getPlayer(partnerId) ?: return originalTarget
+        if (partner.state.isDead) return originalTarget
+        return partner
     }
 
     private fun isPoliceLine(target: PlayerData): Boolean {

@@ -41,6 +41,8 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
+import org.beobma.mafia42discordproject.job.definition.list.Couple
+import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
@@ -273,6 +275,7 @@ object GameManager {
             playerData.job = assignedJobName?.let(JobManager::createByName)
         }
         assignCabalSunMoonRoles()
+        assignCoupleRoles()
     }
 
     private fun Game.assignCabalSunMoonRoles() {
@@ -292,6 +295,25 @@ object GameManager {
 
         sunCabal.pairedPlayerId = moonPlayer.member.id
         moonCabal.pairedPlayerId = sunPlayer.member.id
+    }
+
+    private fun Game.assignCoupleRoles() {
+        val couplePlayers = playerDatas
+            .filter { it.job is Couple }
+            .shuffled()
+
+        if (couplePlayers.size != 2) return
+
+        val malePlayer = couplePlayers[0]
+        val femalePlayer = couplePlayers[1]
+        val maleCouple = malePlayer.job as? Couple ?: return
+        val femaleCouple = femalePlayer.job as? Couple ?: return
+
+        maleCouple.role = CoupleRole.MALE
+        femaleCouple.role = CoupleRole.FEMALE
+
+        maleCouple.pairedPlayerId = femalePlayer.member.id
+        femaleCouple.pairedPlayerId = malePlayer.member.id
     }
 
     private fun generateVirtualPreferences(): List<Job> {
@@ -1002,6 +1024,14 @@ object GameManager {
             }
         }
 
+        game.coupleChannel?.let { coupleChannel ->
+            runCatching {
+                coupleChannel.delete("게임 강제 종료로 인한 연인 채널 삭제")
+            }.onFailure { exception ->
+                println("[GameManager] 연인 채널 삭제 실패(이미 삭제되었거나 접근 불가): ${exception.message}")
+            }
+        }
+
         game.mainChannel?.let { mainChannel ->
             runCatching {
                 mainChannel.delete("게임 강제 종료로 인한 채널 삭제")
@@ -1012,6 +1042,7 @@ object GameManager {
 
         game.mainChannel = null
         game.mafiaChannel = null
+        game.coupleChannel = null
         game.deadChannel = null
     }
 
@@ -1053,8 +1084,30 @@ object GameManager {
             }
         }
 
+        val couplePlayers = game.playerDatas.filter { it.job is Couple }
+        val coupleChat = guild.createTextChannel("연인전용채팅") {
+            addRoleOverwrite(guild.id) {
+                denied = Permissions(
+                    Permission.ViewChannel,
+                    Permission.ReadMessageHistory,
+                    Permission.SendMessages
+                )
+            }
+
+            couplePlayers.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(
+                        Permission.ReadMessageHistory,
+                        Permission.SendMessages
+                    )
+                }
+            }
+        }
+
         game.mainChannel = mainChat
         game.mafiaChannel = mafiaChat
+        game.coupleChannel = coupleChat
         game.deadChannel = deadChat
     }
 
