@@ -18,8 +18,8 @@ import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 class PoliceAbility : ActiveAbility, JobUniqueAbility {
-    override val name: String = "?섏깋"
-    override val description: String = "諛ㅻ쭏???뚮젅?댁뼱 ??紐낆쓣 議곗궗?섏뿬 洹??뚮젅?댁뼱??留덊뵾???щ?瑜??뚯븘?????덈떎."
+    override val name: String = "수색"
+    override val description: String = "밤마다 플레이어 한 명을 조사하여 그 플레이어의 마피아 여부를 알아낼 수 있다."
     override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
@@ -29,14 +29,14 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
         if (game.currentPhase != usablePhase) {
-            return AbilityResult(false, "諛ㅼ뿉留??ъ슜?????덉뒿?덈떎.")
+            return AbilityResult(false, "밤에만 사용할 수 있습니다.")
         }
         if (caster.state.isDead) {
-            return AbilityResult(false, "二쎌? ?щ엺?먭쾶 ?ъ슜?????놁뒿?덈떎.")
+            return AbilityResult(false, "죽은 사람에게 사용할 수 없습니다.")
         }
 
         val policeJob = caster.job as? Police
-            ?: return AbilityResult(false, "寃쎌같???꾨떃?덈떎")
+            ?: return AbilityResult(false, "경찰이 아닙니다")
 
         if (policeJob.hasUsedSearchThisNight) {
             return AbilityResult(false, "")
