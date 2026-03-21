@@ -39,6 +39,11 @@ class DoctorAbility : ActiveAbility, JobUniqueAbility {
         val doctorJob = caster.job as? Doctor
             ?: return AbilityResult(false, "")
         doctorJob.currentHealTarget = target.member.id
+        val healEvent = GameEvent.PlayerHealed(
+            healer = caster,
+            target = target,
+            defenseTier = DefenseTier.NORMAL
+        )
 
         // 박애가 있으면 적용
         target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
