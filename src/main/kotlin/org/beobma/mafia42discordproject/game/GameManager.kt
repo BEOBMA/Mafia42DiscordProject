@@ -343,14 +343,6 @@ object GameManager {
                     candidate.job !is Evil
             }
             mercenaryJob.clientPlayerId = candidates.randomOrNull()?.member?.id
-            val clientId = mercenaryJob.clientPlayerId ?: return@forEach
-            val client = getPlayer(clientId) ?: return@forEach
-
-            gameLoopScope.launch {
-                runCatching {
-                    client.member.getDmChannel().createMessage("의뢰인으로 지목되었습니다.")
-                }
-            }
         }
     }
 

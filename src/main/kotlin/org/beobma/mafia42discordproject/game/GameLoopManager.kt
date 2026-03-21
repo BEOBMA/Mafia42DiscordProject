@@ -313,6 +313,7 @@ object GameLoopManager {
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
             message = "밤이 되었습니다."
         )
+        notifyMercenaryClientsAtFirstNight(game)
 
         val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
@@ -1682,6 +1683,20 @@ object GameLoopManager {
                 "누군가에게 의뢰를 받았습니다"
             )
             sendCabalDm(client, "용병 ${mercenaryPlayer.member.effectiveName}님에게 의뢰를 했습니다")
+        }
+    }
+
+    private suspend fun notifyMercenaryClientsAtFirstNight(game: Game) {
+        if (game.dayCount != 1) return
+
+        game.playerDatas.forEach { mercenaryPlayer ->
+            val mercenary = mercenaryPlayer.job as? Mercenary ?: return@forEach
+            val clientId = mercenary.clientPlayerId ?: return@forEach
+            val client = game.getPlayer(clientId) ?: return@forEach
+
+            runCatching {
+                client.member.getDmChannel().createMessage("의뢰인으로 지정되었습니다.")
+            }
         }
     }
 
