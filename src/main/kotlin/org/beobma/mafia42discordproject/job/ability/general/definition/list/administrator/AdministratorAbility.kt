@@ -12,6 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Administrator
 class AdministratorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "조회"
     override val description: String = "밤에 특정 직업을 선택하여 날이 밝을 때 해당 직업의 플레이어를 알아낸다."
+    //TODO()
     override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.NIGHT
 

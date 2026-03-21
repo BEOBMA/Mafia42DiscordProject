@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.agent
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,7 +14,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Agent
 
 class AgentOperation : JobUniqueAbility, PassiveAbility {
     override val name: String = "공작"
-    override val description: String = "낮이 될 때 살아있는 시민팀 플레이어 중 한 명의 직업을 무작위로 알아낸다."
+    override val description: String = "낮마다 지령을 받아 시민 한 명의 직업을 알아낸다."
     override val image: String = ""
 
     companion object {
