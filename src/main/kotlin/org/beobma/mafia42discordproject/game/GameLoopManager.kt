@@ -48,11 +48,13 @@ import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
 import org.beobma.mafia42discordproject.job.definition.list.Judge
+import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
@@ -255,6 +257,9 @@ object GameLoopManager {
             }
         }
 
+        resolveMercenaryAttackOrder(game, blockedAttacks, playersToDie)
+        resolveMercenaryContractDeaths(game, blockedAttacks, playersToDie)
+
         resolveMartyrNightExplosions(game, playersToDie)
 
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"]
@@ -402,6 +407,7 @@ object GameLoopManager {
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
         val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths)
+        notifyMercenaryContractReception(game)
 
         game.sendMainChannelMessageWithImage(
             imageLink = dawnPresentation.imageUrl,
@@ -912,9 +918,14 @@ object GameLoopManager {
         }
         val aliveCabals = alivePlayers.count { it.job is Cabal }
 
+        val activeMercenaryExecution = game.playerDatas.any { player ->
+            val mercenary = player.job as? Mercenary ?: return@any false
+            mercenary.hasExecutionAuthority
+        }
+
         return when {
             mafiaCount == 0 -> Team.CITIZEN
-            mafiaCount >= citizenCount && aliveCabals < 2 && !isRevealedJudgeAlive(game) -> Team.MAFIA
+            mafiaCount >= citizenCount && aliveCabals < 2 && !isRevealedJudgeAlive(game) && !activeMercenaryExecution -> Team.MAFIA
             else -> null
         }
     }
@@ -1208,6 +1219,85 @@ object GameLoopManager {
         }
 
         return processedEvents
+    }
+
+    private fun resolveMercenaryAttackOrder(
+        game: Game,
+        blockedAttacks: List<AttackEvent>,
+        playersToDie: MutableSet<PlayerData>
+    ) {
+        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
+        if (mafiaAttack in blockedAttacks) return
+
+        val cancelledAttackKeys = mutableListOf<String>()
+        val mercenaryAttackEntries = game.nightAttacks
+            .filterKeys { it.startsWith("MERCENARY_") }
+            .toList()
+        if (mercenaryAttackEntries.isEmpty()) return
+
+        mercenaryAttackEntries.forEach { (attackKey, mercenaryAttack) ->
+            val mercenaryAttacker = mercenaryAttack.attacker
+            if (mafiaAttack.target != mercenaryAttacker) return@forEach
+            if (mercenaryAttack in blockedAttacks) return@forEach
+
+            val hasResolute = mercenaryAttacker.allAbilities.any { it is Resolute }
+            if (hasResolute) return@forEach
+
+            cancelledAttackKeys += attackKey
+            val target = mercenaryAttack.target
+            val hasOtherUnblockedAttack = game.nightAttacks.any { (otherKey, otherAttack) ->
+                otherKey != attackKey &&
+                    otherAttack.target == target &&
+                    otherAttack !in blockedAttacks
+            }
+            if (!hasOtherUnblockedAttack) {
+                playersToDie.remove(target)
+            }
+        }
+
+        cancelledAttackKeys.forEach { attackKey ->
+            val cancelledAttack = game.nightAttacks.remove(attackKey) ?: return@forEach
+            game.nightDeathCandidates.remove(cancelledAttack.target)
+        }
+    }
+
+    private fun resolveMercenaryContractDeaths(
+        game: Game,
+        blockedAttacks: List<AttackEvent>,
+        playersToDie: MutableSet<PlayerData>
+    ) {
+        val unblockedAttacks = game.nightAttacks.values.filterNot { it in blockedAttacks }
+
+        game.playerDatas.forEach { mercenaryPlayer ->
+            val mercenary = mercenaryPlayer.job as? Mercenary ?: return@forEach
+            val clientId = mercenary.clientPlayerId ?: return@forEach
+            val client = game.getPlayer(clientId) ?: return@forEach
+
+            if (!mercenary.hasReceivedContract || mercenary.hasExecutionAuthority) return@forEach
+            if (client !in playersToDie) return@forEach
+
+            val killingAttack = unblockedAttacks.firstOrNull { it.target == client } ?: return@forEach
+            mercenary.hasExecutionAuthority = true
+            mercenary.clientKilledByPlayerId = killingAttack.attacker.member.id
+        }
+    }
+
+    private fun notifyMercenaryContractReception(game: Game) {
+        game.playerDatas.forEach { mercenaryPlayer ->
+            val mercenary = mercenaryPlayer.job as? Mercenary ?: return@forEach
+            if (mercenary.hasReceivedContract) return@forEach
+            if (mercenaryPlayer.state.isDead) return@forEach
+
+            val clientId = mercenary.clientPlayerId ?: return@forEach
+            val client = game.getPlayer(clientId) ?: return@forEach
+            if (client.state.isDead) return@forEach
+
+            mercenary.hasReceivedContract = true
+            sendCabalDm(
+                mercenaryPlayer,
+                "의뢰를 받았습니다. 의뢰인은 ${client.member.effectiveName}님입니다."
+            )
+        }
     }
 
     private fun resolveDoctorHeals(game: Game) {

@@ -45,6 +45,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
+import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -280,6 +281,7 @@ object GameManager {
         }
         assignCabalSunMoonRoles()
         assignCoupleRoles()
+        assignMercenaryClient()
     }
 
     private fun Game.assignCabalSunMoonRoles() {
@@ -318,6 +320,21 @@ object GameManager {
 
         maleCouple.pairedPlayerId = femalePlayer.member.id
         femaleCouple.pairedPlayerId = malePlayer.member.id
+    }
+
+    private fun Game.assignMercenaryClient() {
+        val mercenaries = playerDatas.filter { it.job is Mercenary }
+        if (mercenaries.isEmpty()) return
+
+        mercenaries.forEach { mercenaryPlayer ->
+            val mercenaryJob = mercenaryPlayer.job as? Mercenary ?: return@forEach
+            val candidates = playerDatas.filter { candidate ->
+                candidate.member.id != mercenaryPlayer.member.id &&
+                    candidate.job != null &&
+                    candidate.job !is Evil
+            }
+            mercenaryJob.clientPlayerId = candidates.randomOrNull()?.member?.id
+        }
     }
 
     private fun generateVirtualPreferences(): List<Job> {
