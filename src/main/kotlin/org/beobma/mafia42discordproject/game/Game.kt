@@ -6,6 +6,7 @@ import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.job.Job
 
 data class DawnPresentation(
     val imageUrl: String,
@@ -52,6 +53,10 @@ data class Game(
     // 건달 공갈(일시) 및 길동무(영구) 투표권 박탈 상태
     var activeThreatenedVoters: MutableMap<Snowflake, Snowflake> = mutableMapOf() // Key: 대상, Value: 건달
     var permanentlyDisenfranchisedVoters: MutableSet<Snowflake> = mutableSetOf()
+
+    val graveRobTargetsByGhoul: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val ghostTriggeredGhouls: MutableSet<Snowflake> = mutableSetOf()
+    val probationOriginalJobsByPlayer: MutableMap<Snowflake, Job> = mutableMapOf()
 
     fun replacePlayers(players: MutableList<PlayerData>) {
         playerDatas = players

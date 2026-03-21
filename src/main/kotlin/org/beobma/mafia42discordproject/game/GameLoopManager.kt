@@ -142,6 +142,7 @@ object GameLoopManager {
         game.concealmentForcedQuietNight = false
         game.coupleSacrificeMap.clear()
         game.activeThreatenedVoters.clear()
+        game.probationOriginalJobsByPlayer.clear()
         game.lastNightSummary = NightResolutionSummary()
         game.playerDatas.forEach { player ->
             player.state.isThreatened = false
@@ -1241,6 +1242,7 @@ object GameLoopManager {
                 sourceAbilityName = "수습",
                 resolvedAt = DiscoveryStep.NIGHT
             )
+            game.probationOriginalJobsByPlayer[target.member.id] = originalJob
             target.job = Citizen()
         }
     }
