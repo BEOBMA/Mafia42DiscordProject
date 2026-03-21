@@ -39,6 +39,8 @@ import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
@@ -270,6 +272,26 @@ object GameManager {
             val assignedJobName = assignment?.assignedJob?.name
             playerData.job = assignedJobName?.let(JobManager::createByName)
         }
+        assignCabalSunMoonRoles()
+    }
+
+    private fun Game.assignCabalSunMoonRoles() {
+        val cabalPlayers = playerDatas
+            .filter { it.job is Cabal }
+            .shuffled()
+
+        if (cabalPlayers.size != 2) return
+
+        val sunPlayer = cabalPlayers[0]
+        val moonPlayer = cabalPlayers[1]
+        val sunCabal = sunPlayer.job as? Cabal ?: return
+        val moonCabal = moonPlayer.job as? Cabal ?: return
+
+        sunCabal.role = CabalRole.SUN
+        moonCabal.role = CabalRole.MOON
+
+        sunCabal.pairedPlayerId = moonPlayer.member.id
+        moonCabal.pairedPlayerId = sunPlayer.member.id
     }
 
     private fun generateVirtualPreferences(): List<Job> {

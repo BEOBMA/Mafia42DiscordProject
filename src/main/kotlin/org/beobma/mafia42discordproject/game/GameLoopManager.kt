@@ -15,6 +15,10 @@ import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.component.option
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -23,6 +27,8 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
+import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -43,6 +49,7 @@ object GameLoopManager {
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
+    private val cabalNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun resetTimeThreadState() {
         timeThreadChannel = null
@@ -116,6 +123,10 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.lastNightSummary = NightResolutionSummary()
         game.playerDatas.forEach { player ->
+            (player.job as? Cabal)?.let { cabalJob ->
+                cabalJob.moonMarkedSunTonight = false
+                cabalJob.cabalSpecialWinReady = false
+            }
             (player.job as? Police)?.let { policeJob ->
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
@@ -124,6 +135,7 @@ object GameLoopManager {
                 administratorJob.investigationResultPlayerId = null
             }
         }
+        resolveCabalSunInvestigation(game)
 
         game.sendMainChannelMessageWithImage(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
@@ -232,6 +244,7 @@ object GameLoopManager {
         }
 
         val processedDawnEvents = dispatchEvents(game)
+        resolveCabalSpecialWinReadiness(game)
         val dawnPresentation = buildDawnPresentation(game, summary.deaths)
 
         game.lastNightSummary = summary.copy(
@@ -548,13 +561,18 @@ object GameLoopManager {
     }
 
     fun checkWinCondition(game: Game): Team? {
+        if (isCabalSpecialWinReady(game)) {
+            return Team.CABAL_SPECIAL
+        }
+
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mafiaCount = alivePlayers.count { it.job is Evil }
         val citizenCount = alivePlayers.size - mafiaCount
+        val aliveCabals = alivePlayers.count { it.job is Cabal }
 
         return when {
             mafiaCount == 0 -> Team.CITIZEN
-            mafiaCount >= citizenCount -> Team.MAFIA
+            mafiaCount >= citizenCount && aliveCabals < 2 -> Team.MAFIA
             else -> null
         }
     }
@@ -571,13 +589,13 @@ object GameLoopManager {
             runPhaseCountdown(game, "밤", NIGHT_DURATION_MS)
 
             val nightSummary = resolveNightPhase(game)
-//            checkWinCondition(game)?.let { winner ->
-//                endGame(game, winner)
-//                break
-//            }
 
             resolveDawnPhase(game, nightSummary)
             runPhaseCountdown(game, "새벽", DAWN_DURATION_MS)
+            checkWinCondition(game)?.let { winner ->
+                endGame(game, winner)
+                break
+            }
 
             startDayPhase(game, nightSummary)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
@@ -595,10 +613,75 @@ object GameLoopManager {
                 runPhaseCountdown(game, "찬반 투표", PROS_CONS_VOTE_DURATION_MS)
 
                 resolveExecutionPhase(game, target)
-//                checkWinCondition(game)?.let { winner ->
-//                    endGame(game, winner)
-//                    break
-//                }
+            }
+
+            checkWinCondition(game)?.let { winner ->
+                endGame(game, winner)
+                break
+            }
+        }
+    }
+
+    private fun resolveCabalSunInvestigation(game: Game) {
+        val cabalPlayers = game.playerDatas.filter { it.job is Cabal }
+        cabalPlayers.forEach { sunPlayer ->
+            val sunCabal = sunPlayer.job as? Cabal ?: return@forEach
+            if (sunCabal.role != CabalRole.SUN || sunPlayer.state.isDead) return@forEach
+
+            val selectedTargetId = sunCabal.selectedTargetId ?: return@forEach
+            val selectedTarget = game.getPlayer(selectedTargetId)
+
+            val isMoon = selectedTarget?.job is Cabal &&
+                (selectedTarget.job as? Cabal)?.role == CabalRole.MOON &&
+                selectedTarget.member.id == sunCabal.pairedPlayerId
+
+            if (isMoon) {
+                sunCabal.hasFoundMoon = true
+                val moonCabal = selectedTarget?.job as? Cabal
+                moonCabal?.wasFoundBySun = true
+                sendCabalDm(
+                    sunPlayer,
+                    "밀사 결과: 맞다. ${selectedTarget.member.effectiveName}님이 달 비밀결사입니다."
+                )
+            } else {
+                sendCabalDm(sunPlayer, "밀사 결과: 아니다.")
+            }
+        }
+    }
+
+    private fun resolveCabalSpecialWinReadiness(game: Game) {
+        val aliveOrDeadCabals = game.playerDatas
+            .mapNotNull { player ->
+                val cabal = player.job as? Cabal ?: return@mapNotNull null
+                player to cabal
+            }
+        val sun = aliveOrDeadCabals.firstOrNull { (_, cabal) -> cabal.role == CabalRole.SUN } ?: return
+        val moon = aliveOrDeadCabals.firstOrNull { (_, cabal) -> cabal.role == CabalRole.MOON } ?: return
+
+        val sunPlayer = sun.first
+        val sunCabal = sun.second
+        val moonPlayer = moon.first
+        val moonCabal = moon.second
+
+        val rolesStillCabal = sunPlayer.job is Cabal && moonPlayer.job is Cabal
+        val moonMarkedSun = moonCabal.moonMarkedSunTonight && moonCabal.selectedTargetId == sunPlayer.member.id
+        val canTrigger = rolesStillCabal && sunCabal.hasFoundMoon && moonCabal.wasFoundBySun && moonMarkedSun
+
+        sunCabal.cabalSpecialWinReady = canTrigger
+        moonCabal.cabalSpecialWinReady = canTrigger
+    }
+
+    private fun isCabalSpecialWinReady(game: Game): Boolean {
+        return game.playerDatas.any { player ->
+            val cabal = player.job as? Cabal ?: return@any false
+            cabal.cabalSpecialWinReady
+        }
+    }
+
+    private fun sendCabalDm(target: PlayerData, message: String) {
+        cabalNotificationScope.launch {
+            runCatching {
+                target.member.getDmChannel().createMessage(message)
             }
         }
     }
