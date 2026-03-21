@@ -30,6 +30,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.ment
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.Obituary
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
@@ -61,6 +63,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.definition.list.Prophet
+import org.beobma.mafia42discordproject.job.definition.list.Reporter
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -249,6 +252,7 @@ object GameLoopManager {
         resolveAdministratorInvestigations(game)
         resolveFortunetellerFortunes(game)
         resolveHackerHacks(game)
+        resolveReporterScoops(game)
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
@@ -290,12 +294,14 @@ object GameLoopManager {
         }
 
         val processedEvents = dispatchEvents(game)
+        cacheReporterDiscoveryResults(processedEvents)
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents)
         val deaths = playersToDie.toList()
         val dawnPresentation = buildDawnPresentation(game, deaths)
 
         // 아침 이벤트(예: 도굴꾼 JobDiscovered) 해소를 위한 추가 디스패치 파이프라인 보수 및 유실 파기 방지
         val additionalProcessedEvents = dispatchEvents(game)
+        cacheReporterDiscoveryResults(additionalProcessedEvents)
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents)
 
         val summary = NightResolutionSummary(
@@ -512,6 +518,7 @@ object GameLoopManager {
         updateCoupleChannelPermissions(game, coupleChannel, isNight = false)
         updateDeadChannelPermissions(game, deadChannel)
         AdministratorInvestigationNotificationManager.notifyResults(game)
+        publishReporterArticles(game)
 
         game.playerDatas
             .filter { !it.state.isDead }
@@ -1784,6 +1791,98 @@ object GameLoopManager {
                 notifyTarget = shouldNotifyTarget
             )
             hacker.hasResolvedHackDiscovery = true
+        }
+    }
+
+    private fun resolveReporterScoops(game: Game) {
+        game.playerDatas.forEach { player ->
+            val reporter = player.job as? Reporter ?: return@forEach
+            if (player.state.isDead) return@forEach
+            if (!reporter.hasUsedScoop) return@forEach
+            if (reporter.articlePublishDay != null) return@forEach
+
+            val targetId = reporter.selectedTargetId ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+            val targetJob = target.job ?: return@forEach
+
+            game.nightEvents += GameEvent.JobDiscovered(
+                discoverer = player,
+                target = target,
+                actualJob = targetJob,
+                revealedJob = targetJob,
+                sourceAbilityName = "특종",
+                resolvedAt = DiscoveryStep.NIGHT,
+                notifyTarget = false
+            )
+
+            val hasBreakingNews = player.allAbilities.any { it is BreakingNews }
+            val targetExecutedTonight = game.nightAttacks.values.any { attack ->
+                attack.attacker.member.id == target.member.id
+            }
+            val isEmbargoBypassed = hasBreakingNews && targetExecutedTonight
+            reporter.articlePublishDay = if (game.dayCount == 1 && !isEmbargoBypassed) {
+                2
+            } else {
+                game.dayCount
+            }
+        }
+    }
+
+    private fun cacheReporterDiscoveryResults(events: List<GameEvent>) {
+        events
+            .filterIsInstance<GameEvent.JobDiscovered>()
+            .filter { event ->
+                event.sourceAbilityName == "특종" && !event.isCancelled
+            }
+            .forEach { event ->
+                val reporter = event.discoverer.job as? Reporter ?: return@forEach
+                reporter.discoveredJobName = event.revealedJob.name
+                reporter.discoveredImageUrl = event.imageUrl ?: event.revealedJob.jobImage
+            }
+    }
+
+    private suspend fun publishReporterArticles(game: Game) {
+        game.playerDatas.forEach { player ->
+            val reporter = player.job as? Reporter ?: return@forEach
+            if (player.state.isDead) return@forEach
+            if (reporter.hasPublishedArticle) return@forEach
+
+            val discoveredJobName = reporter.discoveredJobName ?: return@forEach
+            val targetId = reporter.selectedTargetId ?: return@forEach
+            val publishDay = reporter.articlePublishDay ?: return@forEach
+            if (game.dayCount < publishDay) return@forEach
+
+            val target = game.getPlayer(targetId) ?: return@forEach
+            val canPublishOnDeadTarget = player.allAbilities.any { it is Obituary }
+            if (target.state.isDead && !canPublishOnDeadTarget) {
+                reporter.hasPublishedArticle = true
+                runCatching {
+                    player.member.getDmChannel().createMessage(
+                        "취재 대상(${target.member.effectiveName})이 사망하여 기사를 발행하지 못했습니다."
+                    )
+                }
+                return@forEach
+            }
+
+            val discoveredJob = org.beobma.mafia42discordproject.job.JobManager.findByName(discoveredJobName)
+                ?: target.job
+                ?: return@forEach
+
+            val event = GameEvent.JobDiscovered(
+                discoverer = player,
+                target = target,
+                actualJob = discoveredJob,
+                revealedJob = discoveredJob,
+                sourceAbilityName = "특종",
+                resolvedAt = DiscoveryStep.DAY,
+                isPublicReveal = true,
+                notifyTarget = false
+            ).apply {
+                imageUrl = reporter.discoveredImageUrl
+            }
+
+            JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game)
+            reporter.hasPublishedArticle = true
         }
     }
 

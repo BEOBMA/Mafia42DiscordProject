@@ -4,7 +4,6 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.definition.list.Reporter
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import kotlin.reflect.KClass
 
 class Obituary : Ability, JobSpecificExtraAbility {
