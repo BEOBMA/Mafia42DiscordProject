@@ -45,6 +45,7 @@ suspend fun main() {
         if (message.author?.isBot == true) return@on
 
         val content = message.content.trim()
+        GameManager.relayNightPrivateChat(this)
         if (!content.startsWith("!")) {
             if (GameManager.enforceDeadPlayerChatRestriction(this)) return@on
             return@on
