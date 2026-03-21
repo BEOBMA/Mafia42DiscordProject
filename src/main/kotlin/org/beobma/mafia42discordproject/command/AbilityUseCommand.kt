@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.command
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.suggestString
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -13,6 +14,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -81,7 +83,17 @@ object AbilityUseCommand : DiscordCommand {
 
         val targetDiscordUser = interaction.command.users[targetOptionName]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
+            game.nightAttacks["MAFIA_TEAM"]?.target
+        } else {
+            null
+        }
+
         val result = selectedAbility.activate(game, caster, target)
+
+        if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
+            notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
+        }
 
         val message = if (result.isSuccess) {
             result.message ?: "Your ability was used successfully."
@@ -89,6 +101,19 @@ object AbilityUseCommand : DiscordCommand {
             result.message ?: "Failed to use your ability."
         }
         DiscordMessageManager.respondEphemeral(event, message)
+    }
+
+    private suspend fun notifyMafiaTargetSelection(
+        game: Game,
+        caster: PlayerData,
+        target: PlayerData,
+        previousTarget: PlayerData?
+    ) {
+        val mafiaChannel = game.mafiaChannel ?: return
+        val action = if (previousTarget != null && previousTarget != target) "변경" else "결정"
+        mafiaChannel.createMessage(
+            "[마피아 처형 대상 $action] ${caster.member.effectiveName} 님이 ${target.member.effectiveName} 님으로 설정했습니다."
+        )
     }
 
     private fun getUsableActiveAbilities(game: Game, caster: PlayerData): List<ActiveAbility> {
