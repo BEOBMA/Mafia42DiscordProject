@@ -7,6 +7,7 @@ object CommandRegistry {
         GameStartCommand,
         GameStopCommand,
         AbilityUseCommand,
+        DayTimeAdjustCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         DebugCommand,
