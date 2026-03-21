@@ -199,11 +199,17 @@ object GameLoopManager {
         val processedEvents = dispatchEvents(game)
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents)
         val deaths = playersToDie.toList()
+        val dawnPresentation = buildDawnPresentation(game, deaths)
+
+        // 아침 이벤트(예: 도굴꾼 JobDiscovered) 해소를 위한 추가 디스패치 파이프라인 보수 및 유실 파기 방지
+        val additionalProcessedEvents = dispatchEvents(game)
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents)
+
         val summary = NightResolutionSummary(
-            processedEvents = processedEvents,
+            processedEvents = processedEvents + additionalProcessedEvents,
             deaths = deaths,
             blockedAttacks = blockedAttacks.toList(),
-            dawnPresentation = buildDawnPresentation(game, deaths)
+            dawnPresentation = dawnPresentation
         )
         game.lastNightSummary = summary
 
