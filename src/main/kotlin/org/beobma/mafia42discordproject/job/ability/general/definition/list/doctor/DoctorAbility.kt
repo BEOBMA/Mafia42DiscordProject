@@ -39,18 +39,7 @@ class DoctorAbility : ActiveAbility, JobUniqueAbility {
         val doctorJob = caster.job as? Doctor
             ?: return AbilityResult(false, "")
         doctorJob.currentHealTarget = target.member.id
-        val healEvent = GameEvent.PlayerHealed(
-            healer = caster,
-            target = target,
-            defenseTier = DefenseTier.NORMAL
-        )
-
-        // 박애가 있으면 적용
-        target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
         caster.state.hasUsedDailyAbility = true
-
-        // 밤 이벤트 큐에 등록
-        game.nightEvents += healEvent
         return AbilityResult(true, "${target.member.effectiveName}님을 치료 대상으로 지정했습니다.")
     }
 }
