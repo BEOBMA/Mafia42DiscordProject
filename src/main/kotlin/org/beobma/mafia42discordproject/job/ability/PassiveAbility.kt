@@ -11,4 +11,5 @@ interface PassiveAbility {
     fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {}
     fun onTargeted(game: Game, owner: PlayerData, attacker: PlayerData, ability: ActiveAbility) {}
     fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {}
+    fun onDeceasedChat(game: Game, owner: PlayerData, event: GameEvent) {}
 }

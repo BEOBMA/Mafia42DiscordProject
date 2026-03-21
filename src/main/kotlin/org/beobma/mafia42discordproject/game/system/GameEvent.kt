@@ -60,4 +60,10 @@ sealed class GameEvent {
         val deaths: List<PlayerData>,
         var presentation: DawnPresentation
     ) : GameEvent()
+
+    data class DeceasedChat(
+        val dayCount: Int,
+        val chatSender: PlayerData,
+        val chat: String
+    ) : GameEvent()
 }
