@@ -376,17 +376,27 @@ object GameLoopManager {
             deadPlayer.state.isJobPubliclyRevealed = true
             originalTarget.state.isJobPubliclyRevealed = true
 
-            val deadRole = (deadPlayer.job as? Couple)?.role.toDisplayName()
+            val deadRole = (deadPlayer.job as? Couple)?.role
             val originalRole = (originalTarget.job as? Couple)?.role.toDisplayName()
             val deadJobName = deadPlayer.job?.name ?: "알 수 없음"
             val originalJobName = originalTarget.job?.name ?: "알 수 없음"
 
-            runCatching {
-                mainChannel.createMessage(
-                    "연인의 희생이 발동했습니다. ${originalTarget.member.effectiveName}(${originalRole})의 대가로 ${deadPlayer.member.effectiveName}(${deadRole})가 대신 사망했습니다.\n" +
-                        "직업 공개: ${originalTarget.member.effectiveName} - ${originalJobName}, ${deadPlayer.member.effectiveName} - ${deadJobName}"
-                )
+            // 1. 성별에 따른 이미지 URL 선택
+            val imageUrl = when (deadRole) {
+                CoupleRole.MALE -> SystemImage.DEATH_MALE_COUPLE.imageUrl
+                CoupleRole.FEMALE -> SystemImage.DEATH_WOMAN_COUPLE.imageUrl
+                else -> SystemImage.DEATH_BY_MAFIA.imageUrl
             }
+
+            // 2. 메시지 구성
+            val message = "연인의 희생이 발동했습니다. ${originalTarget.member.effectiveName}(${originalRole})의 대가로 ${deadPlayer.member.effectiveName}(${deadRole?.toDisplayName() ?: "미정"})가 대신 사망했습니다.\n" +
+                    "직업 공개: ${originalTarget.member.effectiveName} - ${originalJobName}, ${deadPlayer.member.effectiveName} - ${deadJobName}"
+
+            // 3. 텍스트 대신 이미지와 함께 전송
+            game.sendMainChannelMessageWithImage(
+                imageLink = imageUrl,
+                message = message
+            )
         }
     }
 
@@ -409,7 +419,7 @@ object GameLoopManager {
         game.currentPhase = GamePhase.DAY
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
-        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths)
+        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths, game)
         notifyMercenaryContractReception(game)
 
         game.sendMainChannelMessageWithImage(
@@ -419,7 +429,7 @@ object GameLoopManager {
         delay(3_000L)
 
         game.sendMainChannelMessageWithImage(
-            imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&",
+            imageLink = SystemImage.DAY_START.imageUrl,
             message = "날이 밝았습니다."
         )
 
@@ -1168,7 +1178,7 @@ object GameLoopManager {
             dayCount = game.dayCount,
             attacks = attacks,
             deaths = deaths,
-            presentation = buildDefaultDawnPresentation(attacks, deaths)
+            presentation = buildDefaultDawnPresentation(attacks, deaths, game)
         )
 
         game.playerDatas
@@ -1187,8 +1197,20 @@ object GameLoopManager {
 
     private fun buildDefaultDawnPresentation(
         attacks: List<AttackEvent>,
-        deaths: List<PlayerData>
+        deaths: List<PlayerData>,
+        game: Game // Game 파라미터 추가 필요 (호출부에도 game을 넘겨주어야 함)
     ): DawnPresentation {
+
+        // 연인이 희생해서 죽은 사람이 있는지 확인
+        val hasCoupleSacrifice = deaths.any { it.member.id in game.coupleSacrificeMap }
+
+        if (hasCoupleSacrifice) {
+            // 이미 announceCoupleSacrificeReveal에서 화려하게 이미지를 띄웠으므로
+            // 여기서는 조용히 넘어가거나, 아주 간략한 요약만 반환하게 합니다.
+            return DawnPresentation(imageUrl = "", message = "")
+        }
+
+        // 기존 마피아 킬 로직
         val mafiaKillVictim = attacks
             .firstOrNull { it.attacker.job?.name == "마피아" }
             ?.target
