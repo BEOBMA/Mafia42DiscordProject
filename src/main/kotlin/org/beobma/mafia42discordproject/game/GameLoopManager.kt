@@ -1678,8 +1678,9 @@ object GameLoopManager {
             mercenary.hasReceivedContract = true
             sendCabalDm(
                 mercenaryPlayer,
-                "의뢰를 받았습니다. 의뢰인은 ${client.member.effectiveName}님입니다."
+                "누군가에게 의뢰를 받았습니다"
             )
+            sendCabalDm(client, "용병 ${mercenaryPlayer.member.effectiveName}님에게 의뢰를 했습니다")
         }
     }
 
