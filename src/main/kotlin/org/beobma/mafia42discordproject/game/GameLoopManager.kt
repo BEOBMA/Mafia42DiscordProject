@@ -31,6 +31,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.Calm
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
@@ -1003,6 +1004,14 @@ object GameLoopManager {
                 }
 
             target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
+
+            if (player.allAbilities.any { it is Calm }) {
+                // NOTE: 현재는 마피아의 독살(중독)만 해로운 효과로 구현되어 있어 해당 상태만 해제한다.
+                // 이후 해로운 효과(예: 저주, 봉인, 추가 상태이상 등)가 확장되면 여기에서 함께 정리한다.
+                target.state.isPoisoned = false
+                target.state.poisonedDeathDay = null
+            }
+
             game.nightEvents += healEvent
             doctorJob.currentHealTarget = null
         }
