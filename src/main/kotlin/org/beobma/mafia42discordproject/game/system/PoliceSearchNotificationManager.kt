@@ -34,8 +34,8 @@ object PoliceSearchNotificationManager {
 
     private fun buildSearchResultMessage(event: GameEvent.PoliceSearchResolved): String {
         val targetName = event.target.member.effectiveName
-        val mafiaFoundImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484978388761444587"
-        val mafiaFoundFailImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484980099756462130"
+        val mafiaFoundImageUrl = SystemImage.POLICE_FOUND_MAFIA
+        val mafiaFoundFailImageUrl = SystemImage.POLICE_FOUND_FAIL
 
         return if (event.isMafia) {
             "$mafiaFoundImageUrl\n${targetName}님은 마피아입니다."
@@ -46,7 +46,7 @@ object PoliceSearchNotificationManager {
 
     private fun buildRevealedJobMessage(event: GameEvent.PoliceJobRevealed): String {
         val jobName = event.revealedJob.name
-        val warrantImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484981078237249627"
+        val warrantImageUrl = SystemImage.POLICE_USE_WARRANT
 
         return "$warrantImageUrl\n그 사람의 직업은 ${jobName}."
     }

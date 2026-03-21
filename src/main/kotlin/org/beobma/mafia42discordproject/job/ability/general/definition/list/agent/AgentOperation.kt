@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
@@ -47,7 +48,7 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
 
         agentJob.discoveredCitizenTargetIds += selectedTarget.member.id
         agentJob.discoveredCitizenTargetDayById[selectedTarget.member.id] = game.dayCount
-        val operationImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484982478434209803"
+        val operationImageUrl = SystemImage.AGENT_NOTICE.imageUrl
 
         sendDm(owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
     }

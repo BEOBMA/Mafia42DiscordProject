@@ -30,7 +30,7 @@ object AdministratorInvestigationNotificationManager {
             ?.member
             ?.effectiveName
 
-        val adminSuccessImageUrl = "https://discord.com/channels/1483817958319849616/1483977619258212392/1484984191580901586"
+        val adminSuccessImageUrl = SystemImage.ADMINISTRATOR_NOTICE.imageUrl
         return if (playerName != null) {
             "$adminSuccessImageUrl\n조회 결과: ${playerName}님이 ${selectedJob}로 조회되었습니다."
         } else {
