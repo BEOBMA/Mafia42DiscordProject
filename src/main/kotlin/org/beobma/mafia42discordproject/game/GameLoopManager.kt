@@ -43,6 +43,8 @@ object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
     private const val DAWN_DURATION_MS = 10_000L
     private const val VOTE_DURATION_MS = 15_000L
+    private const val INITIAL_VOTE_REVEAL_DURATION_MS = 5_000L
+    private const val FINAL_VOTE_TALLY_STEP_MS = 500L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
     private const val QUIET_NIGHT_IMAGE_URL =
@@ -55,6 +57,7 @@ object GameLoopManager {
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
     private val cabalNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val votePresentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun resetTimeThreadState() {
         timeThreadChannel = null
@@ -449,12 +452,38 @@ object GameLoopManager {
                 }
             }
         }
+
+        val voteStatusMessage = mainChannel.createMessage {
+            content = buildMainVoteStatusContent(game, alivePlayers, isHidden = false)
+        }
+
+        votePresentationScope.launch {
+            val refreshInterval = 1_000L
+            val refreshCount = (INITIAL_VOTE_REVEAL_DURATION_MS / refreshInterval).toInt()
+
+            repeat(refreshCount) {
+                delay(refreshInterval)
+                runCatching {
+                    voteStatusMessage.edit {
+                        content = buildMainVoteStatusContent(game, alivePlayers, isHidden = false)
+                    }
+                }
+            }
+
+            runCatching {
+                voteStatusMessage.edit {
+                    content = buildMainVoteStatusContent(game, alivePlayers, isHidden = true)
+                }
+            }
+        }
     }
 
     suspend fun resolveVotePhase(game: Game): PlayerData? {
+        val mainChannel = game.mainChannel ?: return null
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val voteCounts = mutableMapOf<PlayerData, Int>()
         var invalidVoteCount = 0
+        val weightedVoteTargets = mutableListOf<PlayerData>()
 
         alivePlayers.forEach { voter ->
             val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = 1)
@@ -473,6 +502,30 @@ object GameLoopManager {
 
             val target = game.getPlayer(Snowflake(targetIdString)) ?: return@forEach
             voteCounts[target] = (voteCounts[target] ?: 0) + weightEvent.weight
+            repeat(weightEvent.weight.coerceAtLeast(0)) {
+                weightedVoteTargets += target
+            }
+        }
+
+        if (weightedVoteTargets.isNotEmpty()) {
+            delay(1_000L)
+            val progressiveVoteCounts = mutableMapOf<PlayerData, Int>()
+            val tallyMessage = mainChannel.createMessage {
+                content = buildFinalVoteTallyContent(alivePlayers, progressiveVoteCounts)
+            }
+
+            weightedVoteTargets.forEach { target ->
+                progressiveVoteCounts[target] = (progressiveVoteCounts[target] ?: 0) + 1
+                runCatching {
+                    tallyMessage.edit {
+                        content = buildFinalVoteTallyContent(
+                            alivePlayers = alivePlayers,
+                            voteCounts = progressiveVoteCounts
+                        )
+                    }
+                }
+                delay(FINAL_VOTE_TALLY_STEP_MS)
+            }
         }
 
         val maxVotes = voteCounts.values.maxOrNull() ?: 0
@@ -496,6 +549,37 @@ object GameLoopManager {
 
         val finalTarget = maxVotedPlayers.first()
         return finalTarget
+    }
+
+    private fun buildMainVoteStatusContent(
+        game: Game,
+        alivePlayers: List<PlayerData>,
+        isHidden: Boolean
+    ): String {
+        val currentVoteCounts = mutableMapOf<PlayerData, Int>()
+        game.currentMainVotes.values.forEach { targetId ->
+            val target = game.getPlayer(Snowflake(targetId)) ?: return@forEach
+            if (target.state.isDead) return@forEach
+            currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
+        }
+
+        return buildString {
+            alivePlayers.forEach { player ->
+                val voteDisplay = if (isHidden) "?" else (currentVoteCounts[player] ?: 0).toString()
+                appendLine("- ${player.member.effectiveName}: ${voteDisplay}표")
+            }
+        }
+    }
+
+    private fun buildFinalVoteTallyContent(
+        alivePlayers: List<PlayerData>,
+        voteCounts: Map<PlayerData, Int>
+    ): String {
+        return buildString {
+            alivePlayers.forEach { player ->
+                appendLine("- ${player.member.effectiveName}: ${voteCounts[player] ?: 0}표")
+            }
+        }
     }
 
     suspend fun startDefensePhase(game: Game, target: PlayerData) {
