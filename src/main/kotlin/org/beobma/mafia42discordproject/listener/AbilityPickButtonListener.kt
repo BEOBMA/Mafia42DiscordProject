@@ -11,7 +11,15 @@ object AbilityPickButtonListener : InteractionListener {
     override fun register(kord: Kord) {
         kord.on<ButtonInteractionCreateEvent> {
             val interaction = interaction
-            val pickNumber = GameManager.parseAbilityPickButtonId(interaction.componentId) ?: return@on
+            val payload = GameManager.parseAbilityPickButtonId(interaction.componentId) ?: return@on
+            if (payload.ownerUserId != interaction.user.id) {
+                runCatching {
+                    interaction.deferEphemeralResponse().respond {
+                        content = "이 버튼은 다른 플레이어의 능력 선택 버튼입니다."
+                    }
+                }
+                return@on
+            }
             val deferredResponse = runCatching {
                 interaction.deferEphemeralResponse()
             }.getOrElse { error ->
@@ -28,7 +36,7 @@ object AbilityPickButtonListener : InteractionListener {
             }
 
             val resultMessage = runCatching {
-                GameManager.selectExtraAbility(interaction.user.id, pickNumber)
+                GameManager.selectExtraAbility(interaction.user.id, payload.pickNumber)
             }.getOrElse { error ->
                 println("⚠️ 능력 선택 처리 실패: ${error.message}")
                 "❌ 능력 선택 처리 중 오류가 발생했습니다. 잠시 후 같은 번호를 다시 눌러주세요."
