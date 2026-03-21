@@ -2059,6 +2059,11 @@ object GameLoopManager {
         if (attacker.allAbilities.any { it is Poisoning }) {
             target.state.isPoisoned = true
             target.state.poisonedDeathDay = game.dayCount + 1
+            cabalNotificationScope.launch {
+                runCatching {
+                    target.member.getDmChannel().createMessage("중독 상태가 되었습니다.")
+                }
+            }
         }
     }
 
