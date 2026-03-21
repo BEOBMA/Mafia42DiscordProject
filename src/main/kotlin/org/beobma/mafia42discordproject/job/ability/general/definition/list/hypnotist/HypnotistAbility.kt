@@ -26,6 +26,10 @@ class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
     override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
+    companion object {
+        private const val HYPNOTIZE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485045831387320331/In-klCVO6bijQqQBJJD-lm6ERnyRMxlUG9vxkwmDqVnSJ8Q-AnpOdCS_sGOCeR36BpXD9WgvMRkEPznM9kNWblpv435IpN45mGyxWOe111yhpkDJHMfB7dJcAOnLYoJURon9oIVQ63tmYOUoy9BXbg.webp?ex=69c07035&is=69bf1eb5&hm=b0d0efacb0e56c00f8179d99da286da0261dfd6f8ec606f1fe25f1e61b5c1fac&"
+    }
+
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
         if (game.currentPhase != usablePhase) {
             return AbilityResult(false, "최면은 밤에만 사용할 수 있습니다.")
@@ -59,7 +63,7 @@ class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
 
         hypnotist.selectedTargetIdTonight = effectiveTarget.member.id
         hypnotist.hypnotizedTargetIds += effectiveTarget.member.id
-        return AbilityResult(true, "${effectiveTarget.member.effectiveName}님에게 최면을 걸었습니다.")
+        return AbilityResult(true, "${effectiveTarget.member.effectiveName}님에게 최면을 겁니다.\n$HYPNOTIZE_IMAGE_URL")
     }
 }
 
@@ -71,6 +75,7 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
 
     companion object {
         private val notificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        private const val RELEASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485045831068418088/NcHJGKAFQM27wpur63DCKTVFPJeRl0YIq9yTtSPocI1wPy-8RN64_ZEJIjbtNmO2YrNpmXRCMxiKfNcRpxajTwx9gMtlG4jEqEv_5X0SoynqMZoFF5LM60jQ1qV6X7os7ke5jOXL33H0ylCIGDOINA.webp?ex=69c07034&is=69bf1eb4&hm=3c29f60715fcc52a9c33975b7bbaaaead33112fb0e47f47ff38dc02313528d25&"
     }
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -121,8 +126,24 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                 }
         }
 
+        val releaseMessages = discoveries.map { "${it.target.member.effectiveName}님에게 걸린 최면을 해제합니다." }
+
         notificationScope.launch {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(discoveries)
+
+            discoveries.filter { !it.isCancelled }.forEach { discovery ->
+                val teamDescription = if (discovery.actualJob is Evil) {
+                    discovery.actualJob.name
+                } else {
+                    "시민"
+                }
+                runCatching {
+                    caster.member.getDmChannel().createMessage(
+                        "${discovery.target.member.effectiveName}님은 ${teamDescription}입니다."
+                    )
+                }
+            }
+
             if (discoveries.none { !it.isCancelled }) {
                 runCatching {
                     caster.member.getDmChannel().createMessage("최면 해제 결과: 확인 가능한 생존 대상이 없습니다.")
@@ -130,7 +151,15 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        val knownCount = discoveries.count { !it.isCancelled }
-        return AbilityResult(true, "최면을 해제했습니다. 확인된 대상 수: ${knownCount}명")
+        val releaseResultMessage = releaseMessages.mapIndexed { index, message ->
+            if (index == 0) {
+                "$message\n$RELEASE_IMAGE_URL"
+            } else {
+                message
+            }
+        }.joinToString("\n")
+            .ifBlank { "최면 해제 결과: 해제 가능한 생존 대상이 없습니다." }
+
+        return AbilityResult(true, releaseResultMessage)
     }
 }
