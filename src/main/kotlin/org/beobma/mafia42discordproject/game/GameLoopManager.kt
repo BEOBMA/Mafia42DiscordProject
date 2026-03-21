@@ -20,7 +20,9 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -118,6 +120,9 @@ object GameLoopManager {
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
             }
+            (player.job as? Administrator)?.let { administratorJob ->
+                administratorJob.investigationResultPlayerId = null
+            }
         }
 
         game.sendMainChannelMessageWithImage(
@@ -171,6 +176,7 @@ object GameLoopManager {
         }
 
         resolveDoctorHeals(game)
+        resolveAdministratorInvestigations(game)
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
@@ -283,6 +289,7 @@ object GameLoopManager {
 
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
         updateDeadChannelPermissions(game, deadChannel)
+        AdministratorInvestigationNotificationManager.notifyResults(game)
     }
 
     private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
@@ -687,6 +694,27 @@ object GameLoopManager {
             target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
             game.nightEvents += healEvent
             doctorJob.currentHealTarget = null
+        }
+    }
+
+    private fun resolveAdministratorInvestigations(game: Game) {
+        game.playerDatas.forEach { player ->
+            val administratorJob = player.job as? Administrator ?: return@forEach
+            val selectedJobName = administratorJob.selectedInvestigationJobName ?: return@forEach
+            val selectedJob = org.beobma.mafia42discordproject.job.JobManager.findByName(selectedJobName) ?: run {
+                administratorJob.investigationResultPlayerId = null
+                return@forEach
+            }
+
+            val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+            val spoofedTarget = alivePlayers.firstOrNull { candidate ->
+                AdministratorInvestigationPolicy.shouldApplyHypocrisySpoof(game.dayCount, selectedJob, candidate)
+            }
+
+            val target = spoofedTarget ?: alivePlayers.firstOrNull { candidate ->
+                candidate.job?.name == selectedJob.name
+            }
+            administratorJob.investigationResultPlayerId = target?.member?.id
         }
     }
 

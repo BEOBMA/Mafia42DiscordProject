@@ -14,7 +14,12 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Cooperation
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Identification
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
+import org.beobma.mafia42discordproject.job.JobManager
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -22,6 +27,7 @@ object AbilityUseCommand : DiscordCommand {
 
     private const val abilityOptionName = "use_ability"
     private const val targetOptionName = "use_target"
+    private const val jobOptionName = "use_job"
     private const val maxAutoCompleteChoices = 25
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
@@ -29,21 +35,44 @@ object AbilityUseCommand : DiscordCommand {
         val focusedEntry = interaction.command.options.entries
             .firstOrNull { it.value.focused } ?: return
 
-        if (focusedEntry.key != abilityOptionName) return
-
         val game = GameManager.getCurrentGameFor(interaction.user.id) ?: return
         val caster = game.getPlayer(interaction.user.id) ?: return
         val query = (focusedEntry.value as? StringOptionValue)?.value?.trim().orEmpty()
 
-        val suggestions = getUsableActiveAbilities(game, caster)
-            .map(ActiveAbility::name)
-            .distinct()
-            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
+        when (focusedEntry.key) {
+            abilityOptionName -> {
+                val suggestions = getUsableActiveAbilities(game, caster)
+                    .map(ActiveAbility::name)
+                    .distinct()
+                    .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+                    .take(maxAutoCompleteChoices)
 
-        interaction.suggestString {
-            suggestions.forEach { abilityName ->
-                choice(abilityName, abilityName)
+                interaction.suggestString {
+                    suggestions.forEach { abilityName ->
+                        choice(abilityName, abilityName)
+                    }
+                }
+            }
+
+            jobOptionName -> {
+                val selectedAbilityName = interaction.command.strings[abilityOptionName]
+                val selectedAbility = getUsableActiveAbilities(game, caster).firstOrNull { it.name == selectedAbilityName }
+                if (selectedAbility !is AdministratorAbility) return
+
+                val hasCooperation = caster.allAbilities.any { it is Cooperation }
+                val hasIdentification = caster.allAbilities.any { it is Identification }
+                val suggestions = JobManager.getAll()
+                    .filter { AdministratorInvestigationPolicy.isJobSelectable(it, hasCooperation, hasIdentification) }
+                    .map { it.name }
+                    .distinct()
+                    .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+                    .take(maxAutoCompleteChoices)
+
+                interaction.suggestString {
+                    suggestions.forEach { jobName ->
+                        choice(jobName, jobName)
+                    }
+                }
             }
         }
     }
@@ -89,7 +118,12 @@ object AbilityUseCommand : DiscordCommand {
             null
         }
 
-        val result = selectedAbility.activate(game, caster, target)
+        val result = if (selectedAbility is AdministratorAbility) {
+            val selectedJobName = interaction.command.strings[jobOptionName]
+            selectedAbility.activateWithJobName(game, caster, selectedJobName)
+        } else {
+            selectedAbility.activate(game, caster, target)
+        }
 
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
@@ -129,6 +163,10 @@ object AbilityUseCommand : DiscordCommand {
         }
         user(targetOptionName, "Select a target if the ability needs one.") {
             required = false
+        }
+        string(jobOptionName, "Select a job if the ability targets a job.") {
+            required = false
+            autocomplete = true
         }
     }
 
