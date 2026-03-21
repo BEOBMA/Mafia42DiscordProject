@@ -11,7 +11,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Hacker
 
 class HackerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "해킹"
-    override val description: String = "낮에 플레이어 한 명을 골라 밤이 될 때 직업을 알아낸다."
+    override val description: String = "낮에 플레이어 한 명을 골라 그날 밤에 즉시 직업을 알아낸다."
     override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.DAY
 
