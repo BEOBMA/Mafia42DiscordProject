@@ -466,6 +466,8 @@ object GameLoopManager {
     }
 
     suspend fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
+        game.currentPhase = GamePhase.DAWN
+
         val poisonedVictims = game.playerDatas.filter { player ->
             !player.state.isDead &&
                 player.state.isPoisoned &&
@@ -496,6 +498,12 @@ object GameLoopManager {
         resolveCabalSpecialWinReadiness(game)
         resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnPresentation = buildDawnPresentation(game, summary.deaths)
+        if (dawnPresentation.message.isNotBlank() || dawnPresentation.imageUrl.isNotBlank()) {
+            game.sendMainChannelMessageWithImage(
+                imageLink = dawnPresentation.imageUrl,
+                message = dawnPresentation.message
+            )
+        }
 
         game.lastNightSummary = summary.copy(
             processedEvents = summary.processedEvents + processedDawnEvents,
@@ -608,18 +616,11 @@ object GameLoopManager {
         game.dayTimeAdjustmentUsedPlayers.clear()
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
-        val dawnPresentation = summary.dawnPresentation ?: buildDefaultDawnPresentation(emptyList(), summary.deaths, game)
         notifyMercenaryContractReception(game)
 
         game.sendMainChannelMessageWithImage(
-            imageLink = dawnPresentation.imageUrl,
-            message = dawnPresentation.message
-        )
-        delay(3_000L)
-
-        game.sendMainChannelMessageWithImage(
             imageLink = SystemImage.DAY_START.imageUrl,
-            message = "날이 밝았습니다."
+            message = "낮이 되었습니다."
         )
         if (game.pendingDayStartDiscoveries.isNotEmpty()) {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(game.pendingDayStartDiscoveries.toList(), game)
