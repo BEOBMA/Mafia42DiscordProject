@@ -15,6 +15,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처형"
@@ -53,6 +54,9 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (casterJob.abilities.any { it::class == WinOrDead::class } && canUseWinOrDead(game, caster)) {
             attackTier = AttackTier.PIERCE
             caster.state.hasUsedOneTimeAbility = true
+        }
+        if (casterJob is Thief && casterJob.hasSuccessor() && game.playerDatas.none { !it.state.isDead && it.job is Mafia }) {
+            attackTier = AttackTier.ABSOLUTE
         }
 
         val hasNightRaid = caster.allAbilities.any { it.name == "야습" }

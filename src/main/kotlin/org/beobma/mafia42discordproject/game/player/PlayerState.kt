@@ -13,6 +13,7 @@ class PlayerState {
     var hasAnnouncedGodfatherContact: Boolean = false // 대부 접선 알림 전송 여부
     var hasAnnouncedHitmanContact: Boolean = false // 청부업자 접선 알림 전송 여부
     var hasAnnouncedMadScientistContact: Boolean = false // 과학자 접선 알림 전송 여부
+    var hasAnnouncedThiefContact: Boolean = false // 도둑 접선 알림 전송 여부
     var hasContactedMafiaOnDeath: Boolean = false // 과학자 사망 유착 여부
     var hasUsedMadScientistRegeneration: Boolean = false // 과학자 재생 사용 여부
     var pendingMadScientistRevivalNight: Int? = null // 과학자 재생 예정 밤(일차)
