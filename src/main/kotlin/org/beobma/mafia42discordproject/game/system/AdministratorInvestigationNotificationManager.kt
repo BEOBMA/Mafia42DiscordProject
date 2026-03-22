@@ -32,9 +32,9 @@ object AdministratorInvestigationNotificationManager {
 
         val adminSuccessImageUrl = SystemImage.ADMINISTRATOR_NOTICE.imageUrl
         return if (playerName != null) {
-            "$adminSuccessImageUrl\n조회 결과: ${playerName}님이 ${selectedJob}로 조회되었습니다."
+            "$adminSuccessImageUrl\n${playerName}님이 ${selectedJob}로 조회되었습니다."
         } else {
-            "조회 결과: ${selectedJob} 직업을 가진 생존자를 찾지 못했습니다."
+            "$selectedJob 직업과 일치하는 내용이 없습니다."
         }
     }
 }

@@ -11,9 +11,8 @@ import org.beobma.mafia42discordproject.job.definition.list.Administrator
 
 class AdministratorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "조회"
-    override val description: String = "밤에 특정 직업을 선택하여 날이 밝을 때 해당 직업의 플레이어를 알아낸다."
-    //TODO()
-    override val image: String = ""
+    override val description: String = "경찰 계열을 제외한 시민팀 직업 중 하나를 지목하여 그 직업을 가진 사람을 알아낸다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485261103666823330/9c4fbe5024a13a29.png?ex=69c138b1&is=69bfe731&hm=7c023ccac924adeac69cf08034999ccc6cfc02b3392fe7313ae8dae1b576fab0&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -45,6 +44,6 @@ class AdministratorAbility : ActiveAbility, JobUniqueAbility {
         }
 
         administrator.selectedInvestigationJobName = selectedJob.name
-        return AbilityResult(true, "${selectedJob.name} 직업을 조회 대상으로 선택했습니다. 밤이 끝날 때까지 다시 선택해 변경할 수 있습니다.")
+        return AbilityResult(true, "${selectedJob.name} 직업을 조회 대상으로 선택했습니다.")
     }
 }

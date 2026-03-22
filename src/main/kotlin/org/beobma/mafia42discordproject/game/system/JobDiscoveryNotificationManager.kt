@@ -1,7 +1,5 @@
 package org.beobma.mafia42discordproject.game.system
 
-import dev.kord.core.behavior.channel.createMessage
-
 object JobDiscoveryNotificationManager {
     private const val HACKER_SUCCESS_IMAGE_URL =
         "https://cdn.discordapp.com/attachments/1483977619258212392/1485044168807026829/gyDHS2t9F3_V9LLel5ruA2uMxzBL9YDSfNmrNwBYgqeQgkCYdzSFT2nyq2YjCmRXntxER4nFbnh5IUwh68shsvCMBzob8z_0KBu4n7tqmt-vdgLPxZO5eFpBNl-e3zs8OVEDKIFyA9xbOwOJdIVQgg.webp?ex=69c06ea8&is=69bf1d28&hm=231d2fa275547e67bd72b7a8f741c677d847a069fc872ae2f71b80108135bbb3&"
