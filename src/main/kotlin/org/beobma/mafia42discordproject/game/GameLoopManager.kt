@@ -1274,7 +1274,15 @@ object GameLoopManager {
                 }
 
                 addMemberOverwrite(player.member.id) {
-                    allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                    allowed = if (player.state.isDead) {
+                        Permissions(
+                            Permission.ViewChannel,
+                            Permission.ReadMessageHistory,
+                            Permission.SendMessages
+                        )
+                    } else {
+                        Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                    }
                     denied = if (player.state.isDead) {
                         Permissions()
                     } else {
