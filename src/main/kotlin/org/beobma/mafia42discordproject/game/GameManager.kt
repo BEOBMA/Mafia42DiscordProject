@@ -58,8 +58,10 @@ import org.beobma.mafia42discordproject.job.ability.general.list.Megaphone
 import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
 import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
 import org.beobma.mafia42discordproject.job.ability.general.list.Will
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Password
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Hostess
+import org.beobma.mafia42discordproject.job.evil.list.Villain
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
@@ -87,6 +89,7 @@ object GameManager {
     private const val SECRET_LETTER_COMMAND = "밀서"
     private const val WILL_COMMAND = "유언"
     private const val PERJURY_COMMAND = "위증"
+    private const val PASSWORD_COMMAND = "암구호"
 
     data class SpiritRelayResult(
         val isSuccess: Boolean,
@@ -196,6 +199,7 @@ object GameManager {
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.initialPlayerCount = this.playerDatas.size
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -257,6 +261,7 @@ object GameManager {
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.initialPlayerCount = this.playerDatas.size
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -1214,6 +1219,12 @@ object GameManager {
         return castPerjuryVote(game, sender, target)
     }
 
+    suspend fun sendPasswordChat(memberId: Snowflake, message: String): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        return sendPasswordChat(game, sender, message)
+    }
+
     suspend fun handleNightUtilityCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
         val game = currentGame ?: return false
         val memberId = event.member?.id ?: return false
@@ -1259,6 +1270,12 @@ object GameManager {
                 } else {
                     castPerjuryVote(game, sender, target)
                 }
+                event.message.channel.createMessage(result.message)
+                true
+            }
+
+            PASSWORD_COMMAND -> {
+                val result = sendPasswordChat(game, sender, args.joinToString(" ").trim())
                 event.message.channel.createMessage(result.message)
                 true
             }
@@ -1319,6 +1336,18 @@ object GameManager {
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
         game.currentFakeVotes[sender.member.id] = target.member.id
         return SpiritRelayResult(true, "${target.member.effectiveName}님에게 가짜 투표를 행사했습니다. (집계에만 반영)")
+    }
+
+    private suspend fun sendPasswordChat(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
+        if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 암구호를 사용할 수 없습니다.")
+        if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
+        if (sender.job !is Evil || sender.job is Villain) return SpiritRelayResult(false, "마피아 팀만 암구호를 사용할 수 있습니다.")
+        if (sender.allAbilities.none { it is Password }) return SpiritRelayResult(false, "암구호 능력이 없습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "암구호 메시지를 입력해 주세요.")
+
+        val mafiaChannel = game.mafiaChannel ?: return SpiritRelayResult(false, "마피아 채널을 찾을 수 없습니다.")
+        mafiaChannel.createMessage("[암구호] ${sender.member.effectiveName}: $message")
+        return SpiritRelayResult(true, "암구호 메시지를 전송했습니다.")
     }
 
     private fun parseTargetPlayer(game: Game, raw: String): PlayerData? {

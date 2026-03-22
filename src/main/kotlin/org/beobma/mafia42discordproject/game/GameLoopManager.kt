@@ -39,7 +39,10 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Conc
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Terminal
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.assistance.TheInformant
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Analysis
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Distortion
@@ -94,6 +97,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
 import org.beobma.mafia42discordproject.job.evil.list.Swindler
 import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.Villain
 import org.beobma.mafia42discordproject.job.evil.list.Witch
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -123,6 +127,10 @@ object GameLoopManager {
     private const val GODFATHER_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087458973450440/JMivfRSM1woZcZCwYUiFomJa5e6hG7Nss4xAl5wx1vzzoCkUrdxBlsSLh4M_79MjdKDh4q2kBDhucJpsrvZ7YNkuyVHHr_A32nhIGOsOafwBd0qwarqdazI1Z8mJeFvNMaa7vJX2ywZFd-mxzAtWug.webp?ex=69c096f9&is=69bf4579&hm=a9035324581fb576d6a0bb2c02a8fbae8d28152939f032bea8e0f61af822df61&"
     private const val HOSTESS_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485092736318312649/qHqxEk0Ie1w1nYS_fuFrHR5Jo1CsmnD0_0naxqt7UIAYVQSU-8RaF44ld6eH7tVZTQ33iWE9g5Us0MSaagAuzLmDYDN_gkvqZdV1PeM2cDCVPNk8nxM9r91ynjwfTXW0nBSoZlKA2dWkoavBHN2ydw.webp?ex=69c09be4&is=69bf4a64&hm=409a014694a67993257f3d0cebdae9af68066675c7599f90237d21342678152d&"
     private const val MAD_SCIENTIST_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485093676290932908/jGBpfxMpUm651gMgzzZYc9NW3p8lk63ct7CIfsVka5QbXqd9A78Zdj6w7Z14zlX5y0u_ynMq77dF33IZkM8ckr0otxYYAd_8CeYTLfvJ_syw2kA5AAMsWLWVO9bFqN-S2joct01Gmf8XvBAYEQTwCA.webp?ex=69c09cc4&is=69bf4b44&hm=1fcd876b2f860eb44be94cb450a1f7953a766db5a602e02312ce19949e312c1e&"
+    private const val SPY_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485095638931734699/36RXBo7-kuLUExBuE_kWriQbw5wVrunku4S93RbKCqX3p84cQ3DIICEpoeAzvUyyaUWGcqat9QOTar3r6T4nsDO-IYfUuoKVt1aAy7gNse3dAacQ5zYx1Ux3u43o9krFaspF-jD9VGDsgcsnibk6yg.webp?ex=69c09e98&is=69bf4d18&hm=08b19737b9c100da1541e49ec98ddd206247d43627045da5b9b1d534b9ae682e&"
+    private const val THIEF_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485097745164275963/6KbWZ5FCTcmZQ99obSXQ0HXU2Sq1UOPBlNdTs96-gHlcNTTgv6jyGZdBuaNfu7n2LQqDuYhhrnBTwAJ04Axd8tunc1CO6pGiBJSygpp7-h9HxZVuA0nr7ZUofIdZTsUEFZRwbPXWMq9rDkBJEQ_Qlw.webp?ex=69c0a08e&is=69bf4f0e&hm=7c03af3e798db7ce5e6019206a535c24db4d5ca1a1007d2c5111353d21d59de0&"
+    private const val WITCH_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485100396031512647/cl_vQE1Go9NQFqAYCyBILvrv-qFYsVe42chdCkpjiznJSYTHROE-kwXb9PJlRRr9uY2yjbLeR6eME2Dh02frBvCzBH1pZiabshT-szLZKU-gsYDjkC1KnJZQ3HAhVA6tJr8B9IAnu6yr9BY6nEbC1w.webp?ex=69c0a306&is=69bf5186&hm=e9eb66bc61eebee17923a4f6283586732332411f6ea4caf35abb4c457623b9d4&"
+    private const val SWINDLER_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485102540914692256/H8ETeBTIzzrPsPjS0hfbYZoKCkIgNWlsKjD_v29uvxV9Gm1waNRTl4YsmClfkeG_oQYEAlsyJh8fKm4JqZUPzDnCbl5ouVHjYeeiAcGVOfmaU9PYwVfPv1uDKV8JB8nirRsJY1TAVYaQ0E8Pf1rWIg.webp?ex=69c0a505&is=69bf5385&hm=0887e536593a5a9b353dcf4e232c179fed8639ce159f869f796614395884ee49&"
     private const val SPY_ASSASSIN_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485096641777238167/vx4XGS33RUMMlC6eBroNoxpzuTPzExTknw3z7OcmjiI_i9eAt4ZfgK3mt_5GjjJou7jk_5IikTyiCwPRIpfWM7V5kFpk9fCd037ffupptkkCFjAKtoM8gyNHAfbs8km0y9Jatqj62P5DT-qTxRhW4w.webp?ex=69c09f87&is=69bf4e07&hm=704b998e8a12a5933c9f247db295a8eda1bff4beccad7e9584226cf2dfa7ac95&"
     private const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485094642797248675/1x0UtdbO43yTodQJcWduasjMRBL-CvRJQDc7MLLI04EjgNoGQvl4oTYrEA8_QbWmzROn3EEiTLxJjgTfSa8QOnE5SZ399XilwE2XVLvQwRa2KRR1PgfKXKiHaFUTul-AFzaxnY9pysnoTjd49VVG1A.webp?ex=69c09daa&is=69bf4c2a&hm=43b40604efc7f42f7fb23f2c8990fa865e9352ea8f07a0b22347ecde753921b8&"
 
@@ -736,6 +744,8 @@ object GameLoopManager {
         }
         deliverSecretLetters(game)
         notifyPendingPoisonEffects(game)
+        notifyInstructionsAtFirstDay(game)
+        notifyTheInformantAutoContactAtSecondDay(game)
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -842,6 +852,7 @@ object GameLoopManager {
         return when {
             player.job is Mafia -> true
             player.job is Beastman && player.state.isTamed -> true
+            player.state.hasContactedMafiaByInformant -> true
             player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
             player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
             player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
@@ -1819,6 +1830,7 @@ object GameLoopManager {
             return Team.CABAL_SPECIAL
         }
         resolveProphetSpecialWin(game)?.let { return it }
+        resolveTerminalSpecialWin(game)?.let { return it }
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         val mafiaCount = alivePlayers.count { it.job is Evil }
@@ -1871,6 +1883,137 @@ object GameLoopManager {
 
     private fun isRevealedJudgeAlive(game: Game): Boolean {
         return findRevealedAliveJudge(game) != null
+    }
+
+    private fun resolveTerminalSpecialWin(game: Game): Team? {
+        if (game.dayCount < 2) return null
+        if (game.initialPlayerCount <= 0) return null
+
+        val requiredDayCount = (game.initialPlayerCount / 2) + 2
+        if (game.dayCount < requiredDayCount) return null
+
+        val hasAliveTerminalOwner = game.playerDatas.any { player ->
+            !player.state.isDead &&
+                player.job is Evil &&
+                player.job !is Villain &&
+                player.allAbilities.any { it is Terminal }
+        }
+
+        return if (hasAliveTerminalOwner) Team.MAFIA else null
+    }
+
+    private fun notifyInstructionsAtFirstDay(game: Game) {
+        if (game.dayCount != 1) return
+
+        val policePlayers = game.playerDatas.filter { target ->
+            !target.state.isDead && (target.job is Police || target.job is org.beobma.mafia42discordproject.job.definition.list.Agent || target.job is Vigilante)
+        }
+
+        val instructionOwners = game.playerDatas.filter { player ->
+            !player.state.isDead &&
+                player.job !is Villain &&
+                player.allAbilities.any { it is Instructions }
+        }
+
+        instructionOwners.forEach { owner ->
+            votePresentationScope.launch {
+                runCatching {
+                    val dm = owner.member.getDmChannel()
+                    if (policePlayers.isEmpty()) {
+                        dm.createMessage("경찰 계열 직업이 없습니다.")
+                        return@runCatching
+                    }
+
+                    val lines = policePlayers.joinToString("\n") { target ->
+                        "${target.member.effectiveName}은 경찰 계열 직업."
+                    }
+                    dm.createMessage(lines)
+                }
+            }
+        }
+    }
+
+    private suspend fun notifyTheInformantAutoContactAtSecondDay(game: Game) {
+        if (game.dayCount != 2) return
+
+        game.playerDatas.forEach { player ->
+            if (player.state.isDead) return@forEach
+            if (player.state.hasContactedMafiaByInformant) return@forEach
+            if (player.job !is Evil || player.job is Mafia) return@forEach
+            if (player.allAbilities.none { it is TheInformant }) return@forEach
+
+            player.state.hasContactedMafiaByInformant = true
+            notifyInformantContactByJob(game, player)
+        }
+    }
+
+    private suspend fun notifyInformantContactByJob(game: Game, player: PlayerData) {
+        val mafiaChannel = game.mafiaChannel ?: return
+
+        when (val job = player.job) {
+            is HitMan -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    notifyHitmanContact(game, player)
+                }
+            }
+            is Spy -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    mafiaChannel.createMessage("$SPY_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                }
+            }
+            is Thief -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    if (!player.state.hasAnnouncedThiefContact) {
+                        player.state.hasAnnouncedThiefContact = true
+                        mafiaChannel.createMessage("$THIEF_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                    }
+                }
+            }
+            is Witch -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    mafiaChannel.createMessage("$WITCH_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                }
+            }
+            is Hostess -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    mafiaChannel.createMessage("$HOSTESS_CONTACT_IMAGE_URL\n접선했습니다.")
+                }
+            }
+            is Swindler -> {
+                if (!job.hasContactedMafia) {
+                    job.hasContactedMafia = true
+                    mafiaChannel.createMessage("$SWINDLER_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                }
+            }
+            is Godfather -> {
+                if (!player.state.hasAnnouncedGodfatherContact) {
+                    player.state.hasAnnouncedGodfatherContact = true
+                    mafiaChannel.createMessage("$GODFATHER_CONTACT_IMAGE_URL\n접선했습니다.")
+                }
+            }
+            is MadScientist -> {
+                if (!player.state.hasContactedMafiaOnDeath) {
+                    player.state.hasContactedMafiaOnDeath = true
+                }
+                if (!player.state.hasAnnouncedMadScientistContact) {
+                    player.state.hasAnnouncedMadScientistContact = true
+                    mafiaChannel.createMessage("$MAD_SCIENTIST_CONTACT_IMAGE_URL\n접선했습니다.")
+                }
+            }
+            is Beastman -> {
+                mafiaChannel.createMessage("$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다.")
+            }
+            else -> {
+                mafiaChannel.createMessage("**${player.member.effectiveName}님이 밀정 능력으로 접선했습니다.**")
+            }
+        }
+
+        refreshMafiaChannelContactState(game)
     }
 
     private fun notifyJudgeProsVoters(game: Game, target: PlayerData) {
