@@ -39,6 +39,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Conc
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
 import org.beobma.mafia42discordproject.job.ability.general.list.Escape
 import org.beobma.mafia42discordproject.job.ability.general.list.Innocence
@@ -78,6 +79,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.mart
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -98,6 +100,9 @@ object GameLoopManager {
     private const val ESCAPE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485068268518641804/FGY_RI7iQoyC4rGWNM7VvnxZ7deIbe6jMdxCocerKyOYAEhugy1Al6xM16fuD1wq1Y5cJ4RT2_Mu85JJCF3qygvj56JeMkwlnYSqiG_EeLjMpJYty9OKTXvyYtF-rXdWNY5Qf-hIQOGl3y_IyOXtA.webp?ex=69c0851a&is=69bf339a&hm=03f024962d2a5f70c4fda843ca2baf4b81bacd340b86d5151b7f6d5bdfe4b592&"
     private const val ESCAPE_DEATH_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485068400043626496/uyd_Tgfv6NhX8X3b60JHJzKo0V-L40BD_wEhnmhYs4TFroVjc08r_ZwR52fekvW4okZ4zrff6t9lnG42n8cTEomUI5gXJhGQCYC2Hk6FUC62CGt0-C5shAvv_9qHTdNpyvRYkVgBBdiMfT-TtLrPkQ.webp?ex=69c08539&is=69bf33b9&hm=38e7d92b214404036675aba36deb468aa2f6493b2b9b17f69751bcffacdb6dec&"
     private const val INNOCENCE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485069339408335011/yNSYVlFExulsh1yqgC_ocOl1-cnVgzSWTdrT1F6D8PxhJMSKF24PRhZSkVW7ybLC50--Jte3jCS8qlOHLoGYUk5REnG_bWIGZWByWpNTnJcLueDMSBOrjx5ngRD15lIRAxKXyG09Y6G-wFG8oRWyaA.webp?ex=69c08619&is=69bf3499&hm=13cf9f57c385b905c9d01f664ae5cd488d8510c4c15a9b67ca1c6bf9f0ecad66&"
+    private const val BEASTMAN_ATTACK_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485075367025836173/YzFttk1gOxNI077qHyWhP2998lil0b7GmqzQusuTzBVp3M2LzgmIHAxUH1m7uHOMR5LtQFLkBzZtIYMOu7zxT9vjaf4Uh26up3-i3cJ5wAeEPAeQQoxajm1kMkiRVl0r07pw1eafMIRnV8MkZBGNMA.webp?ex=69c08bb6&is=69bf3a36&hm=0bd9efbd0dd7841dbf2cd2e0531e8e0d26564637d085de9f48ac18aac1492f86&"
+    private const val BEASTMAN_TAMED_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485075910263570463/XEMOjk-m1HtYEFgz0clURpnMQNiipyYZimPOWIPk6vogykiTNhInvt8W531YXrAjxtYqqnzoWbXKIk1C6nH1wOhkfPxHrCmz6q6LKWoBuR1AFmg2p5pEcApZ0SkwsLjqLjnyckqSMh5kVO9IVn4UHQ.webp?ex=69c08c38&is=69bf3ab8&hm=26ac26dcc50bc338b595319249a45f1cfb20d3a242bf6f6a8f6e740164d0c5de&"
+    private const val BEASTMAN_ROAR_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485077233570812125/wLyCdbdvcKvKkGkmdkRW6vhDbtnasWFp5qGexUOnT488bF4RZzIXcAul1YGMNyw2pxxh9qJZooXhedNZeOR6eXjRq198saXx3yLZKkc_Oia88BI5rizeBltm0qJjbeHb3YPb4lL_n8UP-1IE2RT9Qg.webp?ex=69c08d73&is=69bf3bf3&hm=0c6ab1e928750c3fcd8355850ddefcab3380f44f519ace364157a5e36026fef9&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -389,10 +394,17 @@ object GameLoopManager {
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
         resolveReporterScoops(game)
+        applyBeastmanExecutionOverride(game)
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
             if (target.state.isDead) return@forEach
+
+            if (isExecutionImmuneBeastmanTarget(game, attackEvent)) {
+                blockedAttacks += attackEvent
+                playersToDie.remove(target)
+                return@forEach
+            }
 
             // 패시브(방탄 등)가 방어력(healTier)에 개입할 기회를 주기 위한 평가 이벤트 통보
             game.nightEvents += GameEvent.BeforeAttackEvaluated(attackEvent)
@@ -511,6 +523,7 @@ object GameLoopManager {
             revealBelongingsIfNeeded(game, victim)
         }
         resolvePriestResurrection(game, summary)
+        notifyPendingBeastmanTaming(game)
 
         announceCoupleSacrificeReveal(game, summary.deaths)
 
@@ -699,6 +712,8 @@ object GameLoopManager {
                         passive.onPhaseChanged(game, player, GamePhase.DAY)
                     }
             }
+
+        notifyBeastmanRoarAtFirstDay(game)
     }
 
     private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
@@ -720,7 +735,7 @@ object GameLoopManager {
                     return@forEach
                 }
 
-                if (player.job is Evil) {
+                if (canAccessMafiaChannel(player)) {
                     val canSend = isNight
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
@@ -737,6 +752,95 @@ object GameLoopManager {
                 }
             }
         }
+    }
+
+    private fun canAccessMafiaChannel(player: PlayerData): Boolean {
+        return when {
+            player.job is Mafia -> true
+            player.job is Beastman && player.state.isTamed -> true
+            else -> false
+        }
+    }
+
+    private fun applyBeastmanExecutionOverride(game: Game) {
+        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
+        val selectedTarget = resolveOriginallySelectedMafiaTarget(game, mafiaAttack)
+
+        val triggeredBeastman = game.playerDatas.firstOrNull { player ->
+            !player.state.isDead &&
+                !player.state.isTamed &&
+                player.job is Beastman &&
+                selectedTarget.member.id in (player.job as Beastman).markedTargetIds
+        } ?: return
+
+        if (selectedTarget != mafiaAttack.target) {
+            game.nightDeathCandidates.remove(mafiaAttack.target)
+            game.coupleSacrificeMap.remove(mafiaAttack.target.member.id)
+        }
+
+        game.nightAttacks["MAFIA_TEAM"] = AttackEvent(
+            attacker = triggeredBeastman,
+            target = selectedTarget,
+            attackTier = AttackTier.ABSOLUTE
+        )
+        if (selectedTarget !in game.nightDeathCandidates) {
+            game.nightDeathCandidates += selectedTarget
+        }
+        game.pendingBeastmanTameIds += triggeredBeastman.member.id
+    }
+
+    private fun resolveOriginallySelectedMafiaTarget(game: Game, mafiaAttack: AttackEvent): PlayerData {
+        val selectedTargetId = game.coupleSacrificeMap[mafiaAttack.target.member.id] ?: return mafiaAttack.target
+        return game.getPlayer(selectedTargetId) ?: mafiaAttack.target
+    }
+
+    private fun isExecutionImmuneBeastmanTarget(game: Game, attackEvent: AttackEvent): Boolean {
+        if (attackEvent.target.job !is Beastman) return false
+
+        val attackKey = game.nightAttacks.entries
+            .firstOrNull { (_, event) -> event == attackEvent }
+            ?.key
+            ?: return false
+
+        return attackKey == "MAFIA_TEAM" || attackKey.startsWith("MERCENARY_")
+    }
+
+    private suspend fun notifyPendingBeastmanTaming(game: Game) {
+        if (game.pendingBeastmanTameIds.isEmpty()) return
+
+        val targetIds = game.pendingBeastmanTameIds.toSet()
+        game.pendingBeastmanTameIds.clear()
+
+        val mafiaPlayers = game.playerDatas.filter { it.job is Mafia }
+        targetIds.forEach { beastmanId ->
+            val beastmanPlayer = game.getPlayer(beastmanId) ?: return@forEach
+            if (beastmanPlayer.state.isDead) return@forEach
+            if (beastmanPlayer.job !is Beastman) return@forEach
+
+            beastmanPlayer.state.isTamed = true
+
+            runCatching {
+                beastmanPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n길들여졌습니다.")
+            }
+
+            mafiaPlayers.forEach { mafiaPlayer ->
+                runCatching {
+                    mafiaPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다")
+                }
+            }
+        }
+    }
+
+    private suspend fun notifyBeastmanRoarAtFirstDay(game: Game) {
+        if (game.dayCount != 1) return
+        val mafiaChannel = game.mafiaChannel ?: return
+
+        val hasAliveRoarBeastman = game.playerDatas.any { player ->
+            !player.state.isDead && player.job is Beastman && player.allAbilities.any { it is Roar }
+        }
+        if (!hasAliveRoarBeastman) return
+
+        mafiaChannel.createMessage("$BEASTMAN_ROAR_IMAGE_URL\n짐승의 포효소리가 들려왔습니다!")
     }
 
     private suspend fun updateCoupleChannelPermissions(game: Game, coupleChannel: TextChannel, isNight: Boolean) {
@@ -1739,11 +1843,20 @@ object GameLoopManager {
             .firstOrNull { it.attacker.job?.name == "마피아" }
             ?.target
             ?.takeIf { it in deaths }
+        val beastKillVictim = attacks
+            .firstOrNull { it.attacker.job is Beastman }
+            ?.target
+            ?.takeIf { it in deaths }
         val poisonedDeathVictim = poisonedDeaths.firstOrNull()
 
         val doctorSavedTarget = game.doctorSavedTargetTonight
 
-        return if (mafiaKillVictim == null) {
+        return if (beastKillVictim != null) {
+            DawnPresentation(
+                imageUrl = BEASTMAN_ATTACK_IMAGE_URL,
+                message = "${beastKillVictim.member.effectiveName}님이 짐승에게 습격당하였습니다."
+            )
+        } else if (mafiaKillVictim == null) {
             if (poisonedDeathVictim != null) {
                 DawnPresentation(
                     imageUrl = SystemImage.DEATH_BY_POISON.imageUrl,
