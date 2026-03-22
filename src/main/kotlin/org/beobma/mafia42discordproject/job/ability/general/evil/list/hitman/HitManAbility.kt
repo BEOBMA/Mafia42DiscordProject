@@ -22,7 +22,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
     override val description: String = "두 번째 밤부터 공개적으로 능력이 사용된 대상을 제외한 시민 두 명을 지목하여 직업을 맞출 경우 둘 다 암살한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485091092427833406/5z9EhKho2HssoyyRznzH5XjK_7lKYQC3u18N9CAvPlOljQqpD6rnNZqyJgj7PaMLy3qCs327-KWX7XG_8Go_MmWHxZqFI5o8n8UJhJwJP7m4o_5TVKJluxpw9-F9Bp0HyzK2IhOxShVigiYTl_JdeA.webp?ex=69c09a5c&is=69bf48dc&hm=7c25a110ad9ff8df979f7923450772100e1a7bd2d5c32b0d60c25efd94800f81&"
+    override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     fun activateWithJobName(game: Game, caster: PlayerData, target: PlayerData?, guessedJobName: String?): AbilityResult {
@@ -31,6 +31,9 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (caster.state.isDead) return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         if (target == null) return AbilityResult(false, "청부 대상을 지정해야 합니다.")
         if (target.state.isDead) return AbilityResult(false, "이미 사망한 플레이어는 지정할 수 없습니다.")
+        if (target.member.id == caster.member.id) {
+            return AbilityResult(false, "자기 자신은 청부할 수 없습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         if (effectiveTarget.member.id in game.publiclyRevealedAbilityTargetIds || effectiveTarget.member.id in game.pendingEscapedPlayerIds) {
             return AbilityResult(false, "공개적으로 능력이 사용된 대상은 청부 대상으로 지정할 수 없습니다.")

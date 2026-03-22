@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 class GodfatherAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "말살"
     override val description: String = "접선 후 밤마다 다른 플레이어의 능력을 무시하고 처형할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619430263521330/930fdad0076c57b6.png?ex=69bee317&is=69bd9197&hm=a0fb01e23944eb5f0cab3ad595509ef41f6716f9a897e2f1a204de8c083a7d3e&"
+    override val image: String = ""
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

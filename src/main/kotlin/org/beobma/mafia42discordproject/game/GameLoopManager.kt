@@ -1512,7 +1512,7 @@ object GameLoopManager {
                 val total = (voteCounts[player] ?: 0)
                 val fakeCount = fakeVoteCounts[player] ?: 0
                 if (fakeCount > 0) {
-                    appendLine("- ${player.member.effectiveName}: ${total}표 (위증 ${fakeCount}표 포함)")
+                    appendLine("- ${player.member.effectiveName}: ${total}표")
                 } else {
                     appendLine("- ${player.member.effectiveName}: ${total}표")
                 }
