@@ -399,8 +399,8 @@ object GameLoopManager {
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
-                denied = Permissions(Permission.SendMessages, Permission.ReadMessageHistory)
-                allowed = Permissions(Permission.SendMessages, Permission.UseApplicationCommands)
+                allowed = Permissions(Permission.ReadMessageHistory, Permission.UseApplicationCommands)
+                denied = Permissions(Permission.SendMessages)
             }
         }
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
@@ -762,7 +762,7 @@ object GameLoopManager {
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
-                allowed = Permissions(Permission.SendMessages)
+                allowed = Permissions(Permission.SendMessages, Permission.ReadMessageHistory)
                 denied = Permissions()
             }
 
@@ -1659,6 +1659,7 @@ object GameLoopManager {
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
+                allowed = Permissions(Permission.ReadMessageHistory)
                 denied = Permissions(Permission.SendMessages)
             }
 
@@ -1668,12 +1669,30 @@ object GameLoopManager {
                 }
             }
         }
+
+        game.playerDatas.forEach { player ->
+            val shouldMute = shouldRestrictCommunication(player) || player.member.id != target.member.id
+            runCatching {
+                player.member.edit {
+                    muted = shouldMute
+                }
+            }
+        }
     }
 
     suspend fun startProsConsVotePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
         game.currentPhase = GamePhase.VOTE
         game.currentProsConsVotes.clear()
+
+        game.playerDatas.forEach { player ->
+            val shouldMute = shouldRestrictCommunication(player)
+            runCatching {
+                player.member.edit {
+                    muted = shouldMute
+                }
+            }
+        }
 
         mainChannel.createMessage {
             actionRow {
