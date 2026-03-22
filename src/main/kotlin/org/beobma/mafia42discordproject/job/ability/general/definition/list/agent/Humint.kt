@@ -24,9 +24,11 @@ class Humint : Ability, JobSpecificExtraAbility {
             val discoveredDay = targetAgentJob.discoveredCitizenTargetDayById[caster.member.id] ?: return
             if (discoveredDay >= game.dayCount) return
 
-            val message = "${target.member.effectiveName}님은 요원입니다. (${ability.name} 사용으로 휴민트 발동)"
+            val targetMessage = "${caster.member.effectiveName}님에게 당신의 정보를 공유했습니다!"
+            val casterMessage = "요원 ${target.member.effectiveName}님이 자신의 정보를 전달 하였습니다."
             runCatching {
-                caster.member.getDmChannel().createMessage(message)
+                target.member.getDmChannel().createMessage(targetMessage)
+                caster.member.getDmChannel().createMessage(casterMessage)
             }
         }
     }
