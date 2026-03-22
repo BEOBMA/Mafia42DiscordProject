@@ -92,6 +92,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import org.beobma.mafia42discordproject.job.evil.list.MadScientist
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
@@ -699,6 +700,9 @@ object GameLoopManager {
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
         notifyMercenaryContractReception(game)
+        game.playerDatas.forEach { player ->
+            (player.job as? Thief)?.clearStolenAbility()
+        }
 
         game.sendMainChannelMessageWithImage(
             imageLink = SystemImage.DAY_START.imageUrl,
@@ -821,6 +825,7 @@ object GameLoopManager {
             player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
             player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
             player.job is Spy && (player.job as Spy).hasContactedMafia -> true
+            player.job is Thief && (player.job as Thief).hasContactedMafia -> true
             else -> false
         }
     }
