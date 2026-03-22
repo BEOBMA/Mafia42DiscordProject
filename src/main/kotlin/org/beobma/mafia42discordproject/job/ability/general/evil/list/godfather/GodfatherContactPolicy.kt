@@ -14,6 +14,6 @@ object GodfatherContactPolicy {
     fun canUseExecution(game: Game, player: PlayerData): Boolean {
         if (player.state.isDead) return false
         if (player.job !is Godfather) return false
-        return canContactMafia(game)
+        return player.state.hasContactedMafiaByInformant || canContactMafia(game)
     }
 }

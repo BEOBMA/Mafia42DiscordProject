@@ -108,7 +108,7 @@ object AbilityManager {
         return extraAbilityPool.filter { ability ->
             when (ability) {
                 is CommonAbility -> true
-                is EvilCommonAbility -> job is Evil
+                is EvilCommonAbility -> job is Evil && job !is Villain
                 is CitizenCommonAbility -> job is Definition
                 is AssistanceCommonAbility -> job is Evil && job !is Mafia && job !is Villain
                 is JobSpecificExtraAbility -> ability.targetJob.any { it == job::class }

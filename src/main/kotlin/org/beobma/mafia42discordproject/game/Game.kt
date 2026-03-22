@@ -40,6 +40,7 @@ data class Game(
     }
 
     var dayCount: Int = 0
+    var initialPlayerCount: Int = 0
     var nightPhaseStartedAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
