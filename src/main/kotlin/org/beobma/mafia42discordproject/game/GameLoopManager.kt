@@ -25,6 +25,8 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.Belongings
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.Source
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
@@ -86,6 +88,7 @@ object GameLoopManager {
     private const val TIME_THREAD_NAME = "시간"
     private const val PROBATION_DISCOVERY_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485026577610703000/v1-_70Quh-Wmb9ZFVNCbnfkgmA72QZfsKd6CwwUuLiDO25gNgl3l-UiOGyWQNCbxRRfmykJG5UyvAuipvrlfSVWe5mEKilEuBMoaieLofY6Rf5Hdog2Gg7cf-RiqrNrgXRU5GSQxiJwRorEo-JVWIA.webp?ex=69c05e46&is=69bf0cc6&hm=4f084aa32d244df25bafd30549631dc28009f00831b5ad6ed2bbf02df7b5d939&"
     private const val NURSE_DOCTOR_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485041686743744632/B3X9qY9DRgztfGRfTvOmaWzHqY-GRAJ8OFxFmU-mJWPq0RalAYlysco8cTNxJ1vTBYkabPX3KX6luBLqKylwb5BwiQKvDpJL_2sBLnZmwyNgklA3GW8tbIzwt3Sjba6jnyy-Rgy4K_0ggw2aFse9qw.webp?ex=69c06c58&is=69bf1ad8&hm=f280af1c360cc62dd6c0bdbe79a3f284824f5c221088cb6571e43924d2b8ec98&"
+    private const val BELONGINGS_REVEAL_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485064103654326362/RoJTMDyTb8Fsc4xISb-b-FpabFGGEC2lEphQj-TPdy5jqQOPoiglPiBQnN9ZRPnwgAXnpw8NA1cIZe1Owz83imTIj3F7_u5gs_1Xp6kDJxhqHLY40_2WpoS8sqmkWhBM9sC0On5EsConl97VZ5twnQ.webp?ex=69c08139&is=69bf2fb9&hm=8558bb6cbfa42f90d449e7ee4874628383ed3503a4f973b0a71f725207e2973c&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -315,6 +318,7 @@ object GameLoopManager {
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
             message = "밤이 되었습니다."
         )
+        announceSourceMafiaCountAtNightStart(game)
         resolveHackerHacks(game)
         val nightStartEvents = dispatchEvents(game)
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(nightStartEvents, game)
@@ -483,6 +487,7 @@ object GameLoopManager {
                 victim.state.isDead = true
                 game.nightEvents += GameEvent.PlayerDied(victim)
                 applyPoliceAutopsy(game, victim)
+                revealBelongingsIfNeeded(game, victim)
             }
         }
 
@@ -491,6 +496,7 @@ object GameLoopManager {
             victim.state.isDead = true
             game.nightEvents += GameEvent.PlayerDied(victim)
             applyPoliceAutopsy(game, victim)
+            revealBelongingsIfNeeded(game, victim)
         }
         resolvePriestResurrection(game, summary)
 
@@ -1166,6 +1172,7 @@ object GameLoopManager {
             imageLink = SystemImage.VOTE_EXECUTION.imageUrl,
             message = "${target.member.effectiveName}님이 투표로 처형당하였습니다."
         )
+        revealBelongingsIfNeeded(game, target)
 
         if (deadChannel != null) {
             updateDeadChannelPermissions(game, deadChannel)
@@ -1647,6 +1654,33 @@ object GameLoopManager {
                 }
             }
         }
+    }
+
+    private suspend fun announceSourceMafiaCountAtNightStart(game: Game) {
+        if (game.dayCount <= 1) return
+
+        val hasAliveSource = game.playerDatas.any { player ->
+            !player.state.isDead && player.allAbilities.any { it is Source }
+        }
+        if (!hasAliveSource) return
+
+        val aliveMafiaTeamCount = game.playerDatas.count { player ->
+            !player.state.isDead && player.job is Evil
+        }
+        game.sendMainChannerMessage("정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남은 것이 밝혀졌습니다.")
+    }
+
+    private suspend fun revealBelongingsIfNeeded(game: Game, victim: PlayerData) {
+        if (victim.state.isJobPubliclyRevealed) return
+        if (victim.allAbilities.none { it is Belongings }) return
+        if (game.probationOriginalJobsByPlayer.containsKey(victim.member.id) && victim.job is Citizen) return
+
+        val revealedJob = victim.job ?: return
+        victim.state.isJobPubliclyRevealed = true
+        game.sendMainChannelMessageWithImage(
+            imageLink = BELONGINGS_REVEAL_IMAGE_URL,
+            message = "${victim.member.effectiveName}님의 유품을 통해 직업이 ${revealedJob.name}(이)라고 밝혀졌습니다!"
+        )
     }
 
     private fun resolveMercenaryAttackOrder(
