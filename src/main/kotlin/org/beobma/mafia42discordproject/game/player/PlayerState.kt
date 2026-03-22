@@ -10,6 +10,7 @@ class PlayerState {
     var isTamed: Boolean = false               // 짐승인간 길들여짐 여부
     var isJobPubliclyRevealed: Boolean = false // 모든 플레이어에게 직업이 공개되었는지 여부
     var hasAnnouncedGodfatherContact: Boolean = false // 대부 접선 알림 전송 여부
+    var hasAnnouncedHitmanContact: Boolean = false // 청부업자 접선 알림 전송 여부
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어
