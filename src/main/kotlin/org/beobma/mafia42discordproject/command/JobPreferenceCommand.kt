@@ -148,9 +148,9 @@ object JobPreferenceCommand : DiscordCommand {
 
     private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {
         assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
-        policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" }
+        policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" || it.name == "자경단원" }
         in specialOptions -> JobManager.getAll().filter {
-            it.name != "경찰" && it.name != "요원" && it.name != "의사" && it !is Evil
+            it.name != "경찰" && it.name != "요원" && it.name != "자경단원" && it.name != "의사" && it !is Evil
         }
         else -> JobManager.getAll()
     }

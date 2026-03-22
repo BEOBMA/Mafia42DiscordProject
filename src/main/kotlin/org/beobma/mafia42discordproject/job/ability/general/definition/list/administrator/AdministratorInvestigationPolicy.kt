@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Villain
@@ -19,7 +20,8 @@ import kotlin.reflect.KClass
 object AdministratorInvestigationPolicy {
     private val policeLineJobs: Set<KClass<out Job>> = setOf(
         Police::class,
-        Agent::class
+        Agent::class,
+        Vigilante::class
     )
 
     fun isJobSelectable(job: Job, hasCooperation: Boolean, hasIdentification: Boolean): Boolean {
