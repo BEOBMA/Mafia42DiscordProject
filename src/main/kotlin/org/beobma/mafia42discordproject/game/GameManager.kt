@@ -59,9 +59,19 @@ import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
 import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
 import org.beobma.mafia42discordproject.job.ability.general.list.Will
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Password
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Beastman
+import org.beobma.mafia42discordproject.job.evil.list.Godfather
+import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Hostess
+import org.beobma.mafia42discordproject.job.evil.list.MadScientist
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Spy
+import org.beobma.mafia42discordproject.job.evil.list.Swindler
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Villain
+import org.beobma.mafia42discordproject.job.evil.list.Witch
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
@@ -1345,12 +1355,32 @@ object GameManager {
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 암구호를 사용할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
         if (sender.job !is Evil || sender.job is Villain) return SpiritRelayResult(false, "마피아 팀만 암구호를 사용할 수 있습니다.")
+        if (sender.job !is Mafia && !hasContactedMafiaTeam(game, sender)) {
+            return SpiritRelayResult(false, "보조 직업은 접선 후에만 암구호를 사용할 수 있습니다.")
+        }
         if (sender.allAbilities.none { it is Password }) return SpiritRelayResult(false, "암구호 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "암구호 메시지를 입력해 주세요.")
 
         val mafiaChannel = game.mafiaChannel ?: return SpiritRelayResult(false, "마피아 채널을 찾을 수 없습니다.")
         mafiaChannel.createMessage("[암구호] ${sender.member.effectiveName}: $message")
         return SpiritRelayResult(true, "암구호 메시지를 전송했습니다.")
+    }
+
+    private fun hasContactedMafiaTeam(game: Game, player: PlayerData): Boolean {
+        if (player.state.hasContactedMafiaByInformant) return true
+
+        return when (val job = player.job) {
+            is Beastman -> player.state.isTamed
+            is Godfather -> GodfatherContactPolicy.canContactMafia(game)
+            is HitMan -> job.hasContactedMafia
+            is Hostess -> job.hasContactedMafia
+            is MadScientist -> player.state.hasContactedMafiaOnDeath
+            is Spy -> job.hasContactedMafia
+            is Swindler -> job.hasContactedMafia
+            is Thief -> job.hasContactedMafia
+            is Witch -> job.hasContactedMafia
+            else -> false
+        }
     }
 
     private fun parseTargetPlayer(game: Game, raw: String): PlayerData? {

@@ -863,18 +863,23 @@ object GameLoopManager {
     }
 
     private fun canAccessMafiaChannel(game: Game, player: PlayerData): Boolean {
-        return when {
-            player.job is Mafia -> true
-            player.job is Beastman && player.state.isTamed -> true
-            player.state.hasContactedMafiaByInformant -> true
-            player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
-            player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
-            player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
-            player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
-            player.job is Spy && (player.job as Spy).hasContactedMafia -> true
-            player.job is Swindler && (player.job as Swindler).hasContactedMafia -> true
-            player.job is Thief && (player.job as Thief).hasContactedMafia -> true
-            player.job is Witch && (player.job as Witch).hasContactedMafia -> true
+        if (player.job is Mafia) return true
+        if (player.state.hasContactedMafiaByInformant) return true
+
+        return hasContactedMafiaByJobState(game, player)
+    }
+
+    private fun hasContactedMafiaByJobState(game: Game, player: PlayerData): Boolean {
+        return when (val job = player.job) {
+            is Beastman -> player.state.isTamed
+            is Godfather -> GodfatherContactPolicy.canContactMafia(game)
+            is HitMan -> job.hasContactedMafia
+            is Hostess -> job.hasContactedMafia
+            is MadScientist -> player.state.hasContactedMafiaOnDeath
+            is Spy -> job.hasContactedMafia
+            is Swindler -> job.hasContactedMafia
+            is Thief -> job.hasContactedMafia
+            is Witch -> job.hasContactedMafia
             else -> false
         }
     }
