@@ -486,17 +486,30 @@ object GameLoopManager {
                 SwindlerManager.contactMafia(game, swindlerPlayer)
             }
 
-            val targetSurvived = mafiaAttack.target !in playersToDie
-            game.mafiaAttackFailedPreviousNight = targetSurvived
+            // 마피아 팀의 모든 공격(대부 포함)을 순회하며 성공 여부 및 부수 효과 처리
+            val allMafiaTeamAttacks = game.nightAttacks.filter { (key, _) ->
+                key == "MAFIA_TEAM" || key.startsWith("GODFATHER_")
+            }.values
 
-            if (targetSurvived) {
-                if (!swindlerNegotiationBlockedExecution) {
-                    applyMafiaExecutionFailureEffects(game, mafiaAttack)
+            var atLeastOneMafiaExecutionSucceeded = false
+            var atLeastOneMafiaAttackFailed = false
+
+            allMafiaTeamAttacks.forEach { attack ->
+                val targetSurvived = attack.target !in playersToDie
+                if (targetSurvived) {
+                    atLeastOneMafiaAttackFailed = true
+                    // 사용자의 요청에 따라 자해(Self-Execution)인 경우에도 처형 실패 시 은폐가 발동하도록 수정
+                    if (!swindlerNegotiationBlockedExecution) {
+                        applyMafiaExecutionFailureEffects(game, attack)
+                    }
+                } else {
+                    atLeastOneMafiaExecutionSucceeded = true
+                    registerCoupleResentment(game, attack)
+                    applyMafiaExecutionSuccessEffects(game, attack)
                 }
-            } else {
-                registerCoupleResentment(game, mafiaAttack)
-                applyMafiaExecutionSuccessEffects(game, mafiaAttack)
             }
+
+            game.mafiaAttackFailedPreviousNight = !atLeastOneMafiaExecutionSucceeded
         } else {
             game.mafiaAttackFailedPreviousNight = false
         }
@@ -2343,11 +2356,14 @@ object GameLoopManager {
             return DawnPresentation(imageUrl = "", message = "")
         }
 
-        // 기존 마피아 킬 로직
+        // 마피아팀 킬 (마피아, 도둑 등)
         val mafiaKillVictim = attacks
-            .firstOrNull { it.attacker.job?.name == "마피아" }
+            .firstOrNull {
+                val attackerJob = it.attacker.job
+                (attackerJob is Mafia || (attackerJob is Thief && attackerJob.abilities.any { it.name == "처형" })) &&
+                        it.target in deaths
+            }
             ?.target
-            ?.takeIf { it in deaths }
         val beastKillVictim = attacks
             .firstOrNull { it.attacker.job is Beastman }
             ?.target
