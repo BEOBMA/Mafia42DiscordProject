@@ -31,10 +31,6 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (caster.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         }
-        if (caster.state.isSilenced) {
-            // 마피아는 마담의 능력이나 마녀의 능력에 효과를 받지 않음.
-            return AbilityResult(false, "침묵 상태에서는 처형 대상을 지정할 수 없습니다.")
-        }
         if (target == null) {
             return AbilityResult(false, "처형할 대상을 지정해야 합니다.")
         }

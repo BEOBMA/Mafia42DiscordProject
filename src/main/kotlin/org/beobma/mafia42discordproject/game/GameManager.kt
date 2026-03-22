@@ -59,6 +59,7 @@ import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
 import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
 import org.beobma.mafia42discordproject.job.ability.general.list.Will
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
@@ -1267,6 +1268,7 @@ object GameManager {
     private suspend fun sendMegaphoneMessage(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "확성기는 밤에만 사용할 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 확성기를 사용할 수 없습니다.")
+        if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 확성기가 정상 출력되지 않습니다.")
         if (sender.allAbilities.none { it is Megaphone }) return SpiritRelayResult(false, "확성기 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "확성기 메시지를 입력해 주세요.")
         if (sender.member.id in game.usedMegaphonePlayerIds) return SpiritRelayResult(false, "확성기는 게임 중 1회만 사용할 수 있습니다.")
@@ -1281,6 +1283,7 @@ object GameManager {
     private fun sendSecretLetter(game: Game, sender: PlayerData, target: PlayerData, message: String): SpiritRelayResult {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "밀서는 밤에만 보낼 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 밀서를 보낼 수 없습니다.")
+        if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
         if (sender.allAbilities.none { it is SecretLetter }) return SpiritRelayResult(false, "밀서 능력이 없습니다.")
         if (sender.member.id in game.usedSecretLetterPlayerIds) return SpiritRelayResult(false, "밀서는 게임 중 1회만 보낼 수 있습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어에게는 밀서를 보낼 수 없습니다.")
@@ -1296,6 +1299,7 @@ object GameManager {
     private fun writeWill(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "유언은 밤에만 작성할 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 유언을 작성할 수 없습니다.")
+        if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 유언이 정상 출력되지 않습니다.")
         if (sender.allAbilities.none { it is Will }) return SpiritRelayResult(false, "유언 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "유언 내용을 입력해 주세요.")
 
@@ -1308,6 +1312,7 @@ object GameManager {
             return SpiritRelayResult(false, "위증은 본투표 시간에만 사용할 수 있습니다.")
         }
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증을 사용할 수 없습니다.")
+        if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
         if (sender.allAbilities.none { it is Perjury }) return SpiritRelayResult(false, "위증 능력이 없습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
         game.currentFakeVotes[sender.member.id] = target.member.id
@@ -1480,6 +1485,9 @@ object GameManager {
         if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
 
         game.currentMainVotes[voterId] = target.member.id.toString()
+        if (game.dayCount == 1 && voter.job is Hostess && !game.hostessFirstVoteTargetByDay.containsKey(voterId)) {
+            game.hostessFirstVoteTargetByDay[voterId] = target.member.id
+        }
         return true
     }
 
@@ -1488,6 +1496,7 @@ object GameManager {
         if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return false
         val voter = game.getPlayer(voterId) ?: return false
         if (voter.state.isDead) return false
+        if (voter.state.isSilenced) return false
         if (voter.allAbilities.none { it is Perjury }) return false
         val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
         val target = game.getPlayer(targetId) ?: return false

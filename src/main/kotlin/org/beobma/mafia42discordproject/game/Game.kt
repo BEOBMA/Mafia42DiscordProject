@@ -21,6 +21,12 @@ data class NightResolutionSummary(
     val dawnPresentation: DawnPresentation? = null
 )
 
+data class SeductionStatus(
+    val hostessId: Snowflake,
+    var minimumReleaseDay: Int,
+    var isPermanent: Boolean = false
+)
+
 data class Game(
     var playerDatas: MutableList<PlayerData>,
     val guild: Guild,
@@ -78,6 +84,8 @@ data class Game(
     val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
     val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val dayTimeAdjustmentUsedPlayers: MutableSet<Snowflake> = mutableSetOf()
+    val seductionStatusByTarget: MutableMap<Snowflake, SeductionStatus> = mutableMapOf()
+    val hostessFirstVoteTargetByDay: MutableMap<Snowflake, Snowflake> = mutableMapOf()
 
     fun replacePlayers(players: MutableList<PlayerData>) {
         playerDatas = players

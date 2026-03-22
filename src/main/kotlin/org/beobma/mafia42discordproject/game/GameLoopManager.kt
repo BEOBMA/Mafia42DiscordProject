@@ -39,6 +39,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Conc
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
@@ -74,6 +75,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Priest
 import org.beobma.mafia42discordproject.job.definition.list.Prophet
 import org.beobma.mafia42discordproject.job.definition.list.Reporter
 import org.beobma.mafia42discordproject.job.definition.list.Shaman
+import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -83,6 +85,7 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Godfather
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
+import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -110,6 +113,7 @@ object GameLoopManager {
     private const val VIGILANTE_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485082843393687690/Nu_4LgYjmQsjtz9Guhs_Vi6TduYsooqYsidxH3JULrfO9FKUR-bA7XlF_Xt_fmArScHnzeTIbRB1Fi1jbJcfo2ueRPQKC752PcZkqMf9q-F37QTZ2fx_4L7MfMZpQ4baqvVEFiP7-rx9MK48M1ZkLw.webp?ex=69c092ad&is=69bf412d&hm=0f4f08d96f674dc64170d6c252644367505f7290e17d6a05278199de541cb557&"
     private const val GODFATHER_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087325703901365/6Dt6As_ReET4vjOl3djPFyzLrg-v8hvaMe42oBrrf6ROTHOk1ejUYjwk-vn9DfryaLt8v06oG-aRbrGZgELlBM9G8ciLeqIsvKT4OZMroiRIz-6t3GyftqwT67UHpzqiI3o7Ja9CelJpOrgibccDPg.webp?ex=69c096da&is=69bf455a&hm=270ad9182d231294d6116d48e9fd7378731ccbe3553fd8f20a1d8bf282236c92&"
     private const val GODFATHER_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087458973450440/JMivfRSM1woZcZCwYUiFomJa5e6hG7Nss4xAl5wx1vzzoCkUrdxBlsSLh4M_79MjdKDh4q2kBDhucJpsrvZ7YNkuyVHHr_A32nhIGOsOafwBd0qwarqdazI1Z8mJeFvNMaa7vJX2ywZFd-mxzAtWug.webp?ex=69c096f9&is=69bf4579&hm=a9035324581fb576d6a0bb2c02a8fbae8d28152939f032bea8e0f61af822df61&"
+    private const val HOSTESS_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485092736318312649/qHqxEk0Ie1w1nYS_fuFrHR5Jo1CsmnD0_0naxqt7UIAYVQSU-8RaF44ld6eH7tVZTQ33iWE9g5Us0MSaagAuzLmDYDN_gkvqZdV1PeM2cDCVPNk8nxM9r91ynjwfTXW0nBSoZlKA2dWkoavBHN2ydw.webp?ex=69c09be4&is=69bf4a64&hm=409a014694a67993257f3d0cebdae9af68066675c7599f90237d21342678152d&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -367,6 +371,7 @@ object GameLoopManager {
                 }
             }
         }
+        applyHostessSeductionStates(game)
 
         mainChannel.edit {
             addRoleOverwrite(game.guild.id) {
@@ -677,6 +682,7 @@ object GameLoopManager {
             imageLink = SystemImage.DAY_START.imageUrl,
             message = "낮이 되었습니다."
         )
+        applyHostessSeductionStates(game)
         if (game.pendingDayStartDiscoveries.isNotEmpty()) {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(game.pendingDayStartDiscoveries.toList(), game)
             game.pendingDayStartDiscoveries.clear()
@@ -752,7 +758,7 @@ object GameLoopManager {
                 }
 
                 if (canAccessMafiaChannel(game, player)) {
-                    val canSend = isNight
+                    val canSend = isNight && !player.state.isSilenced
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
@@ -790,6 +796,7 @@ object GameLoopManager {
             player.job is Beastman && player.state.isTamed -> true
             player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
             player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
+            player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
             else -> false
         }
     }
@@ -807,6 +814,87 @@ object GameLoopManager {
             "https://cdn.discordapp.com/attachments/1483977619258212392/1485090211133259897/oRhn9TDiSQ7IEZDLWEVkdWYUpg-z9zOnCQ_eHxm0HDM0NUe21_6HbCdPQFIjCFqMnm38e_wbu4BZlT3Zx__1qU4k9-jkCaMyxCOPeHTxxhdaX3j_BVvsInUZvtVOOUfm5zFotdXpbKKrsg-lvqodkg.webp?ex=69c09989&is=69bf4809&hm=2cbcf46a67886753867f3c144e8eb30185fa3c23c3a97f544097880102a89290&\n접선했습니다."
         )
         refreshMafiaChannelContactState(game)
+    }
+
+    private fun applyHostessSeductionStates(game: Game) {
+        game.playerDatas.forEach { target ->
+            target.state.isSilenced = isSeducedAtCurrentTime(game, target)
+        }
+    }
+
+    private fun isSeducedAtCurrentTime(game: Game, target: PlayerData): Boolean {
+        if (target.state.isDead) return false
+        val seduction = game.seductionStatusByTarget[target.member.id] ?: return false
+        if (target.job is Soldier && target.allAbilities.any { it is MentalStrength }) return false
+
+        val hostess = game.getPlayer(seduction.hostessId)
+        val hostessAlive = hostess != null && !hostess.state.isDead && hostess.job is Hostess
+        return seduction.isPermanent || hostessAlive || game.dayCount <= seduction.minimumReleaseDay
+    }
+
+    private suspend fun applyHostessSeductionFromVote(game: Game) {
+        val seductionTargetsByHostess = mutableMapOf<PlayerData, MutableSet<Snowflake>>()
+
+        game.currentMainVotes.forEach { (voterId, targetIdString) ->
+            val voter = game.getPlayer(voterId) ?: return@forEach
+            if (voter.state.isDead || voter.job !is Hostess) return@forEach
+            val target = game.getPlayer(Snowflake(targetIdString)) ?: return@forEach
+            if (target.state.isDead) return@forEach
+            seductionTargetsByHostess.getOrPut(voter) { mutableSetOf() } += target.member.id
+        }
+
+        if (game.dayCount == 1) {
+            game.hostessFirstVoteTargetByDay.forEach { (hostessId, firstTargetId) ->
+                val hostessPlayer = game.getPlayer(hostessId) ?: return@forEach
+                if (hostessPlayer.state.isDead || hostessPlayer.job !is Hostess) return@forEach
+                val firstTarget = game.getPlayer(firstTargetId) ?: return@forEach
+                if (firstTarget.state.isDead) return@forEach
+                seductionTargetsByHostess.getOrPut(hostessPlayer) { mutableSetOf() } += firstTarget.member.id
+            }
+        }
+
+        seductionTargetsByHostess.forEach { (hostessPlayer, targetIds) ->
+            val hostessJob = hostessPlayer.job as? Hostess ?: return@forEach
+            targetIds.forEach { targetId ->
+                applyHostessSeduction(
+                    game = game,
+                    hostessPlayer = hostessPlayer,
+                    hostessJob = hostessJob,
+                    targetId = targetId
+                )
+            }
+        }
+        applyHostessSeductionStates(game)
+    }
+
+    private suspend fun applyHostessSeduction(
+        game: Game,
+        hostessPlayer: PlayerData,
+        hostessJob: Hostess,
+        targetId: Snowflake
+    ) {
+        val target = game.getPlayer(targetId) ?: return
+        if (target.state.isDead) return
+        if (target.job is Soldier && target.allAbilities.any { it is MentalStrength }) return
+
+        val hasDeception = hostessPlayer.allAbilities.any { it is Deception }
+        val minimumReleaseDay = game.dayCount + 1
+        val existing = game.seductionStatusByTarget[target.member.id]
+        if (existing == null || existing.minimumReleaseDay < minimumReleaseDay) {
+            game.seductionStatusByTarget[target.member.id] = SeductionStatus(
+                hostessId = hostessPlayer.member.id,
+                minimumReleaseDay = minimumReleaseDay,
+                isPermanent = hasDeception
+            )
+        } else if (hasDeception) {
+            existing.isPermanent = true
+        }
+
+        if (!hostessJob.hasContactedMafia && target.job is Mafia) {
+            hostessJob.hasContactedMafia = true
+            game.mafiaChannel?.createMessage("$HOSTESS_CONTACT_IMAGE_URL\n접선했습니다.")
+            refreshMafiaChannelContactState(game)
+        }
     }
 
     private fun applyBeastmanExecutionOverride(game: Game) {
@@ -910,7 +998,7 @@ object GameLoopManager {
                 }
 
                 if (player.job is Couple) {
-                    val canAccess = isNight
+                    val canAccess = isNight && !player.state.isSilenced
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canAccess) Permissions() else Permissions(Permission.SendMessages)
@@ -968,6 +1056,7 @@ object GameLoopManager {
         game.currentPhase = GamePhase.VOTE
         game.currentMainVotes.clear()
         game.currentFakeVotes.clear()
+        game.hostessFirstVoteTargetByDay.clear()
         game.defenseTargetId = null
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
@@ -1017,6 +1106,7 @@ object GameLoopManager {
     suspend fun resolveVotePhase(game: Game): PlayerData? {
         val mainChannel = game.mainChannel ?: return null
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        applyHostessSeductionFromVote(game)
         val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
         if (dictatorshipPolitician != null) {
             val politicianVoteTargetId = game.currentMainVotes[dictatorshipPolitician.member.id]

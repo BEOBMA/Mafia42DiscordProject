@@ -34,6 +34,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -111,6 +112,10 @@ object AbilityUseCommand : DiscordCommand {
         }
         if (caster.member.id in game.pendingNightDeathPlayerIds) {
             DiscordMessageManager.respondEphemeral(event, "이미 암살당해 능력을 사용할 수 없습니다.")
+            return
+        }
+        if (caster.state.isSilenced && caster.job !is Mafia) {
+            DiscordMessageManager.respondEphemeral(event, "유혹 상태에서는 능력을 사용할 수 없습니다.")
             return
         }
 
