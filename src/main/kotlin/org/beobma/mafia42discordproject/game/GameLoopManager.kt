@@ -2473,7 +2473,7 @@ object GameLoopManager {
             votePresentationScope.launch {
                 runCatching {
                     policePlayer.member.getDmChannel().createMessage(
-                        "[부검] ${victim.member.effectiveName}님은 ${if (victim.job is Evil) "마피아 팀" else "시민 팀"}입니다."
+                        "${victim.member.effectiveName}님은 ${if (victim.job is Mafia) "마피아입니다." else "마피아가 아닙니다."}"
                     )
                 }
             }
