@@ -474,39 +474,47 @@ object GameLoopManager {
         resolveMartyrNightExplosions(game, playersToDie)
 
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"]
-        if (mafiaAttack != null) {
-            val selectedMafiaTarget = resolveOriginallySelectedMafiaTarget(game, mafiaAttack)
+        
+        // 마피아 팀의 모든 공격(대부 포함)을 순회하며 성공 여부 및 부수 효과 처리
+        val allMafiaTeamAttacks = game.nightAttacks.filter { (key, _) ->
+            key == "MAFIA_TEAM" || key.startsWith("GODFATHER_")
+        }.values
+
+        if (allMafiaTeamAttacks.isNotEmpty()) {
+            val selectedMafiaTarget = mafiaAttack?.let { resolveOriginallySelectedMafiaTarget(game, it) }
             var swindlerNegotiationBlockedExecution = false
 
-            SwindlerManager.shouldTriggerNegotiation(game, selectedMafiaTarget)?.let { (swindlerPlayer, swindlerWasMafiaTarget) ->
-                if (swindlerWasMafiaTarget) {
-                    playersToDie.remove(swindlerPlayer)
-                    game.concealmentForcedQuietNight = true
-                    swindlerNegotiationBlockedExecution = true
+            selectedMafiaTarget?.let { target ->
+                SwindlerManager.shouldTriggerNegotiation(game, target)?.let { (swindlerPlayer, swindlerWasMafiaTarget) ->
+                    if (swindlerWasMafiaTarget) {
+                        playersToDie.remove(swindlerPlayer)
+                        game.concealmentForcedQuietNight = true
+                        swindlerNegotiationBlockedExecution = true
+                    }
+                    SwindlerManager.contactMafia(game, swindlerPlayer)
                 }
-                SwindlerManager.contactMafia(game, swindlerPlayer)
             }
 
-            // 마피아 팀의 모든 공격(대부 포함)을 순회하며 성공 여부 및 부수 효과 처리
-            val allMafiaTeamAttacks = game.nightAttacks.filter { (key, _) ->
-                key == "MAFIA_TEAM" || key.startsWith("GODFATHER_")
-            }.values
-
             var atLeastOneMafiaExecutionSucceeded = false
-            var atLeastOneMafiaAttackFailed = false
+            val failedAttacks = mutableListOf<AttackEvent>()
 
             allMafiaTeamAttacks.forEach { attack ->
                 val targetSurvived = attack.target !in playersToDie
                 if (targetSurvived) {
-                    atLeastOneMafiaAttackFailed = true
-                    // 사용자의 요청에 따라 자해(Self-Execution)인 경우에도 처형 실패 시 은폐가 발동하도록 수정
-                    if (!swindlerNegotiationBlockedExecution) {
-                        applyMafiaExecutionFailureEffects(game, attack)
-                    }
+                    failedAttacks += attack
                 } else {
                     atLeastOneMafiaExecutionSucceeded = true
                     registerCoupleResentment(game, attack)
                     applyMafiaExecutionSuccessEffects(game, attack)
+                }
+            }
+
+            // 마피아 팀 중 적어도 한 명이라도 처형에 성공했다면 은폐가 발동하지 않도록 함
+            if (!atLeastOneMafiaExecutionSucceeded) {
+                failedAttacks.forEach { attack ->
+                    if (!swindlerNegotiationBlockedExecution) {
+                        applyMafiaExecutionFailureEffects(game, attack)
+                    }
                 }
             }
 
@@ -2386,7 +2394,7 @@ object GameLoopManager {
         val mafiaKillVictim = attacks
             .firstOrNull {
                 val attackerJob = it.attacker.job
-                (attackerJob is Mafia || (attackerJob is Thief && attackerJob.abilities.any { it.name == "처형" })) &&
+                (attackerJob?.name == "마피아" || (attackerJob is Thief && attackerJob.abilities.any { it.name == "처형" })) &&
                         it.target in deaths
             }
             ?.target
