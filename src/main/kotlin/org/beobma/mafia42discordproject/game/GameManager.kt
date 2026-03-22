@@ -54,6 +54,10 @@ import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
+import org.beobma.mafia42discordproject.job.ability.general.list.Megaphone
+import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
+import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
+import org.beobma.mafia42discordproject.job.ability.general.list.Will
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
@@ -78,6 +82,10 @@ object GameManager {
     private const val GAME_DEAD_CHANNEL_ID = 1485008691961790484L
     private const val SHAMAN_RELAY_COMMAND = "접신"
     private const val SHAMANED_RELAY_COMMAND = "강령"
+    private const val MEGAPHONE_COMMAND = "확성기"
+    private const val SECRET_LETTER_COMMAND = "밀서"
+    private const val WILL_COMMAND = "유언"
+    private const val PERJURY_COMMAND = "위증"
 
     data class SpiritRelayResult(
         val isSuccess: Boolean,
@@ -1177,6 +1185,149 @@ object GameManager {
         }
     }
 
+    suspend fun useMegaphone(memberId: Snowflake, message: String): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        return sendMegaphoneMessage(game, sender, message)
+    }
+
+    fun sendSecretLetter(memberId: Snowflake, targetId: Snowflake, message: String): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        val target = game.getPlayer(targetId) ?: return SpiritRelayResult(false, "밀서 대상을 찾을 수 없습니다.")
+        return sendSecretLetter(game, sender, target, message)
+    }
+
+    fun writeWill(memberId: Snowflake, message: String): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        return writeWill(game, sender, message)
+    }
+
+    fun castPerjuryVote(memberId: Snowflake, targetId: Snowflake): SpiritRelayResult {
+        val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
+        val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
+        val target = game.getPlayer(targetId) ?: return SpiritRelayResult(false, "위증 대상을 찾을 수 없습니다.")
+        return castPerjuryVote(game, sender, target)
+    }
+
+    suspend fun handleNightUtilityCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
+        val game = currentGame ?: return false
+        val memberId = event.member?.id ?: return false
+        val sender = game.getPlayer(memberId) ?: return false
+
+        return when (commandName) {
+            MEGAPHONE_COMMAND -> {
+                val message = args.joinToString(" ").trim()
+                val result = sendMegaphoneMessage(game, sender, message)
+                event.message.channel.createMessage(result.message)
+                true
+            }
+
+            SECRET_LETTER_COMMAND -> {
+                if (args.size < 2) {
+                    event.message.channel.createMessage("사용법: !밀서 @대상 내용")
+                    return true
+                }
+                val target = parseTargetPlayer(game, args.first())
+                val result = if (target == null) {
+                    SpiritRelayResult(false, "밀서 대상을 찾을 수 없습니다.")
+                } else {
+                    sendSecretLetter(game, sender, target, args.drop(1).joinToString(" ").trim())
+                }
+                event.message.channel.createMessage(result.message)
+                true
+            }
+
+            WILL_COMMAND -> {
+                val result = writeWill(game, sender, args.joinToString(" ").trim())
+                event.message.channel.createMessage(result.message)
+                true
+            }
+
+            PERJURY_COMMAND -> {
+                if (args.isEmpty()) {
+                    event.message.channel.createMessage("사용법: !위증 @대상")
+                    return true
+                }
+                val target = parseTargetPlayer(game, args.first())
+                val result = if (target == null) {
+                    SpiritRelayResult(false, "위증 대상을 찾을 수 없습니다.")
+                } else {
+                    castPerjuryVote(game, sender, target)
+                }
+                event.message.channel.createMessage(result.message)
+                true
+            }
+
+            else -> false
+        }
+    }
+
+    private suspend fun sendMegaphoneMessage(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
+        if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "확성기는 밤에만 사용할 수 있습니다.")
+        if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 확성기를 사용할 수 없습니다.")
+        if (sender.allAbilities.none { it is Megaphone }) return SpiritRelayResult(false, "확성기 능력이 없습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "확성기 메시지를 입력해 주세요.")
+        if (sender.member.id in game.usedMegaphonePlayerIds) return SpiritRelayResult(false, "확성기는 게임 중 1회만 사용할 수 있습니다.")
+        if (game.megaphoneUsedTonight) return SpiritRelayResult(false, "이번 밤에는 이미 다른 플레이어가 확성기를 사용했습니다.")
+
+        game.mainChannel?.createMessage("[확성기] ${sender.member.effectiveName}: $message")
+        game.usedMegaphonePlayerIds += sender.member.id
+        game.megaphoneUsedTonight = true
+        return SpiritRelayResult(true, "확성기 메시지를 전송했습니다.")
+    }
+
+    private fun sendSecretLetter(game: Game, sender: PlayerData, target: PlayerData, message: String): SpiritRelayResult {
+        if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "밀서는 밤에만 보낼 수 있습니다.")
+        if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 밀서를 보낼 수 없습니다.")
+        if (sender.allAbilities.none { it is SecretLetter }) return SpiritRelayResult(false, "밀서 능력이 없습니다.")
+        if (sender.member.id in game.usedSecretLetterPlayerIds) return SpiritRelayResult(false, "밀서는 게임 중 1회만 보낼 수 있습니다.")
+        if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어에게는 밀서를 보낼 수 없습니다.")
+        if (target.member.id == sender.member.id) return SpiritRelayResult(false, "자기 자신에게는 밀서를 보낼 수 없습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
+
+        val formatted = "${sender.member.effectiveName} To ${target.member.effectiveName}\n$message"
+        game.pendingLettersByRecipient.getOrPut(target.member.id) { mutableListOf() } += formatted
+        game.usedSecretLetterPlayerIds += sender.member.id
+        return SpiritRelayResult(true, "${target.member.effectiveName}님에게 밀서를 보냈습니다. 낮 시작 시 전달됩니다.")
+    }
+
+    private fun writeWill(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
+        if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "유언은 밤에만 작성할 수 있습니다.")
+        if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 유언을 작성할 수 없습니다.")
+        if (sender.allAbilities.none { it is Will }) return SpiritRelayResult(false, "유언 능력이 없습니다.")
+        if (message.isBlank()) return SpiritRelayResult(false, "유언 내용을 입력해 주세요.")
+
+        game.willByPlayerId[sender.member.id] = message
+        return SpiritRelayResult(true, "유언을 작성했습니다. 이번 밤에 사망하면 공개됩니다.")
+    }
+
+    private fun castPerjuryVote(game: Game, sender: PlayerData, target: PlayerData): SpiritRelayResult {
+        if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) {
+            return SpiritRelayResult(false, "위증은 본투표 시간에만 사용할 수 있습니다.")
+        }
+        if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증을 사용할 수 없습니다.")
+        if (sender.allAbilities.none { it is Perjury }) return SpiritRelayResult(false, "위증 능력이 없습니다.")
+        if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
+        game.currentFakeVotes[sender.member.id] = target.member.id
+        return SpiritRelayResult(true, "${target.member.effectiveName}님에게 가짜 투표를 행사했습니다. (집계에만 반영)")
+    }
+
+    private fun parseTargetPlayer(game: Game, raw: String): PlayerData? {
+        val targetId = raw
+            .replace("<@", "")
+            .replace(">", "")
+            .replace("!", "")
+            .toULongOrNull()
+            ?.let(::Snowflake)
+        if (targetId != null) {
+            return game.getPlayer(targetId)
+        }
+
+        return game.playerDatas.firstOrNull { it.member.effectiveName.equals(raw, ignoreCase = true) }
+    }
+
     suspend fun relayShamanMessage(memberId: Snowflake, message: String): SpiritRelayResult {
         val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
         val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
@@ -1329,6 +1480,20 @@ object GameManager {
         if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
 
         game.currentMainVotes[voterId] = target.member.id.toString()
+        return true
+    }
+
+    fun receivePerjuryVote(voterId: Snowflake, targetIdString: String): Boolean {
+        val game = currentGame ?: return false
+        if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return false
+        val voter = game.getPlayer(voterId) ?: return false
+        if (voter.state.isDead) return false
+        if (voter.allAbilities.none { it is Perjury }) return false
+        val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
+        val target = game.getPlayer(targetId) ?: return false
+        if (target.state.isDead) return false
+
+        game.currentFakeVotes[voterId] = target.member.id
         return true
     }
 

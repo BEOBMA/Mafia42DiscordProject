@@ -52,9 +52,16 @@ data class Game(
 
     // 투표
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()
+    var currentFakeVotes: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
     var defenseTargetId: Snowflake? = null
     var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
+    val pendingEscapedPlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    var megaphoneUsedTonight: Boolean = false
+    val usedSecretLetterPlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    val pendingLettersByRecipient: MutableMap<Snowflake, MutableList<String>> = mutableMapOf()
+    val willByPlayerId: MutableMap<Snowflake, String> = mutableMapOf()
     // 건달 공갈(일시) 및 길동무(영구) 투표권 박탈 상태
     var activeThreatenedVoters: MutableMap<Snowflake, Snowflake> = mutableMapOf() // Key: 대상, Value: 건달
     var permanentlyDisenfranchisedVoters: MutableSet<Snowflake> = mutableSetOf()
