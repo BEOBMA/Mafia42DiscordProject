@@ -1159,7 +1159,10 @@ object GameManager {
             return false
         }
 
-        if (player.state.isDead) return false
+        if (player.state.isDead) {
+            runCatching { event.message.delete("사망 플레이어 채팅 채널 제한") }
+            return true
+        }
 
         runCatching { event.message.delete("왜곡 상태 채팅 차단") }
         return true
