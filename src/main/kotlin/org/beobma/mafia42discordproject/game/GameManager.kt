@@ -100,6 +100,7 @@ object GameManager {
     private const val WILL_COMMAND = "유언"
     private const val PERJURY_COMMAND = "위증"
     private const val PASSWORD_COMMAND = "암구호"
+    private const val GAME_CHANNEL_SPACER_LINES = 180
 
     data class SpiritRelayResult(
         val isSuccess: Boolean,
@@ -218,6 +219,7 @@ object GameManager {
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         setupGameChannels(this)
+        sendGameChannelSpacer(this)
 
         deferredResponse.respond {
             content = buildString {
@@ -280,6 +282,7 @@ object GameManager {
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
 
         setupGameChannels(this)
+        sendGameChannelSpacer(this)
 
         event.message.channel.createMessage(
             buildString {
@@ -1097,39 +1100,32 @@ object GameManager {
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
 
-        clearGameChannelMessages(gameToStop)
+        gameToStop.mainChannel = null
+        gameToStop.mafiaChannel = null
+        gameToStop.coupleChannel = null
+        gameToStop.deadChannel = null
     }
 
-    private suspend fun clearGameChannelMessages(game: Game) {
-        val mainChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAIN_CHANNEL_ID))
-        val mafiaChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_MAFIA_CHANNEL_ID))
-        val coupleChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_COUPLE_CHANNEL_ID))
-        val deadChannel = game.guild.getChannelOfOrNull<TextChannel>(Snowflake(GAME_DEAD_CHANNEL_ID))
+    private suspend fun sendGameChannelSpacer(game: Game) {
+        val spacerMessage = buildString {
+            repeat(GAME_CHANNEL_SPACER_LINES) {
+                appendLine(".")
+            }
+        }
 
-        clearChannelMessages(mainChannel, "메인")
-        clearChannelMessages(mafiaChannel, "마피아")
-        clearChannelMessages(coupleChannel, "연인")
-        clearChannelMessages(deadChannel, "죽은자")
-
-        game.mainChannel = null
-        game.mafiaChannel = null
-        game.coupleChannel = null
-        game.deadChannel = null
+        sendChannelSpacer(game.mainChannel, "메인", spacerMessage)
+        sendChannelSpacer(game.mafiaChannel, "마피아", spacerMessage)
+        sendChannelSpacer(game.coupleChannel, "연인", spacerMessage)
+        sendChannelSpacer(game.deadChannel, "죽은자", spacerMessage)
     }
 
-    private suspend fun clearChannelMessages(channel: TextChannel?, channelName: String) {
+    private suspend fun sendChannelSpacer(channel: TextChannel?, channelName: String, spacerMessage: String) {
         if (channel == null) return
 
         runCatching {
-            channel.messages.toList().forEach { message ->
-                runCatching {
-                    message.delete("게임 종료로 인한 채팅 초기화")
-                }.onFailure { exception ->
-                    println("[GameManager] ${channelName} 채널 메시지 삭제 실패(messageId=${message.id}): ${exception.message}")
-                }
-            }
+            channel.createMessage(spacerMessage)
         }.onFailure { exception ->
-            println("[GameManager] ${channelName} 채널 메시지 조회 실패: ${exception.message}")
+            println("[GameManager] ${channelName} 채널 줄넘김 메시지 전송 실패: ${exception.message}")
         }
     }
 
