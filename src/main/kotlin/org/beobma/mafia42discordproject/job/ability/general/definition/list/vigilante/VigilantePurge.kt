@@ -14,8 +14,8 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 
 class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "숙청"
-    override val description: String = "게임당 한 번, 낮에 플레이어 한 명을 선택해 마피아 여부를 알아낸다."
-    override val image: String = ""
+    override val description: String = "게임 당 한 번, 낮에 플레이어 한 명을 선택해 마피아 여부를 알아낼 수 있으며 밤에 마피아를 처형할 수 있다. (1회용)"
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485335685874319571/0dd66cee3c895a3b.png?ex=69c17e27&is=69c02ca7&hm=b40b73ecb6b9b11e96704a1730b1591492be3f9d7653b73b858d497fe20d5559&"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

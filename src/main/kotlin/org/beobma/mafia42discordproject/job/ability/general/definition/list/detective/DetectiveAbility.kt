@@ -16,7 +16,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Detective
 class DetectiveAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "추리"
     override val description: String = "밤마다 플레이어 한 명을 선택하여 그 플레이어가 누구에게 능력을 사용하였는지 알아낼 수 있다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485328762202624070/33a899c97edaa848.png?ex=69c177b4&is=69c02634&hm=675ca4c2fda4553f8c860161029e23a0130659bc0bcd1e315caca477c7b55e04&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

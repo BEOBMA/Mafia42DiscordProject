@@ -11,8 +11,8 @@ import org.beobma.mafia42discordproject.job.definition.list.Nurse
 
 class NurseAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처방"
-    override val description: String = "밤마다 플레이어 한 명을 선택해 의사 여부를 조사한다."
-    override val image: String = ""
+    override val description: String = "밤마다 플레이어 한 명을 선택해 의사인지 조사하고, 의사 또는 자신이 상대방에게 능력을 사용한 경우 접선한다. 접선 상태에서의 의사의 치료 능력은 모든 부가 능력을 무시하고 성공하며, 의사가 사망할 시 치료 능력을 사용할 수 있다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485332297308962836/12667c5ad13f94db.png?ex=69c17aff&is=69c0297f&hm=ea7366cb2e1e790826224f1f0e726eeb3a4cd5db8a680d1b4ebbdf3e8a8d2364&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

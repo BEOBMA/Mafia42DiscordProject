@@ -13,7 +13,7 @@ import kotlin.random.Random
 class MentalistAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "관찰"
     override val description: String = "낮마다 다른 플레이어들의 대화를 선택해 서로 다른 팀인지 확인하고, 앞서 선택한 플레이어와 같은 팀이 나올 때까지 이를 반복한다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485331806495445002/cbfdda837ac98b09.png?ex=69c17a8a&is=69c0290a&hm=fc20185670fafacd56beb977c862aea03ae7910bbaeb34b3ab767f70c48cae94&"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

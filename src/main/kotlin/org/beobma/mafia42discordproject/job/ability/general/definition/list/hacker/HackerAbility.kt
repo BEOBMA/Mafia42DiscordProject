@@ -11,8 +11,8 @@ import org.beobma.mafia42discordproject.job.definition.list.Hacker
 
 class HackerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "해킹"
-    override val description: String = "낮에 플레이어 한 명을 골라 그날 밤에 즉시 직업을 알아낸다."
-    override val image: String = ""
+    override val description: String = "낮에 플레이어 한 명을 골라 밤 사이 자신에게 발동되는 능력을 우회 적용시키고, 밤이 되면 해당 플레이어의 직업을 알아낸다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485330369862570227/ff496f705fa2476c.png?ex=69c17934&is=69c027b4&hm=bcedeea199fec05910372807f44e02ad7c314efb38ea05c48e12b29030efb161&"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

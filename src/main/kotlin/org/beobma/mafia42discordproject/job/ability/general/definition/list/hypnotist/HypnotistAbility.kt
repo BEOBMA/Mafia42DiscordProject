@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.hypnotist
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -8,11 +7,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.system.DiscoveryStep
-import org.beobma.mafia42discordproject.game.system.FrogCurseManager
-import org.beobma.mafia42discordproject.game.system.GameEvent
-import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
-import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
+import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -24,7 +19,7 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "최면"
     override val description: String = "밤에 플레이어 한 명을 최면 상태로 만든다. 같은 밤에는 대상을 바꿀 수 없다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485330690777153716/cdbffc314b3c49c3.png?ex=69c17980&is=69c02800&hm=65b5dae2d98f3a4a4435820be1a70c53fd04d5c714112aa2fa160c12cc092cce&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     companion object {

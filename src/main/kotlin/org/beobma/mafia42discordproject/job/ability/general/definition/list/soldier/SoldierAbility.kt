@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 class Bulletproof : JobUniqueAbility, PassiveAbility {
     override val name: String = "방탄"
     override val description: String = "마피아의 공격을 한 차례 버텨낸다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485335348472184942/f434b39e3b8e5883.png?ex=69c17dd7&is=69c02c57&hm=33fa8fb23fbabafb85bbe6a513f337f9c1b39abfbe6be0cd1336adab4f219f48&"
     override val priority: Int = 10
     
     // 상태 변수: 오늘 밤 방탄이 터졌는지 여부
