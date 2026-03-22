@@ -581,22 +581,14 @@ object GameLoopManager {
             victim.state.isPoisoned = false
             victim.state.poisonedDeathDay = null
             if (victim !in summary.deaths) {
-                victim.state.isDead = true
-                handleMadScientistDeath(game, victim, isLynch = false)
-                game.nightEvents += GameEvent.PlayerDied(victim)
-                applyPoliceAutopsy(game, victim)
-                SpyAbility.applyAutopsyOnDeath(game, victim)
+                processPlayerDeath(game, victim, isLynch = false)
                 revealBelongingsIfNeeded(game, victim)
             }
         }
 
         summary.deaths.forEach { victim ->
             if (victim.state.isDead) return@forEach
-            victim.state.isDead = true
-            handleMadScientistDeath(game, victim, isLynch = false)
-            game.nightEvents += GameEvent.PlayerDied(victim)
-            applyPoliceAutopsy(game, victim)
-            SpyAbility.applyAutopsyOnDeath(game, victim)
+            processPlayerDeath(game, victim, isLynch = false)
             revealBelongingsIfNeeded(game, victim)
         }
         resolvePriestResurrection(game, summary)
@@ -820,16 +812,8 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
-                if (player.state.isDead) {
-                    addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                        denied = Permissions(Permission.SendMessages)
-                    }
-                    return@forEach
-                }
-
                 if (canAccessMafiaChannel(game, player)) {
-                    val canSend = isNight && !shouldRestrictCommunication(player)
+                    val canSend = !player.state.isDead && isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
@@ -895,17 +879,47 @@ object GameLoopManager {
         if (target.member.id == spyPlayer.member.id) return
 
         spyJob.hasTriggeredAssassin = true
-        target.state.isDead = true
-        handleMadScientistDeath(game, target, isLynch = false)
-        game.nightEvents += GameEvent.PlayerDied(target)
-        applyPoliceAutopsy(game, target)
-        SpyAbility.applyAutopsyOnDeath(game, target)
+        processPlayerDeath(game, target, isLynch = false)
         revealBelongingsIfNeeded(game, target)
 
         game.sendMainChannelMessageWithImage(
             imageLink = SPY_ASSASSIN_IMAGE_URL,
             message = "**${target.member.effectiveName}이(가) 자객에 의해 살해당하였습니다.**"
         )
+    }
+
+    private suspend fun applyImmediateDeathCommunicationState(game: Game, player: PlayerData) {
+        runCatching {
+            player.member.edit {
+                muted = true
+            }
+        }
+
+        game.mainChannel?.edit {
+            addMemberOverwrite(player.member.id) {
+                denied = Permissions(Permission.SendMessages)
+            }
+        }
+
+        val isNight = game.currentPhase == GamePhase.NIGHT
+        game.mafiaChannel?.let { updateMafiaChannelPermissions(game, it, isNight) }
+        game.coupleChannel?.let { updateCoupleChannelPermissions(game, it, isNight) }
+        game.deadChannel?.let { updateDeadChannelPermissions(game, it) }
+    }
+
+    private suspend fun processPlayerDeath(
+        game: Game,
+        victim: PlayerData,
+        isLynch: Boolean
+    ) {
+        if (victim.state.isDead) return
+
+        victim.state.isDead = true
+        handleMadScientistDeath(game, victim, isLynch = isLynch)
+        game.nightEvents += GameEvent.PlayerDied(victim, isLynch = isLynch)
+        applyPoliceAutopsy(game, victim)
+        SpyAbility.applyAutopsyOnDeath(game, victim)
+        applyImmediateDeathCommunicationState(game, victim)
     }
 
     fun isMadScientistDistortionHidden(player: PlayerData): Boolean {
@@ -1600,12 +1614,8 @@ object GameLoopManager {
                 return@forEach
             }
 
-            escapedPlayer.state.isDead = true
-            handleMadScientistDeath(game, escapedPlayer, isLynch = true)
+            processPlayerDeath(game, escapedPlayer, isLynch = true)
             game.pendingEscapedPlayerIds.remove(escapedPlayerId)
-            game.nightEvents += GameEvent.PlayerDied(escapedPlayer, isLynch = true)
-            applyPoliceAutopsy(game, escapedPlayer)
-            SpyAbility.applyAutopsyOnDeath(game, escapedPlayer)
             game.sendMainChannelMessageWithImage(
                 imageLink = ESCAPE_DEATH_IMAGE_URL,
                 message = "투표에서 도주한 ${escapedPlayer.member.effectiveName}님이 사망하였습니다."
@@ -1853,11 +1863,7 @@ object GameLoopManager {
             return
         }
 
-        target.state.isDead = true
-        handleMadScientistDeath(game, target, isLynch = true)
-        game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
-        applyPoliceAutopsy(game, target)
-        SpyAbility.applyAutopsyOnDeath(game, target)
+        processPlayerDeath(game, target, isLynch = true)
         resolveMartyrDefenseExplosion(game, target)
         dispatchEvents(game)
         game.nightEvents.clear()
@@ -2138,11 +2144,7 @@ object GameLoopManager {
         if (selectedTarget.state.isDead) return
         if (selectedTarget.member.id == executedTarget.member.id) return
 
-        selectedTarget.state.isDead = true
-        handleMadScientistDeath(game, selectedTarget, isLynch = true)
-        game.nightEvents += GameEvent.PlayerDied(selectedTarget, isLynch = true)
-        applyPoliceAutopsy(game, selectedTarget)
-        SpyAbility.applyAutopsyOnDeath(game, selectedTarget)
+        processPlayerDeath(game, selectedTarget, isLynch = true)
 
         executedTarget.state.isJobPubliclyRevealed = true
         selectedTarget.state.isJobPubliclyRevealed = true
