@@ -40,6 +40,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
 import org.beobma.mafia42discordproject.job.ability.general.list.Escape
 import org.beobma.mafia42discordproject.job.ability.general.list.Innocence
@@ -738,7 +739,7 @@ object GameLoopManager {
                     return@forEach
                 }
 
-                if (canAccessMafiaChannel(player)) {
+                if (canAccessMafiaChannel(game, player)) {
                     val canSend = isNight
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
@@ -757,12 +758,18 @@ object GameLoopManager {
         }
     }
 
-    private fun canAccessMafiaChannel(player: PlayerData): Boolean {
+    private fun canAccessMafiaChannel(game: Game, player: PlayerData): Boolean {
         return when {
             player.job is Mafia -> true
             player.job is Beastman && player.state.isTamed -> true
+            player.job is org.beobma.mafia42discordproject.job.evil.list.Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
             else -> false
         }
+    }
+
+    private suspend fun refreshMafiaChannelContactState(game: Game) {
+        val mafiaChannel = game.mafiaChannel ?: return
+        updateMafiaChannelPermissions(game, mafiaChannel, isNight = game.currentPhase == GamePhase.NIGHT)
     }
 
     private fun applyBeastmanExecutionOverride(game: Game) {
@@ -1261,6 +1268,7 @@ object GameLoopManager {
         dispatchEvents(game)
         game.nightEvents.clear()
         game.deadChannel?.let { updateDeadChannelPermissions(game, it) }
+        refreshMafiaChannelContactState(game)
     }
 
     private fun deliverSecretLetters(game: Game) {
@@ -1473,6 +1481,7 @@ object GameLoopManager {
         if (deadChannel != null) {
             updateDeadChannelPermissions(game, deadChannel)
         }
+        refreshMafiaChannelContactState(game)
         game.defenseTargetId = null
     }
 
@@ -1620,6 +1629,7 @@ object GameLoopManager {
                 "직업 공개: ${executedTarget.member.effectiveName} - ${executedTarget.job?.name ?: "알 수 없음"}, " +
                 "${selectedTarget.member.effectiveName} - ${selectedTarget.job?.name ?: "알 수 없음"}"
         )
+        refreshMafiaChannelContactState(game)
     }
 
     suspend fun endGame(game: Game, winningTeam: Team) {
