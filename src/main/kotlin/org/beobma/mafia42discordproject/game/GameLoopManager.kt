@@ -505,7 +505,12 @@ object GameLoopManager {
         val processedDawnEvents = dispatchEvents(game)
         resolveCabalSpecialWinReadiness(game)
         resolveProphetPioneerSpecialWinReadiness(game, summary)
-        val dawnPresentation = buildDawnPresentation(game, summary.deaths)
+        val dawnDeaths = (summary.deaths + poisonedVictims).distinct()
+        val dawnPresentation = buildDawnPresentation(
+            game = game,
+            deaths = dawnDeaths,
+            poisonedDeaths = poisonedVictims
+        )
         if (dawnPresentation.message.isNotBlank() || dawnPresentation.imageUrl.isNotBlank()) {
             game.sendMainChannelMessageWithImage(
                 imageLink = dawnPresentation.imageUrl,
@@ -1490,7 +1495,11 @@ object GameLoopManager {
         }
     }
 
-    private fun buildDawnPresentation(game: Game, deaths: List<PlayerData>): DawnPresentation {
+    private fun buildDawnPresentation(
+        game: Game,
+        deaths: List<PlayerData>,
+        poisonedDeaths: List<PlayerData> = emptyList()
+    ): DawnPresentation {
         if (game.concealmentForcedQuietNight) {
             return DawnPresentation(
                 imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
@@ -1503,7 +1512,12 @@ object GameLoopManager {
             dayCount = game.dayCount,
             attacks = attacks,
             deaths = deaths,
-            presentation = buildDefaultDawnPresentation(attacks, deaths, game)
+            presentation = buildDefaultDawnPresentation(
+                attacks = attacks,
+                deaths = deaths,
+                poisonedDeaths = poisonedDeaths,
+                game = game
+            )
         )
 
         game.playerDatas
@@ -1523,6 +1537,7 @@ object GameLoopManager {
     private fun buildDefaultDawnPresentation(
         attacks: List<AttackEvent>,
         deaths: List<PlayerData>,
+        poisonedDeaths: List<PlayerData>,
         game: Game // Game 파라미터 추가 필요 (호출부에도 game을 넘겨주어야 함)
     ): DawnPresentation {
 
@@ -1540,11 +1555,17 @@ object GameLoopManager {
             .firstOrNull { it.attacker.job?.name == "마피아" }
             ?.target
             ?.takeIf { it in deaths }
+        val poisonedDeathVictim = poisonedDeaths.firstOrNull()
 
         val doctorSavedTarget = game.doctorSavedTargetTonight
 
         return if (mafiaKillVictim == null) {
-            if (doctorSavedTarget != null) {
+            if (poisonedDeathVictim != null) {
+                DawnPresentation(
+                    imageUrl = SystemImage.DEATH_BY_POISON.imageUrl,
+                    message = "${poisonedDeathVictim.member.effectiveName}님이 중독으로 사망했습니다."
+                )
+            } else if (doctorSavedTarget != null) {
                 DawnPresentation(
                     imageUrl = SystemImage.DOCTOR_HEAL.imageUrl,
                     message = "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
