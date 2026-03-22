@@ -143,7 +143,15 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, "불문율에 의해 불가능합니다.")
             return
         }
+        if (target != null && GameLoopManager.isMadScientistDistortionHidden(target)) {
+            DiscordMessageManager.respondEphemeral(event, "왜곡된 재생 상태의 과학자는 아직 스킬 대상으로 지정할 수 없습니다.")
+            return
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
+        if (effectiveTarget != null && GameLoopManager.isMadScientistDistortionHidden(effectiveTarget)) {
+            DiscordMessageManager.respondEphemeral(event, "왜곡된 재생 상태의 과학자는 아직 스킬 대상으로 지정할 수 없습니다.")
+            return
+        }
         val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
