@@ -18,6 +18,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 class PoliceAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "수색"
@@ -56,7 +57,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
-            isMafia = effectiveTarget.job is Evil,
+            isMafia = effectiveTarget.job is Mafia,
             isRepeatedSearch = effectiveTarget.member.id in policeJob.searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)
