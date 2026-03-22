@@ -611,11 +611,36 @@ object GameLoopManager {
         resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnDeaths = (summary.deaths + poisonedVictims).distinct()
         revealNightWillIfNeeded(game, dawnDeaths)
-        val dawnPresentation = buildDawnPresentation(
-            game = game,
-            deaths = dawnDeaths,
-            poisonedDeaths = poisonedVictims
-        )
+        val dawnPresentation = when {
+            poisonedVictims.isEmpty() -> summary.dawnPresentation ?: DawnPresentation(
+                imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
+                message = "조용하게 밤이 넘어갔습니다."
+            )
+            else -> {
+                val poisonLines = poisonedVictims
+                    .distinctBy { it.member.id }
+                    .joinToString("\n") { victim -> "${victim.member.effectiveName}님이 중독으로 사망했습니다." }
+
+                val basePresentation = summary.dawnPresentation
+                if (basePresentation == null || basePresentation.message.isBlank()) {
+                    DawnPresentation(
+                        imageUrl = SystemImage.DEATH_BY_POISON.imageUrl,
+                        message = poisonLines
+                    )
+                } else {
+                    DawnPresentation(
+                        imageUrl = if (basePresentation.imageUrl.isBlank()) {
+                            SystemImage.DEATH_BY_POISON.imageUrl
+                        } else {
+                            basePresentation.imageUrl
+                        },
+                        message = listOf(basePresentation.message, poisonLines)
+                            .filter { it.isNotBlank() }
+                            .joinToString("\n")
+                    )
+                }
+            }
+        }
         if (dawnPresentation.message.isNotBlank() || dawnPresentation.imageUrl.isNotBlank()) {
             game.sendMainChannelMessageWithImage(
                 imageLink = dawnPresentation.imageUrl,
