@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.game.player
 
 import dev.kord.common.entity.Snowflake
 import org.beobma.mafia42discordproject.game.system.DefenseTier
-import org.beobma.mafia42discordproject.game.system.GameEvent
 
 class PlayerState {
     // 영구적/누적 상태 (게임 끝날 때까지 유지)
@@ -25,8 +24,6 @@ class PlayerState {
     var madScientistAnalysisEligibleDay: Int? = null // 분석 가중치가 유효한 낮 일차
     var hasUsedMadScientistAnalysis: Boolean = false // 분석 가중치 사용 여부
     var lastPaparazziIssueDay: Int? = null // 파파라치 이슈 발동 일차(밤/낮 합산 1회 제한)
-    var pendingPaparazziIssuePriority: Int? = null // 같은 일차 내 이슈 우선순위 비교용
-    var pendingPaparazziIssueEvent: GameEvent.JobDiscovered? = null // 같은 일차 내 교체 가능한 이슈 이벤트
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어

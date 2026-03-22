@@ -125,20 +125,11 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                         }
                 }
         }
-        val immediateIssueEvents = game.nightEvents
-            .filterIsInstance<GameEvent.JobDiscovered>()
-            .filter { it.sharedByPaparazzi }
-        if (immediateIssueEvents.isNotEmpty()) {
-            game.nightEvents.removeAll(immediateIssueEvents.toSet())
-        }
 
         val releaseMessages = discoveries.map { "${it.target.member.effectiveName}님에게 걸린 최면을 해제합니다." }
 
         notificationScope.launch {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(discoveries)
-            if (immediateIssueEvents.isNotEmpty()) {
-                JobDiscoveryNotificationManager.notifyDiscoveredTargets(immediateIssueEvents)
-            }
 
             discoveries.filter { !it.isCancelled }.forEach { discovery ->
                 val teamDescription = if (discovery.actualJob is Evil) {
