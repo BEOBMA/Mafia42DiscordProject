@@ -1563,9 +1563,9 @@ object GameLoopManager {
                 cabalNotificationScope.launch {
                     runCatching {
                         val message = if (voters.isEmpty()) {
-                            "독심술 결과: 당신에게 투표한 사람이 없습니다."
+                            "이번 투표에서 당신에게 투표한 사람이 없습니다."
                         } else {
-                            "독심술 결과: 당신에게 투표한 사람 - ${voters.joinToString(", ")}"
+                            "당신에게 투표한 사람은 ${voters.joinToString(", ")}"
                         }
                         mindReader.member.getDmChannel().createMessage(message)
                     }
