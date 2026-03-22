@@ -83,6 +83,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
@@ -103,6 +104,7 @@ object GameLoopManager {
     private const val BEASTMAN_ATTACK_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485075367025836173/YzFttk1gOxNI077qHyWhP2998lil0b7GmqzQusuTzBVp3M2LzgmIHAxUH1m7uHOMR5LtQFLkBzZtIYMOu7zxT9vjaf4Uh26up3-i3cJ5wAeEPAeQQoxajm1kMkiRVl0r07pw1eafMIRnV8MkZBGNMA.webp?ex=69c08bb6&is=69bf3a36&hm=0bd9efbd0dd7841dbf2cd2e0531e8e0d26564637d085de9f48ac18aac1492f86&"
     private const val BEASTMAN_TAMED_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485075910263570463/XEMOjk-m1HtYEFgz0clURpnMQNiipyYZimPOWIPk6vogykiTNhInvt8W531YXrAjxtYqqnzoWbXKIk1C6nH1wOhkfPxHrCmz6q6LKWoBuR1AFmg2p5pEcApZ0SkwsLjqLjnyckqSMh5kVO9IVn4UHQ.webp?ex=69c08c38&is=69bf3ab8&hm=26ac26dcc50bc338b595319249a45f1cfb20d3a242bf6f6a8f6e740164d0c5de&"
     private const val BEASTMAN_ROAR_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485077233570812125/wLyCdbdvcKvKkGkmdkRW6vhDbtnasWFp5qGexUOnT488bF4RZzIXcAul1YGMNyw2pxxh9qJZooXhedNZeOR6eXjRq198saXx3yLZKkc_Oia88BI5rizeBltm0qJjbeHb3YPb4lL_n8UP-1IE2RT9Qg.webp?ex=69c08d73&is=69bf3bf3&hm=0c6ab1e928750c3fcd8355850ddefcab3380f44f519ace364157a5e36026fef9&"
+    private const val VIGILANTE_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485082843393687690/Nu_4LgYjmQsjtz9Guhs_Vi6TduYsooqYsidxH3JULrfO9FKUR-bA7XlF_Xt_fmArScHnzeTIbRB1Fi1jbJcfo2ueRPQKC752PcZkqMf9q-F37QTZ2fx_4L7MfMZpQ4baqvVEFiP7-rx9MK48M1ZkLw.webp?ex=69c092ad&is=69bf412d&hm=0f4f08d96f674dc64170d6c252644367505f7290e17d6a05278199de541cb557&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -424,6 +426,7 @@ object GameLoopManager {
         }
 
         resolveMercenaryAttackOrder(game, blockedAttacks, playersToDie)
+        resolveVigilanteAttackOrder(game, blockedAttacks, playersToDie)
         resolveMercenaryContractDeaths(game, blockedAttacks, playersToDie)
 
         resolveMartyrNightExplosions(game, playersToDie)
@@ -1848,10 +1851,22 @@ object GameLoopManager {
             ?.target
             ?.takeIf { it in deaths }
         val poisonedDeathVictim = poisonedDeaths.firstOrNull()
+        val vigilanteKillVictim = attacks
+            .firstOrNull { it.attacker.job is Vigilante }
+            ?.target
+            ?.takeIf { it in deaths && it.job is Evil }
 
         val doctorSavedTarget = game.doctorSavedTargetTonight
 
-        return if (beastKillVictim != null) {
+        return if (vigilanteKillVictim != null) {
+            vigilanteKillVictim.state.isJobPubliclyRevealed = true
+            val revealedJob = vigilanteKillVictim.job
+            DawnPresentation(
+                imageUrl = VIGILANTE_EXECUTION_IMAGE_URL,
+                message = "${vigilanteKillVictim.member.effectiveName}가 살해당하였습니다." +
+                    if (revealedJob != null) "\n${vigilanteKillVictim.member.effectiveName}님의 직업은 ${revealedJob.name}입니다." else ""
+            )
+        } else if (beastKillVictim != null) {
             DawnPresentation(
                 imageUrl = BEASTMAN_ATTACK_IMAGE_URL,
                 message = "${beastKillVictim.member.effectiveName}님이 짐승에게 습격당하였습니다."
@@ -2041,6 +2056,47 @@ object GameLoopManager {
         }
     }
 
+
+    private fun resolveVigilanteAttackOrder(
+        game: Game,
+        blockedAttacks: List<AttackEvent>,
+        playersToDie: MutableSet<PlayerData>
+    ) {
+        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
+        if (mafiaAttack in blockedAttacks) return
+
+        val cancelledAttackKeys = mutableListOf<String>()
+        val vigilanteAttackEntries = game.nightAttacks
+            .filterKeys { it.startsWith("VIGILANTE_") }
+            .toList()
+        if (vigilanteAttackEntries.isEmpty()) return
+
+        vigilanteAttackEntries.forEach { (attackKey, vigilanteAttack) ->
+            val vigilanteAttacker = vigilanteAttack.attacker
+            if (vigilanteAttacker.job !is Vigilante) return@forEach
+            if (mafiaAttack.target != vigilanteAttacker) return@forEach
+            if (vigilanteAttack in blockedAttacks) return@forEach
+
+            val hasResolute = vigilanteAttacker.allAbilities.any { it is Resolute }
+            if (hasResolute) return@forEach
+
+            cancelledAttackKeys += attackKey
+            val target = vigilanteAttack.target
+            val hasOtherUnblockedAttack = game.nightAttacks.any { (otherKey, otherAttack) ->
+                otherKey != attackKey &&
+                    otherAttack.target == target &&
+                    otherAttack !in blockedAttacks
+            }
+            if (!hasOtherUnblockedAttack) {
+                playersToDie.remove(target)
+            }
+        }
+
+        cancelledAttackKeys.forEach { attackKey ->
+            val cancelledAttack = game.nightAttacks.remove(attackKey) ?: return@forEach
+            game.nightDeathCandidates.remove(cancelledAttack.target)
+        }
+    }
     private fun resolveMercenaryContractDeaths(
         game: Game,
         blockedAttacks: List<AttackEvent>,
