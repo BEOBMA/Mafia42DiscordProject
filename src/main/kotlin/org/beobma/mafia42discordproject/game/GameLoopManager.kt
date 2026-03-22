@@ -83,6 +83,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 25_000L
@@ -424,6 +425,7 @@ object GameLoopManager {
         }
 
         resolveMercenaryAttackOrder(game, blockedAttacks, playersToDie)
+        resolveVigilanteAttackOrder(game, blockedAttacks, playersToDie)
         resolveMercenaryContractDeaths(game, blockedAttacks, playersToDie)
 
         resolveMartyrNightExplosions(game, playersToDie)
@@ -2041,6 +2043,47 @@ object GameLoopManager {
         }
     }
 
+
+    private fun resolveVigilanteAttackOrder(
+        game: Game,
+        blockedAttacks: List<AttackEvent>,
+        playersToDie: MutableSet<PlayerData>
+    ) {
+        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
+        if (mafiaAttack in blockedAttacks) return
+
+        val cancelledAttackKeys = mutableListOf<String>()
+        val vigilanteAttackEntries = game.nightAttacks
+            .filterKeys { it.startsWith("VIGILANTE_") }
+            .toList()
+        if (vigilanteAttackEntries.isEmpty()) return
+
+        vigilanteAttackEntries.forEach { (attackKey, vigilanteAttack) ->
+            val vigilanteAttacker = vigilanteAttack.attacker
+            if (vigilanteAttacker.job !is Vigilante) return@forEach
+            if (mafiaAttack.target != vigilanteAttacker) return@forEach
+            if (vigilanteAttack in blockedAttacks) return@forEach
+
+            val hasResolute = vigilanteAttacker.allAbilities.any { it is Resolute }
+            if (hasResolute) return@forEach
+
+            cancelledAttackKeys += attackKey
+            val target = vigilanteAttack.target
+            val hasOtherUnblockedAttack = game.nightAttacks.any { (otherKey, otherAttack) ->
+                otherKey != attackKey &&
+                    otherAttack.target == target &&
+                    otherAttack !in blockedAttacks
+            }
+            if (!hasOtherUnblockedAttack) {
+                playersToDie.remove(target)
+            }
+        }
+
+        cancelledAttackKeys.forEach { attackKey ->
+            val cancelledAttack = game.nightAttacks.remove(attackKey) ?: return@forEach
+            game.nightDeathCandidates.remove(cancelledAttack.target)
+        }
+    }
     private fun resolveMercenaryContractDeaths(
         game: Game,
         blockedAttacks: List<AttackEvent>,
