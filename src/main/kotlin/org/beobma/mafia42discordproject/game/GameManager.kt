@@ -81,11 +81,14 @@ object GameManager {
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
 
-    private const val MIN_TEST_PLAYER_COUNT = 8
-    private const val REQUIRED_MAFIA_COUNT = 2
-    private const val REQUIRED_ASSISTANT_COUNT = 1
-    private const val REQUIRED_DOCTOR_COUNT = 1
-    private const val REQUIRED_POLICE_COUNT = 1
+    private const val FULL_GAME_PLAYER_COUNT = 8
+
+    private data class RequiredRoleCounts(
+        val mafiaCount: Int,
+        val assistantCount: Int,
+        val doctorCount: Int,
+        val policeCount: Int
+    )
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
@@ -108,7 +111,6 @@ object GameManager {
     )
 
     private val policeJobNames = setOf("경찰", "요원", "자경단원")
-    private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false
@@ -302,15 +304,6 @@ object GameManager {
             )
         }.toMutableList()
 
-        val neededVirtualCount = (MIN_TEST_PLAYER_COUNT - players.size).coerceAtLeast(0)
-
-        repeat(neededVirtualCount) { index ->
-            players += AssignmentPlayer(
-                name = "가상플레이어${index + 1}",
-                preferences = generateVirtualPreferences()
-            )
-        }
-
         return players
     }
 
@@ -399,75 +392,58 @@ object GameManager {
         }
     }
 
-    private fun generateVirtualPreferences(): List<Job> {
-        val allJobs = JobManager.getAll()
-        val policePool = allJobs.filter { it.name in policeJobNames }
-        val assistantPool = allJobs.filter { it is Evil && it.name != "마피아" && it.name != "악인" }
-        val specialPool = allJobs.filter {
-            it.name !in policeJobNames &&
-                it.name != "의사" &&
-                it !is Evil &&
-                it.name !in excludedVirtualPreferenceJobNames
-        }
-
-        val police = requireNotNull(policePool.randomOrNull()) {
-            "가상 플레이어 선호 직업 구성을 위한 경찰 계열 직업이 없습니다."
-        }
-        val assistant = requireNotNull(assistantPool.randomOrNull()) {
-            "가상 플레이어 선호 직업 구성을 위한 보조 계열 직업이 없습니다."
-        }
-        val specials = specialPool.shuffled().take(5)
-
-        val fallbackPool = allJobs.filterNot {
-            it.name in excludedVirtualPreferenceJobNames ||
-                it.name in policeJobNames ||
-                it is Evil
-        }.shuffled()
-        return buildList {
-            add(assistant)
-            add(police)
-            addAll(specials)
-            fallbackPool.forEach { job ->
-                if (size >= 7) return@forEach
-                if (any { it.name == job.name }) return@forEach
-                add(job)
-            }
-        }.take(7)
-    }
-
     private fun assignJobs(players: MutableList<AssignmentPlayer>): AssignmentTrace {
         val trace = AssignmentTrace()
+        val requiredCounts = resolveRequiredRoleCounts(players.size)
+
         val mafia = JobManager.findByName("마피아") ?: run {
             trace.add("[오류] 마피아 직업 정의를 찾지 못했습니다.")
-            return trace
-        }
-        val assistantPool = JobManager.getAll().filter { it is Evil && it.name != mafia.name }
-        if (assistantPool.isEmpty()) {
-            trace.add("[오류] 보조 계열 직업 정의를 찾지 못했습니다.")
             return trace
         }
         val doctor = JobManager.findByName("의사") ?: run {
             trace.add("[오류] 의사 직업 정의를 찾지 못했습니다.")
             return trace
         }
+
         val policePool = JobManager.getAll().filter { it.name in policeJobNames }
-        if (policePool.isEmpty()) {
+        if (requiredCounts.policeCount > 0 && policePool.isEmpty()) {
             trace.add("[오류] 경찰 계열 직업 정의를 찾지 못했습니다.")
             return trace
         }
-        val selectedPoliceJob = pickPoliceJobByPreference(players, policePool, trace)
-        val selectedAssistantJob = pickAssistantJobByPreference(players, assistantPool, trace)
+
+        val assistantPool = JobManager.getAll().filter { it is Evil && it.name != mafia.name }
+        if (requiredCounts.assistantCount > 0 && assistantPool.isEmpty()) {
+            trace.add("[오류] 보조 계열 직업 정의를 찾지 못했습니다.")
+            return trace
+        }
+
+        val selectedPoliceJob = if (requiredCounts.policeCount > 0) {
+            pickPoliceJobByPreference(players, policePool, trace)
+        } else {
+            null
+        }
+
+        val selectedAssistantJob = if (requiredCounts.assistantCount > 0) {
+            pickAssistantJobByPreference(players, assistantPool, trace)
+        } else {
+            null
+        }
 
         trace.add("[1단계] 참여 인원: ${players.size}명")
         trace.add(
-            "[1단계] 고정 배정 직업: 마피아 ${REQUIRED_MAFIA_COUNT}명, 보조계열 ${REQUIRED_ASSISTANT_COUNT}명, 의사 ${REQUIRED_DOCTOR_COUNT}명, 경찰계열 ${REQUIRED_POLICE_COUNT}명"
+            "[1단계] 고정 배정 직업: 마피아 ${requiredCounts.mafiaCount}명, 보조계열 ${requiredCounts.assistantCount}명, 의사 ${requiredCounts.doctorCount}명, 경찰계열 ${requiredCounts.policeCount}명"
         )
 
-        val requiredFixedCount = REQUIRED_MAFIA_COUNT + REQUIRED_ASSISTANT_COUNT + REQUIRED_DOCTOR_COUNT + REQUIRED_POLICE_COUNT
+        val requiredFixedCount =
+            requiredCounts.mafiaCount +
+                requiredCounts.assistantCount +
+                requiredCounts.doctorCount +
+                requiredCounts.policeCount
+
         val slotCountForNonFixed = players.size - requiredFixedCount
         if (slotCountForNonFixed <= 0) {
             trace.add("[2단계] 고정 직업만 배정 가능한 인원 수라서 바로 랜덤 배정 진행")
-            assignRequiredJobs(players, mafia, selectedAssistantJob, doctor, selectedPoliceJob, trace)
+            assignRequiredJobs(players, mafia, selectedAssistantJob, doctor, selectedPoliceJob, requiredCounts, trace)
             return trace
         }
 
@@ -476,8 +452,26 @@ object GameManager {
             slotCount = slotCountForNonFixed,
             trace = trace
         )
-        assignRequiredJobs(players, mafia, selectedAssistantJob, doctor, selectedPoliceJob, trace)
+        assignRequiredJobs(players, mafia, selectedAssistantJob, doctor, selectedPoliceJob, requiredCounts, trace)
         return trace
+    }
+
+
+    private fun resolveRequiredRoleCounts(playerCount: Int): RequiredRoleCounts {
+        return if (playerCount >= FULL_GAME_PLAYER_COUNT) {
+            RequiredRoleCounts(mafiaCount = 2, assistantCount = 1, doctorCount = 1, policeCount = 1)
+        } else {
+            when (playerCount) {
+                7, 6 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 1, doctorCount = 1, policeCount = 1)
+                5, 4 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 0, doctorCount = 1, policeCount = 1)
+                else -> {
+                    val mafia = if (playerCount >= 2) 1 else 0
+                    val doctor = if (playerCount >= 1) 1 else 0
+                    val police = if (playerCount >= 3) 1 else 0
+                    RequiredRoleCounts(mafiaCount = mafia, assistantCount = 0, doctorCount = doctor, policeCount = police)
+                }
+            }
+        }
     }
 
     private fun pickPoliceJobByPreference(
@@ -663,48 +657,51 @@ object GameManager {
     private fun assignRequiredJobs(
         players: MutableList<AssignmentPlayer>,
         mafia: Job,
-        assistant: Job,
+        assistant: Job?,
         doctor: Job,
-        policeJob: Job,
+        policeJob: Job?,
+        requiredCounts: RequiredRoleCounts,
         trace: AssignmentTrace
     ) {
         trace.add("[3단계] 고정 직업/잔여 인원 배정 시작")
         val unassigned = players.filter { it.assignedJob == null }.shuffled().toMutableList()
 
-        repeat(REQUIRED_MAFIA_COUNT) {
+        repeat(requiredCounts.mafiaCount) {
             if (unassigned.isEmpty()) return@repeat
             val player = unassigned.removeFirst()
             player.assignedJob = mafia
             trace.add("[3단계] 마피아 배정: ${player.name}")
         }
 
-        repeat(REQUIRED_ASSISTANT_COUNT) {
+        repeat(requiredCounts.assistantCount) {
             if (unassigned.isEmpty()) return@repeat
+            val assistantJob = requireNotNull(assistant) { "보조계열 고정 직업이 필요하지만 선택되지 않았습니다." }
             val preferred = unassigned.firstOrNull { candidate ->
-                candidate.preferences.any { it.name == assistant.name }
+                candidate.preferences.any { it.name == assistantJob.name }
             }
             val player = preferred ?: unassigned.first()
             unassigned.remove(player)
-            player.assignedJob = assistant
-            trace.add("[3단계] 보조계열 배정: ${player.name} -> ${assistant.name}")
+            player.assignedJob = assistantJob
+            trace.add("[3단계] 보조계열 배정: ${player.name} -> ${assistantJob.name}")
         }
 
-        repeat(REQUIRED_DOCTOR_COUNT) {
+        repeat(requiredCounts.doctorCount) {
             if (unassigned.isEmpty()) return@repeat
             val player = unassigned.removeFirst()
             player.assignedJob = doctor
             trace.add("[3단계] 의사 배정: ${player.name}")
         }
 
-        repeat(REQUIRED_POLICE_COUNT) {
+        repeat(requiredCounts.policeCount) {
             if (unassigned.isEmpty()) return@repeat
+            val selectedPoliceJob = requireNotNull(policeJob) { "경찰계열 고정 직업이 필요하지만 선택되지 않았습니다." }
             val preferred = unassigned.firstOrNull { candidate ->
-                candidate.preferences.any { it.name == policeJob.name }
+                candidate.preferences.any { it.name == selectedPoliceJob.name }
             }
             val player = preferred ?: unassigned.first()
             unassigned.remove(player)
-            player.assignedJob = policeJob
-            trace.add("[3단계] 경찰계열 배정: ${player.name} -> ${policeJob.name}")
+            player.assignedJob = selectedPoliceJob
+            trace.add("[3단계] 경찰계열 배정: ${player.name} -> ${selectedPoliceJob.name}")
         }
 
         unassigned.forEach { player ->
