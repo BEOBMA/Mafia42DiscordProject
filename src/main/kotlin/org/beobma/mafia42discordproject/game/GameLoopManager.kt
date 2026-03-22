@@ -40,6 +40,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Analysis
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Distortion
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
@@ -90,6 +91,7 @@ import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import org.beobma.mafia42discordproject.job.evil.list.MadScientist
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Spy
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
@@ -118,6 +120,7 @@ object GameLoopManager {
     private const val GODFATHER_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087458973450440/JMivfRSM1woZcZCwYUiFomJa5e6hG7Nss4xAl5wx1vzzoCkUrdxBlsSLh4M_79MjdKDh4q2kBDhucJpsrvZ7YNkuyVHHr_A32nhIGOsOafwBd0qwarqdazI1Z8mJeFvNMaa7vJX2ywZFd-mxzAtWug.webp?ex=69c096f9&is=69bf4579&hm=a9035324581fb576d6a0bb2c02a8fbae8d28152939f032bea8e0f61af822df61&"
     private const val HOSTESS_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485092736318312649/qHqxEk0Ie1w1nYS_fuFrHR5Jo1CsmnD0_0naxqt7UIAYVQSU-8RaF44ld6eH7tVZTQ33iWE9g5Us0MSaagAuzLmDYDN_gkvqZdV1PeM2cDCVPNk8nxM9r91ynjwfTXW0nBSoZlKA2dWkoavBHN2ydw.webp?ex=69c09be4&is=69bf4a64&hm=409a014694a67993257f3d0cebdae9af68066675c7599f90237d21342678152d&"
     private const val MAD_SCIENTIST_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485093676290932908/jGBpfxMpUm651gMgzzZYc9NW3p8lk63ct7CIfsVka5QbXqd9A78Zdj6w7Z14zlX5y0u_ynMq77dF33IZkM8ckr0otxYYAd_8CeYTLfvJ_syw2kA5AAMsWLWVO9bFqN-S2joct01Gmf8XvBAYEQTwCA.webp?ex=69c09cc4&is=69bf4b44&hm=1fcd876b2f860eb44be94cb450a1f7953a766db5a602e02312ce19949e312c1e&"
+    private const val SPY_ASSASSIN_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485096641777238167/vx4XGS33RUMMlC6eBroNoxpzuTPzExTknw3z7OcmjiI_i9eAt4ZfgK3mt_5GjjJou7jk_5IikTyiCwPRIpfWM7V5kFpk9fCd037ffupptkkCFjAKtoM8gyNHAfbs8km0y9Jatqj62P5DT-qTxRhW4w.webp?ex=69c09f87&is=69bf4e07&hm=704b998e8a12a5933c9f247db295a8eda1bff4beccad7e9584226cf2dfa7ac95&"
     private const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485094642797248675/1x0UtdbO43yTodQJcWduasjMRBL-CvRJQDc7MLLI04EjgNoGQvl4oTYrEA8_QbWmzROn3EEiTLxJjgTfSa8QOnE5SZ399XilwE2XVLvQwRa2KRR1PgfKXKiHaFUTul-AFzaxnY9pysnoTjd49VVG1A.webp?ex=69c09daa&is=69bf4c2a&hm=43b40604efc7f42f7fb23f2c8990fa865e9352ea8f07a0b22347ecde753921b8&"
 
     private var timeThreadChannel: ThreadChannel? = null
@@ -347,6 +350,7 @@ object GameLoopManager {
                 hitMan.firstContractTargetId = null
                 hitMan.firstContractGuessedJobName = null
             }
+            (player.job as? Spy)?.remainingIntelUsesTonight = 1
             (player.job as? Mentalist)?.let {
                 MentalistAbility.resetDayState(player)
             }
@@ -538,6 +542,7 @@ object GameLoopManager {
                 handleMadScientistDeath(game, victim, isLynch = false)
                 game.nightEvents += GameEvent.PlayerDied(victim)
                 applyPoliceAutopsy(game, victim)
+                SpyAbility.applyAutopsyOnDeath(game, victim)
                 revealBelongingsIfNeeded(game, victim)
             }
         }
@@ -548,6 +553,7 @@ object GameLoopManager {
             handleMadScientistDeath(game, victim, isLynch = false)
             game.nightEvents += GameEvent.PlayerDied(victim)
             applyPoliceAutopsy(game, victim)
+            SpyAbility.applyAutopsyOnDeath(game, victim)
             revealBelongingsIfNeeded(game, victim)
         }
         resolvePriestResurrection(game, summary)
@@ -556,6 +562,7 @@ object GameLoopManager {
         announceCoupleSacrificeReveal(game, summary.deaths)
 
         val processedDawnEvents = dispatchEvents(game)
+        resolveSpyAssassin(game)
         resolveCabalSpecialWinReadiness(game)
         resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnDeaths = (summary.deaths + poisonedVictims).distinct()
@@ -813,8 +820,39 @@ object GameLoopManager {
             player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
             player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
             player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
+            player.job is Spy && (player.job as Spy).hasContactedMafia -> true
             else -> false
         }
+    }
+
+    private suspend fun resolveSpyAssassin(game: Game) {
+        val aliveMafia = game.playerDatas.filter { !it.state.isDead && it.job is Mafia }
+        if (aliveMafia.isNotEmpty()) return
+
+        val aliveEvil = game.playerDatas.filter { !it.state.isDead && it.job is Evil }
+        if (aliveEvil.size != 1) return
+
+        val spyPlayer = aliveEvil.firstOrNull { it.job is Spy } ?: return
+        val spyJob = spyPlayer.job as? Spy ?: return
+        if (spyJob.hasTriggeredAssassin) return
+
+        val targetId = spyJob.lastInvestigatedTargetId ?: return
+        val target = game.getPlayer(targetId) ?: return
+        if (target.state.isDead) return
+        if (target.member.id == spyPlayer.member.id) return
+
+        spyJob.hasTriggeredAssassin = true
+        target.state.isDead = true
+        handleMadScientistDeath(game, target, isLynch = false)
+        game.nightEvents += GameEvent.PlayerDied(target)
+        applyPoliceAutopsy(game, target)
+        SpyAbility.applyAutopsyOnDeath(game, target)
+        revealBelongingsIfNeeded(game, target)
+
+        game.sendMainChannelMessageWithImage(
+            imageLink = SPY_ASSASSIN_IMAGE_URL,
+            message = "**${target.member.effectiveName}이(가) 자객에 의해 살해당하였습니다.**"
+        )
     }
 
     fun isMadScientistDistortionHidden(player: PlayerData): Boolean {
@@ -1513,6 +1551,7 @@ object GameLoopManager {
             game.pendingEscapedPlayerIds.remove(escapedPlayerId)
             game.nightEvents += GameEvent.PlayerDied(escapedPlayer, isLynch = true)
             applyPoliceAutopsy(game, escapedPlayer)
+            SpyAbility.applyAutopsyOnDeath(game, escapedPlayer)
             game.sendMainChannelMessageWithImage(
                 imageLink = ESCAPE_DEATH_IMAGE_URL,
                 message = "투표에서 도주한 ${escapedPlayer.member.effectiveName}님이 사망하였습니다."
@@ -1726,6 +1765,7 @@ object GameLoopManager {
         handleMadScientistDeath(game, target, isLynch = true)
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
         applyPoliceAutopsy(game, target)
+        SpyAbility.applyAutopsyOnDeath(game, target)
         resolveMartyrDefenseExplosion(game, target)
         dispatchEvents(game)
         game.nightEvents.clear()
@@ -1878,6 +1918,7 @@ object GameLoopManager {
         handleMadScientistDeath(game, selectedTarget, isLynch = true)
         game.nightEvents += GameEvent.PlayerDied(selectedTarget, isLynch = true)
         applyPoliceAutopsy(game, selectedTarget)
+        SpyAbility.applyAutopsyOnDeath(game, selectedTarget)
 
         executedTarget.state.isJobPubliclyRevealed = true
         selectedTarget.state.isJobPubliclyRevealed = true
