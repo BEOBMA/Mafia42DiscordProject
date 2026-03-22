@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AssistanceCommonAbility
@@ -36,7 +37,7 @@ class Wanted : Ability, JobSpecificExtraAbility, PassiveAbility {
             buildString {
                 appendLine("수배 결과: 접선하지 않은 마피아팀 정보")
                 unknownMafiaTeam.forEach { candidate ->
-                    appendLine("${candidate.member.effectiveName}의 직업은 ${candidate.job?.name ?: "알 수 없음"}")
+                    appendLine("${candidate.member.effectiveName}의 직업은 ${FrogCurseManager.displayedJob(candidate)?.name ?: "알 수 없음"}")
                 }
             }
         }

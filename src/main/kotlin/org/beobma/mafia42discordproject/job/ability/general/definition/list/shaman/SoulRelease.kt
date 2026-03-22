@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.ShamaningPolicy
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -61,7 +62,7 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        val revealedJobName = target.job?.name ?: "알 수 없음"
+        val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
         return if (isEarthbound) {
             AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다. (지박령으로 성불되지 않음) 직업: $revealedJobName")
         } else {

@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.FortunetellerNotificationManager
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -49,8 +50,8 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private fun sendFortuneResultImmediately(game: Game, fortuneteller: PlayerData, target: PlayerData) {
-        val targetJobName = target.job?.name ?: return
-        val gameJobNames = game.playerDatas.mapNotNull { it.job?.name }.distinct()
+        val targetJobName = FrogCurseManager.displayedJob(target)?.name ?: return
+        val gameJobNames = game.playerDatas.mapNotNull { FrogCurseManager.displayedJob(it)?.name }.distinct()
         if (gameJobNames.isEmpty()) return
 
         val decoyPool = gameJobNames.filter { it != targetJobName }
@@ -85,13 +86,13 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
 
         val complementaryRole = shownJobs.firstOrNull { it != targetJobName }
 
-        val complementaryCandidates = candidates.filter { it.job?.name == complementaryRole }.shuffled()
+        val complementaryCandidates = candidates.filter { FrogCurseManager.displayedJob(it)?.name == complementaryRole }.shuffled()
         val shownJobCandidates = candidates.filter { candidate ->
-            val jobName = candidate.job?.name
+            val jobName = FrogCurseManager.displayedJob(candidate)?.name
             jobName != null && jobName in shownJobs
         }.shuffled()
         val nonShownJobCandidates = candidates.filter { candidate ->
-            val jobName = candidate.job?.name
+            val jobName = FrogCurseManager.displayedJob(candidate)?.name
             jobName == null || jobName !in shownJobs
         }.shuffled()
 
