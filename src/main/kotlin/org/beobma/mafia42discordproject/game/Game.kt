@@ -34,6 +34,7 @@ data class Game(
     }
 
     var dayCount: Int = 0
+    var nightPhaseStartedAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
@@ -57,6 +58,8 @@ data class Game(
     var defenseTargetId: Snowflake? = null
     var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
     val pendingEscapedPlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    val pendingNightDeathPlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    val publiclyRevealedAbilityTargetIds: MutableSet<Snowflake> = mutableSetOf()
     val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
     var megaphoneUsedTonight: Boolean = false
     val usedSecretLetterPlayerIds: MutableSet<Snowflake> = mutableSetOf()

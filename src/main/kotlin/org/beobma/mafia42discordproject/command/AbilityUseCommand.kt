@@ -28,6 +28,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurs
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
@@ -70,13 +71,17 @@ object AbilityUseCommand : DiscordCommand {
             jobOptionName -> {
                 val selectedAbilityName = interaction.command.strings[abilityOptionName]
                 val selectedAbility = getUsableActiveAbilities(game, caster).firstOrNull { it.name == selectedAbilityName }
-                if (selectedAbility !is AdministratorAbility) return
-
-                val hasCooperation = caster.allAbilities.any { it is Cooperation }
-                val hasIdentification = caster.allAbilities.any { it is Identification }
-                val suggestions = JobManager.getAll()
-                    .filter { AdministratorInvestigationPolicy.isJobSelectable(it, hasCooperation, hasIdentification) }
-                    .map { it.name }
+                val suggestions = when (selectedAbility) {
+                    is AdministratorAbility -> {
+                        val hasCooperation = caster.allAbilities.any { it is Cooperation }
+                        val hasIdentification = caster.allAbilities.any { it is Identification }
+                        JobManager.getAll()
+                            .filter { AdministratorInvestigationPolicy.isJobSelectable(it, hasCooperation, hasIdentification) }
+                            .map { it.name }
+                    }
+                    is HitManAbility -> JobManager.getAll().map { it.name }
+                    else -> return
+                }
                     .distinct()
                     .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
                     .take(maxAutoCompleteChoices)
@@ -102,6 +107,10 @@ object AbilityUseCommand : DiscordCommand {
         val caster = game.getPlayer(interaction.user.id)
         if (caster == null) {
             DiscordMessageManager.respondEphemeral(event, "You must be in the current game to use an ability.")
+            return
+        }
+        if (caster.member.id in game.pendingNightDeathPlayerIds) {
+            DiscordMessageManager.respondEphemeral(event, "이미 암살당해 능력을 사용할 수 없습니다.")
             return
         }
 
@@ -136,11 +145,16 @@ object AbilityUseCommand : DiscordCommand {
             null
         }
 
-        val result = if (selectedAbility is AdministratorAbility) {
-            val selectedJobName = interaction.command.strings[jobOptionName]
-            selectedAbility.activateWithJobName(game, caster, selectedJobName)
-        } else {
-            selectedAbility.activate(game, caster, target)
+        val result = when (selectedAbility) {
+            is AdministratorAbility -> {
+                val selectedJobName = interaction.command.strings[jobOptionName]
+                selectedAbility.activateWithJobName(game, caster, selectedJobName)
+            }
+            is HitManAbility -> {
+                val selectedJobName = interaction.command.strings[jobOptionName]
+                selectedAbility.activateWithJobName(game, caster, target, selectedJobName)
+            }
+            else -> selectedAbility.activate(game, caster, target)
         }
 
         if (result.isSuccess) {

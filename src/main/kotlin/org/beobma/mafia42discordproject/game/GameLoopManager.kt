@@ -82,6 +82,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Godfather
+import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -296,11 +297,13 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        game.nightPhaseStartedAtMillis = System.currentTimeMillis()
         game.prophetSpecialWinScheduledTeam = null
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
+        game.pendingNightDeathPlayerIds.clear()
         game.nightEvents.clear()
         game.pendingDayStartDiscoveries.clear()
         game.concealmentForcedQuietNight = false
@@ -330,6 +333,10 @@ object GameLoopManager {
             }
             (player.job as? Gangster)?.prepareNightThreatSelection()
             (player.job as? Hypnotist)?.selectedTargetIdTonight = null
+            (player.job as? HitMan)?.let { hitMan ->
+                hitMan.firstContractTargetId = null
+                hitMan.firstContractGuessedJobName = null
+            }
             (player.job as? Mentalist)?.let {
                 MentalistAbility.resetDayState(player)
             }
@@ -486,6 +493,7 @@ object GameLoopManager {
 
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
+        game.pendingNightDeathPlayerIds.clear()
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
@@ -592,6 +600,7 @@ object GameLoopManager {
             target.state.isShamaned = false
             target.state.isPoisoned = false
             target.state.poisonedDeathDay = null
+            game.publiclyRevealedAbilityTargetIds += target.member.id
 
             game.sendMainChannerMessage("성직자의 소생으로 ${target.member.effectiveName}님이 부활했습니다.")
         }
@@ -780,13 +789,24 @@ object GameLoopManager {
             player.job is Mafia -> true
             player.job is Beastman && player.state.isTamed -> true
             player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
+            player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
             else -> false
         }
     }
 
-    private suspend fun refreshMafiaChannelContactState(game: Game) {
+    suspend fun refreshMafiaChannelContactState(game: Game) {
         val mafiaChannel = game.mafiaChannel ?: return
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = game.currentPhase == GamePhase.NIGHT)
+    }
+
+    suspend fun notifyHitmanContact(game: Game, hitmanPlayer: PlayerData) {
+        val mafiaChannel = game.mafiaChannel ?: return
+        if (hitmanPlayer.state.hasAnnouncedHitmanContact) return
+        hitmanPlayer.state.hasAnnouncedHitmanContact = true
+        mafiaChannel.createMessage(
+            "https://cdn.discordapp.com/attachments/1483977619258212392/1485090211133259897/oRhn9TDiSQ7IEZDLWEVkdWYUpg-z9zOnCQ_eHxm0HDM0NUe21_6HbCdPQFIjCFqMnm38e_wbu4BZlT3Zx__1qU4k9-jkCaMyxCOPeHTxxhdaX3j_BVvsInUZvtVOOUfm5zFotdXpbKKrsg-lvqodkg.webp?ex=69c09989&is=69bf4809&hm=2cbcf46a67886753867f3c144e8eb30185fa3c23c3a97f544097880102a89290&\n접선했습니다."
+        )
+        refreshMafiaChannelContactState(game)
     }
 
     private fun applyBeastmanExecutionOverride(game: Game) {
@@ -1475,6 +1495,7 @@ object GameLoopManager {
             target.member.id !in game.pendingEscapedPlayerIds
         ) {
             game.pendingEscapedPlayerIds += target.member.id
+            game.publiclyRevealedAbilityTargetIds += target.member.id
             game.sendMainChannelMessageWithImage(
                 imageLink = ESCAPE_IMAGE_URL,
                 message = "${target.member.effectiveName}님이 투표에서 도주하였습니다!"
@@ -1914,6 +1935,7 @@ object GameLoopManager {
                     message = "${poisonedDeathVictim.member.effectiveName}님이 중독으로 사망했습니다."
                 )
             } else if (doctorSavedTarget != null) {
+                game.publiclyRevealedAbilityTargetIds += doctorSavedTarget.member.id
                 DawnPresentation(
                     imageUrl = SystemImage.DOCTOR_HEAL.imageUrl,
                     message = "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
