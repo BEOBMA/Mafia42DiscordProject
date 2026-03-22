@@ -8,10 +8,13 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.SystemImage
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.SwindlerManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.definition.list.Agent
+import org.beobma.mafia42discordproject.job.evil.list.Swindler
 
 class AgentOperation : JobUniqueAbility, PassiveAbility {
     override val name: String = "공작"
@@ -41,7 +44,7 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
             return
         }
 
-        val discoveredJob = selectedTarget.job ?: run {
+        val discoveredJob = FrogCurseManager.displayedJob(selectedTarget) ?: run {
             sendDm(owner, "아무런 정보가 도착하지 않았습니다.")
             return
         }
@@ -51,6 +54,9 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
         val operationImageUrl = SystemImage.AGENT_NOTICE.imageUrl
 
         sendDm(owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
+        if (selectedTarget.job is Swindler && discoveredJob.name != "사기꾼") {
+            SwindlerManager.notifyFooled(selectedTarget, owner)
+        }
     }
     private fun sendDm(owner: PlayerData, message: String) {
         agentDmScope.launch {

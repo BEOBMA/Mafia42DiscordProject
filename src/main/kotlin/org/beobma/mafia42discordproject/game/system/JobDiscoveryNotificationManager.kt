@@ -16,6 +16,8 @@ object JobDiscoveryNotificationManager {
         events.filterIsInstance<GameEvent.JobDiscovered>()
             .filter { !it.isCancelled }
             .forEach { event ->
+                SwindlerManager.notifyFooledByDiscovery(event)
+
                 if (event.isPublicReveal) {
                     runCatching {
                         val message = if (event.sourceAbilityName == "특종") {
