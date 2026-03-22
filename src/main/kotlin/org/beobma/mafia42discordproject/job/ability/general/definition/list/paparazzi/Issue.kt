@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
 import org.beobma.mafia42discordproject.job.Job
@@ -30,6 +31,8 @@ class Issue : Ability, JobSpecificExtraAbility, PassiveAbility {
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {
         val discovery = event as? GameEvent.JobDiscovered ?: return
         if (owner.state.isDead) return
+        if (owner.state.isSilenced) return
+        if (FrogCurseManager.shouldSuppressPassive(owner)) return
         if (discovery.isCancelled || discovery.isPublicReveal || discovery.sharedByPaparazzi) return
         if (discovery.discoverer == discovery.target) return
         if (discovery.discoverer.job !is Definition) return
@@ -66,6 +69,17 @@ class Issue : Ability, JobSpecificExtraAbility, PassiveAbility {
         }
 
         owner.state.lastPaparazziIssueDay = game.dayCount
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { observer ->
+                observer.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(observer) }
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onEventObserved(game, observer, sharedEvent)
+                    }
+            }
         issueNotificationScope.launch {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(sharedEvent), game)
         }

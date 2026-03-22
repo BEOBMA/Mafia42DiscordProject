@@ -31,6 +31,13 @@ class Hypocrisy : PassiveAbility, JobSpecificExtraAbility {
                 event.isFalsified = true
                 event.note = ""
             }
+            is GameEvent.JobDiscovered -> {
+                if (event.target != owner) return
+                if (event.sourceAbilityName != "이슈") return
+                event.revealedJob = Doctor()
+                event.isFalsified = true
+                event.note = ""
+            }
 
             else -> Unit
         }

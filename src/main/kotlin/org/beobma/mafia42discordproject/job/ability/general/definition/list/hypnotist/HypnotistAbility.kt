@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
@@ -109,6 +110,11 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                 notifyTarget = false
             )
         }
+        discoveries.forEach { discovery ->
+            FrogCurseManager.displayedJob(discovery.target)?.let { shownJob ->
+                discovery.revealedJob = shownJob
+            }
+        }
 
         hypnotist.hypnotizedTargetIds.clear()
         hypnotist.blockedNightsRemaining = 1
@@ -119,6 +125,7 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                 .forEach { observer ->
                     observer.allAbilities
                         .filterIsInstance<PassiveAbility>()
+                        .filterNot { FrogCurseManager.shouldSuppressPassive(observer) }
                         .sortedByDescending(PassiveAbility::priority)
                         .forEach { passive ->
                             passive.onEventObserved(game, observer, discovery)
