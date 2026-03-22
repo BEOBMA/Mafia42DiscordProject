@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
@@ -66,12 +67,13 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()
         if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
             val actualJob = effectiveTarget.job ?: return AbilityResult(false, "대상의 직업 정보를 확인할 수 없습니다.")
+            val revealedJob = FrogCurseManager.displayedJob(effectiveTarget) ?: actualJob
 
             val revealEvent = GameEvent.PoliceJobRevealed(
                 police = caster,
                 target = effectiveTarget,
                 actualJob = actualJob,
-                revealedJob = actualJob,
+                revealedJob = revealedJob,
                 resolvedAt = DiscoveryStep.NIGHT
             )
             dispatchPoliceEvent(game, revealEvent)
@@ -94,6 +96,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             .forEach { player ->
                 player.allAbilities
                     .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                     .sortedByDescending(PassiveAbility::priority)
                     .forEach { passive ->
                         passive.onEventObserved(game, player, event)

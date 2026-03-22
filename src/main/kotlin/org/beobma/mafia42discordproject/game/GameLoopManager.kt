@@ -93,6 +93,7 @@ import org.beobma.mafia42discordproject.job.evil.list.MadScientist
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
 import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.Witch
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
@@ -312,6 +313,7 @@ object GameLoopManager {
         game.dayCount += 1
         processMadScientistNightTransitions(game)
         game.nightPhaseStartedAtMillis = System.currentTimeMillis()
+        FrogCurseManager.clearExpiredAtNightStart(game)
         game.prophetSpecialWinScheduledTeam = null
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
@@ -319,6 +321,8 @@ object GameLoopManager {
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
         game.nightEvents.clear()
+        game.pendingWitchCurseByCaster.clear()
+        game.pendingOblivionCurseByCaster.clear()
         game.pendingDayStartDiscoveries.clear()
         game.concealmentForcedQuietNight = false
         game.megaphoneUsedTonight = false
@@ -403,7 +407,8 @@ object GameLoopManager {
 
         alivePlayers.forEach { player ->
             player.allAbilities
-                .filterIsInstance<PassiveAbility>()
+                 .filterIsInstance<PassiveAbility>()
+                .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                 .sortedByDescending(PassiveAbility::priority)
                 .forEach { passive ->
                     passive.onPhaseChanged(game, player, GamePhase.NIGHT)
@@ -478,6 +483,7 @@ object GameLoopManager {
             game.nightEvents += GameEvent.PlayerDied(victim)
         }
 
+        org.beobma.mafia42discordproject.job.ability.general.evil.list.witch.WitchAbility.applyOblivionCursesAtNightEnd(game)
         val processedEvents = dispatchEvents(game)
         cacheReporterDiscoveryResults(processedEvents)
         val deferredProcessedEvents = processedEvents.filterIsInstance<GameEvent.JobDiscovered>()
@@ -754,7 +760,8 @@ object GameLoopManager {
             .filter { !it.state.isDead }
             .forEach { player ->
                 player.allAbilities
-                    .filterIsInstance<PassiveAbility>()
+                     .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                     .sortedByDescending(PassiveAbility::priority)
                     .forEach { passive ->
                         passive.onPhaseChanged(game, player, GamePhase.DAY)
@@ -826,6 +833,7 @@ object GameLoopManager {
             player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
             player.job is Spy && (player.job as Spy).hasContactedMafia -> true
             player.job is Thief && (player.job as Thief).hasContactedMafia -> true
+            player.job is Witch && (player.job as Witch).hasContactedMafia -> true
             else -> false
         }
     }
@@ -1325,7 +1333,8 @@ object GameLoopManager {
             val baseWeight = if (voter.job is Politician) 2 else 1
             val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = baseWeight)
             voter.allAbilities
-                .filterIsInstance<PassiveAbility>()
+                 .filterIsInstance<PassiveAbility>()
+                .filterNot { FrogCurseManager.shouldSuppressPassive(voter) }
                 .sortedByDescending(PassiveAbility::priority)
                 .forEach { passive ->
                     passive.onEventObserved(game, voter, weightEvent)
@@ -1703,7 +1712,8 @@ object GameLoopManager {
 
         alivePlayers.forEach { player ->
             player.allAbilities
-                .filterIsInstance<PassiveAbility>()
+                 .filterIsInstance<PassiveAbility>()
+                .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                 .sortedByDescending(PassiveAbility::priority)
                 .forEach { passive ->
                     passive.onEventObserved(game, player, executionEvent)
@@ -1727,7 +1737,8 @@ object GameLoopManager {
         val voteExecutionEvent = GameEvent.VoteExecution(target)
         alivePlayers.forEach { player ->
             player.allAbilities
-                .filterIsInstance<PassiveAbility>()
+                 .filterIsInstance<PassiveAbility>()
+                .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                 .sortedByDescending(PassiveAbility::priority)
                 .forEach { passive ->
                     passive.onEventObserved(game, player, voteExecutionEvent)
@@ -2129,7 +2140,8 @@ object GameLoopManager {
             .filter { !it.state.isDead }
             .forEach { player ->
                 player.allAbilities
-                    .filterIsInstance<PassiveAbility>()
+                     .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                     .sortedByDescending(PassiveAbility::priority)
                     .forEach { passive ->
                         passive.onEventObserved(game, player, presentationEvent)
@@ -2232,13 +2244,23 @@ object GameLoopManager {
                 .filter { !it.state.isDead }
                 .mapNotNull { player ->
                     val passives = player.allAbilities
-                        .filterIsInstance<PassiveAbility>()
+                         .filterIsInstance<PassiveAbility>()
+                        .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                         .sortedByDescending(PassiveAbility::priority)
                     if (passives.isEmpty()) null else player to passives
                 }
 
             eventsToProcess.forEach { event ->
                 applyNurseDoctorInheritanceOnDeath(game, event)
+                when (event) {
+                    is GameEvent.JobDiscovered -> {
+                        FrogCurseManager.displayedJob(event.target)?.let { event.revealedJob = it }
+                    }
+                    is GameEvent.PoliceJobRevealed -> {
+                        FrogCurseManager.displayedJob(event.target)?.let { event.revealedJob = it }
+                    }
+                    else -> Unit
+                }
                 observers.forEach { (player, passives) ->
                     passives.forEach { passive ->
                         passive.onEventObserved(game, player, event)
@@ -2575,6 +2597,7 @@ object GameLoopManager {
             if (!isAbsoluteHeal) {
                 player.job?.abilities
                     ?.filterIsInstance<PassiveAbility>()
+                    ?.filterNot { FrogCurseManager.shouldSuppressPassive(player) }
                     ?.forEach { passive ->
                         passive.onEventObserved(game, player, healEvent)
                     }
@@ -2917,6 +2940,7 @@ object GameLoopManager {
         // 2. 타겟이 가진 패시브 능력들에게 이벤트를 전파하여 '방탄' 등이 스스로 방어(healTier 상승)하도록 합니다.
         target.allAbilities
             .filterIsInstance<PassiveAbility>()
+            .filterNot { FrogCurseManager.shouldSuppressPassive(target) }
             .sortedByDescending(PassiveAbility::priority)
             .forEach { passive ->
                 passive.onEventObserved(game, target, event)

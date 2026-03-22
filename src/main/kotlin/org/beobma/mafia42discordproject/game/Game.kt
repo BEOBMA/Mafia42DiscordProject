@@ -80,6 +80,8 @@ data class Game(
     val probationOriginalJobsByPlayer: MutableMap<Snowflake, Job> = mutableMapOf()
     val pendingPoisonNotifications: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val pendingBeastmanTameIds: MutableSet<Snowflake> = mutableSetOf()
+    val pendingWitchCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val pendingOblivionCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val pendingDayStartDiscoveries: MutableList<GameEvent.JobDiscovered> = mutableListOf()
     val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
     val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()

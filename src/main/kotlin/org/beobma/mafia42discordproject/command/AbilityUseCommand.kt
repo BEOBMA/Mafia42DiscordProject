@@ -15,6 +15,7 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorAbility
@@ -137,6 +138,10 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, "That ability cannot be used in the current phase.")
             return
         }
+        if (!FrogCurseManager.canUseActiveAbility(caster, selectedAbility)) {
+            DiscordMessageManager.respondEphemeral(event, "개구리 상태에서는 능력을 사용할 수 없습니다.")
+            return
+        }
 
         val targetDiscordUser = interaction.command.users[targetOptionName]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
@@ -222,9 +227,10 @@ object AbilityUseCommand : DiscordCommand {
             .filter { it.usablePhase == game.currentPhase }
             .filter { ability ->
                 if (ability is GodfatherAbility) {
-                    GodfatherContactPolicy.canUseExecution(game, caster)
+                    GodfatherContactPolicy.canUseExecution(game, caster) &&
+                        FrogCurseManager.canUseActiveAbility(caster, ability)
                 } else {
-                    true
+                    FrogCurseManager.canUseActiveAbility(caster, ability)
                 }
             }
     }

@@ -30,6 +30,8 @@ class PlayerState {
     var isShamaned: Boolean = false              // 성불 여부
     var isPoisoned: Boolean = false              // 중독 여부
     var poisonedDeathDay: Int? = null            // 해당 일차 새벽에 중독사 처리
+    var isFrogCursed: Boolean = false            // 마녀 저주(개구리화) 여부
+    var frogCurseExpiresAfterDay: Int? = null    // 저주 해제 시점(해당 일차 낮 종료 후)
 
     // 새로운 페이즈가 시작될 때 일회성 상태 초기화
     fun resetForNextPhase() {
