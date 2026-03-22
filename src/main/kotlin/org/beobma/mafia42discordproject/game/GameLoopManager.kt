@@ -40,6 +40,8 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Analysis
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Distortion
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
@@ -86,6 +88,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Godfather
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Hostess
+import org.beobma.mafia42discordproject.job.evil.list.MadScientist
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -114,6 +117,8 @@ object GameLoopManager {
     private const val GODFATHER_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087325703901365/6Dt6As_ReET4vjOl3djPFyzLrg-v8hvaMe42oBrrf6ROTHOk1ejUYjwk-vn9DfryaLt8v06oG-aRbrGZgELlBM9G8ciLeqIsvKT4OZMroiRIz-6t3GyftqwT67UHpzqiI3o7Ja9CelJpOrgibccDPg.webp?ex=69c096da&is=69bf455a&hm=270ad9182d231294d6116d48e9fd7378731ccbe3553fd8f20a1d8bf282236c92&"
     private const val GODFATHER_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087458973450440/JMivfRSM1woZcZCwYUiFomJa5e6hG7Nss4xAl5wx1vzzoCkUrdxBlsSLh4M_79MjdKDh4q2kBDhucJpsrvZ7YNkuyVHHr_A32nhIGOsOafwBd0qwarqdazI1Z8mJeFvNMaa7vJX2ywZFd-mxzAtWug.webp?ex=69c096f9&is=69bf4579&hm=a9035324581fb576d6a0bb2c02a8fbae8d28152939f032bea8e0f61af822df61&"
     private const val HOSTESS_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485092736318312649/qHqxEk0Ie1w1nYS_fuFrHR5Jo1CsmnD0_0naxqt7UIAYVQSU-8RaF44ld6eH7tVZTQ33iWE9g5Us0MSaagAuzLmDYDN_gkvqZdV1PeM2cDCVPNk8nxM9r91ynjwfTXW0nBSoZlKA2dWkoavBHN2ydw.webp?ex=69c09be4&is=69bf4a64&hm=409a014694a67993257f3d0cebdae9af68066675c7599f90237d21342678152d&"
+    private const val MAD_SCIENTIST_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485093676290932908/jGBpfxMpUm651gMgzzZYc9NW3p8lk63ct7CIfsVka5QbXqd9A78Zdj6w7Z14zlX5y0u_ynMq77dF33IZkM8ckr0otxYYAd_8CeYTLfvJ_syw2kA5AAMsWLWVO9bFqN-S2joct01Gmf8XvBAYEQTwCA.webp?ex=69c09cc4&is=69bf4b44&hm=1fcd876b2f860eb44be94cb450a1f7953a766db5a602e02312ce19949e312c1e&"
+    private const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485094642797248675/1x0UtdbO43yTodQJcWduasjMRBL-CvRJQDc7MLLI04EjgNoGQvl4oTYrEA8_QbWmzROn3EEiTLxJjgTfSa8QOnE5SZ399XilwE2XVLvQwRa2KRR1PgfKXKiHaFUTul-AFzaxnY9pysnoTjd49VVG1A.webp?ex=69c09daa&is=69bf4c2a&hm=43b40604efc7f42f7fb23f2c8990fa865e9352ea8f07a0b22347ecde753921b8&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -301,6 +306,7 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        processMadScientistNightTransitions(game)
         game.nightPhaseStartedAtMillis = System.currentTimeMillis()
         game.prophetSpecialWinScheduledTeam = null
         game.abilityUsersThisPhase.clear()
@@ -529,6 +535,7 @@ object GameLoopManager {
             victim.state.poisonedDeathDay = null
             if (victim !in summary.deaths) {
                 victim.state.isDead = true
+                handleMadScientistDeath(game, victim, isLynch = false)
                 game.nightEvents += GameEvent.PlayerDied(victim)
                 applyPoliceAutopsy(game, victim)
                 revealBelongingsIfNeeded(game, victim)
@@ -538,6 +545,7 @@ object GameLoopManager {
         summary.deaths.forEach { victim ->
             if (victim.state.isDead) return@forEach
             victim.state.isDead = true
+            handleMadScientistDeath(game, victim, isLynch = false)
             game.nightEvents += GameEvent.PlayerDied(victim)
             applyPoliceAutopsy(game, victim)
             revealBelongingsIfNeeded(game, victim)
@@ -605,6 +613,13 @@ object GameLoopManager {
             target.state.isShamaned = false
             target.state.isPoisoned = false
             target.state.poisonedDeathDay = null
+            if (target.job is MadScientist) {
+                target.state.pendingMadScientistRevivalNight = null
+                target.state.pendingMadScientistPublicRevealNight = null
+                target.state.isMadScientistDistortionHidden = false
+                target.state.madScientistAnalysisEligibleDay = null
+                target.state.hasUsedMadScientistAnalysis = false
+            }
             game.publiclyRevealedAbilityTargetIds += target.member.id
 
             game.sendMainChannerMessage("성직자의 소생으로 ${target.member.effectiveName}님이 부활했습니다.")
@@ -697,7 +712,7 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
-                if (player.state.isDead || player.state.isSilenced) {
+                if (shouldRestrictCommunication(player)) {
                     addMemberOverwrite(player.member.id) {
                         denied = Permissions(Permission.SendMessages)
                     }
@@ -710,7 +725,7 @@ object GameLoopManager {
         }
 
         game.playerDatas.forEach { player ->
-            val shouldMute = player.state.isDead || player.state.isSilenced
+            val shouldMute = shouldRestrictCommunication(player)
             runCatching {
                 player.member.edit {
                     muted = shouldMute
@@ -758,7 +773,7 @@ object GameLoopManager {
                 }
 
                 if (canAccessMafiaChannel(game, player)) {
-                    val canSend = isNight && !player.state.isSilenced
+                    val canSend = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
@@ -797,8 +812,106 @@ object GameLoopManager {
             player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
             player.job is HitMan && (player.job as HitMan).hasContactedMafia -> true
             player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
+            player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
             else -> false
         }
+    }
+
+    fun isMadScientistDistortionHidden(player: PlayerData): Boolean {
+        return player.job is MadScientist && player.state.isMadScientistDistortionHidden
+    }
+
+    private fun shouldRestrictCommunication(player: PlayerData): Boolean {
+        return player.state.isDead || player.state.isSilenced || isMadScientistDistortionHidden(player)
+    }
+
+    private fun isMafiaEliminated(game: Game): Boolean {
+        return game.playerDatas.none { !it.state.isDead && it.job is Mafia }
+    }
+
+    private suspend fun processMadScientistNightTransitions(game: Game) {
+        val mainChannel = game.mainChannel
+        game.playerDatas.forEach { player ->
+            if (player.job !is MadScientist) return@forEach
+
+            val revealNight = player.state.pendingMadScientistPublicRevealNight
+            if (revealNight != null && revealNight <= game.dayCount) {
+                player.state.pendingMadScientistPublicRevealNight = null
+                player.state.isMadScientistDistortionHidden = false
+                if (mainChannel != null) {
+                    game.sendMainChannelMessageWithImage(
+                        imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
+                        message = "${player.member.effectiveName}님이 부활하셨습니다!"
+                    )
+                }
+            }
+
+            val reviveNight = player.state.pendingMadScientistRevivalNight
+            if (reviveNight == null || reviveNight > game.dayCount) return@forEach
+            player.state.pendingMadScientistRevivalNight = null
+            if (!player.state.isDead) {
+                player.state.pendingMadScientistPublicRevealNight = null
+                player.state.isMadScientistDistortionHidden = false
+                return@forEach
+            }
+
+            if (player.state.isShamaned || isMafiaEliminated(game)) {
+                player.state.isMadScientistDistortionHidden = false
+                player.state.pendingMadScientistPublicRevealNight = null
+                return@forEach
+            }
+
+            player.state.isDead = false
+            player.state.isShamaned = false
+            player.state.isPoisoned = false
+            player.state.poisonedDeathDay = null
+            player.state.madScientistAnalysisEligibleDay = game.dayCount
+            player.state.hasUsedMadScientistAnalysis = false
+            game.publiclyRevealedAbilityTargetIds += player.member.id
+
+            val hasDistortion = player.allAbilities.any { it is Distortion }
+            if (hasDistortion) {
+                player.state.isMadScientistDistortionHidden = true
+                player.state.pendingMadScientistPublicRevealNight = game.dayCount + 1
+            } else {
+                player.state.isMadScientistDistortionHidden = false
+                player.state.pendingMadScientistPublicRevealNight = null
+                if (mainChannel != null) {
+                    game.sendMainChannelMessageWithImage(
+                        imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
+                        message = "${player.member.effectiveName}님이 부활하셨습니다!"
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun handleMadScientistDeath(game: Game, victim: PlayerData, isLynch: Boolean) {
+        if (victim.job !is MadScientist) return
+        if (!victim.state.hasUsedMadScientistRegeneration) {
+            victim.state.hasUsedMadScientistRegeneration = true
+            victim.state.pendingMadScientistRevivalNight = game.dayCount + 1
+            victim.state.madScientistLynchedVoteTargetId = if (isLynch) {
+                game.currentMainVotes[victim.member.id]?.let(::Snowflake)
+            } else {
+                null
+            }
+        }
+
+        victim.state.isMadScientistDistortionHidden = false
+        victim.state.pendingMadScientistPublicRevealNight = null
+
+        if (!victim.state.hasContactedMafiaOnDeath) {
+            victim.state.hasContactedMafiaOnDeath = true
+            game.mafiaChannel?.let { mafiaChannel ->
+                if (!victim.state.hasAnnouncedMadScientistContact) {
+                    victim.state.hasAnnouncedMadScientistContact = true
+                    mafiaChannel.createMessage("$MAD_SCIENTIST_CONTACT_IMAGE_URL\n접선했습니다.")
+                }
+            }
+        }
+
+        refreshMafiaChannelContactState(game)
     }
 
     suspend fun refreshMafiaChannelContactState(game: Game) {
@@ -998,7 +1111,7 @@ object GameLoopManager {
                 }
 
                 if (player.job is Couple) {
-                    val canAccess = isNight && !player.state.isSilenced
+                    val canAccess = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canAccess) Permissions() else Permissions(Permission.SendMessages)
@@ -1175,6 +1288,20 @@ object GameLoopManager {
                     passive.onEventObserved(game, voter, weightEvent)
                 }
             weightEvent.weight += gangsterTransferredVoteWeights[voter.member.id] ?: 0
+
+            if (
+                voter.job is MadScientist &&
+                voter.allAbilities.any { it is Analysis } &&
+                voter.state.madScientistAnalysisEligibleDay == game.dayCount &&
+                !voter.state.hasUsedMadScientistAnalysis
+            ) {
+                val targetId = game.currentMainVotes[voter.member.id]?.let(::Snowflake)
+                if (targetId != null && targetId == voter.state.madScientistLynchedVoteTargetId) {
+                    weightEvent.weight += 1
+                    voter.state.hasUsedMadScientistAnalysis = true
+                }
+            }
+
             if (weightEvent.weight <= 0) {
                 return@forEach
             }
@@ -1382,6 +1509,7 @@ object GameLoopManager {
             }
 
             escapedPlayer.state.isDead = true
+            handleMadScientistDeath(game, escapedPlayer, isLynch = true)
             game.pendingEscapedPlayerIds.remove(escapedPlayerId)
             game.nightEvents += GameEvent.PlayerDied(escapedPlayer, isLynch = true)
             applyPoliceAutopsy(game, escapedPlayer)
@@ -1595,6 +1723,7 @@ object GameLoopManager {
         }
 
         target.state.isDead = true
+        handleMadScientistDeath(game, target, isLynch = true)
         game.nightEvents += GameEvent.PlayerDied(target, isLynch = true)
         applyPoliceAutopsy(game, target)
         resolveMartyrDefenseExplosion(game, target)
@@ -1746,6 +1875,7 @@ object GameLoopManager {
         if (selectedTarget.member.id == executedTarget.member.id) return
 
         selectedTarget.state.isDead = true
+        handleMadScientistDeath(game, selectedTarget, isLynch = true)
         game.nightEvents += GameEvent.PlayerDied(selectedTarget, isLynch = true)
         applyPoliceAutopsy(game, selectedTarget)
 

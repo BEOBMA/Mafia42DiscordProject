@@ -1140,12 +1140,12 @@ object GameManager {
         val game = currentGame ?: return false
         val member = event.member ?: return false
         val player = game.getPlayer(member.id) ?: return false
-        if (!player.state.isDead) return false
+        if (!player.state.isDead && !GameLoopManager.isMadScientistDistortionHidden(player)) return false
 
         val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
         val textChannel = event.message.channel as? TextChannel
 
-        if (isDeadChannel && !player.state.isShamaned) {
+        if (isDeadChannel && !player.state.isShamaned && player.state.isDead) {
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
@@ -1160,8 +1160,10 @@ object GameManager {
             runCatching {
                 textChannel?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
             }
+            return true
         }
 
+        runCatching { event.message.delete("사망/왜곡 상태 채팅 차단") }
         return true
     }
 
@@ -1478,6 +1480,10 @@ object GameManager {
         val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
         val target = game.getPlayer(targetId) ?: return false
         if (target.state.isDead) return false
+        if (
+            GameLoopManager.isMadScientistDistortionHidden(voter) &&
+            voter.member.id == target.member.id
+        ) return false
         val dictatorshipPolitician = game.playerDatas
             .filter { !it.state.isDead && it.job !is Evil }
             .singleOrNull()

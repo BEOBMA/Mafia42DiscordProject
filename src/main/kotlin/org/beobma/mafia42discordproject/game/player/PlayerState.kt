@@ -1,5 +1,6 @@
 package org.beobma.mafia42discordproject.game.player
 
+import dev.kord.common.entity.Snowflake
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 
 class PlayerState {
@@ -11,6 +12,15 @@ class PlayerState {
     var isJobPubliclyRevealed: Boolean = false // 모든 플레이어에게 직업이 공개되었는지 여부
     var hasAnnouncedGodfatherContact: Boolean = false // 대부 접선 알림 전송 여부
     var hasAnnouncedHitmanContact: Boolean = false // 청부업자 접선 알림 전송 여부
+    var hasAnnouncedMadScientistContact: Boolean = false // 과학자 접선 알림 전송 여부
+    var hasContactedMafiaOnDeath: Boolean = false // 과학자 사망 유착 여부
+    var hasUsedMadScientistRegeneration: Boolean = false // 과학자 재생 사용 여부
+    var pendingMadScientistRevivalNight: Int? = null // 과학자 재생 예정 밤(일차)
+    var pendingMadScientistPublicRevealNight: Int? = null // 왜곡 재생 공개 예정 밤(일차)
+    var isMadScientistDistortionHidden: Boolean = false // 왜곡 재생으로 아직 공개되지 않은 상태
+    var madScientistLynchedVoteTargetId: Snowflake? = null // 투표 사망 당시 투표 대상
+    var madScientistAnalysisEligibleDay: Int? = null // 분석 가중치가 유효한 낮 일차
+    var hasUsedMadScientistAnalysis: Boolean = false // 분석 가중치 사용 여부
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어
