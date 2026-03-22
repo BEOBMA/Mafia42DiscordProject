@@ -1310,7 +1310,14 @@ object GameManager {
         if (message.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
 
         val formatted = "${sender.member.effectiveName} To ${target.member.effectiveName}\n$message"
-        game.pendingLettersByRecipient.getOrPut(target.member.id) { mutableListOf() } += formatted
+        game.pendingLettersByRecipient.getOrPut(target.member.id) { mutableListOf() } += SecretLetterDelivery(
+            title = "[밀서 도착]",
+            content = formatted
+        )
+        game.pendingLettersByRecipient.getOrPut(sender.member.id) { mutableListOf() } += SecretLetterDelivery(
+            title = "[밀서 전성]",
+            content = formatted
+        )
         game.usedSecretLetterPlayerIds += sender.member.id
         return SpiritRelayResult(true, "${target.member.effectiveName}님에게 밀서를 보냈습니다. 낮 시작 시 전달됩니다.")
     }
