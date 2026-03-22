@@ -105,7 +105,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Mentalist
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 
 object GameLoopManager {
-    private const val NIGHT_DURATION_MS = 25_000L
+    private const val NIGHT_DURATION_MS = 40_000L
     private const val DAWN_DURATION_MS = 10_000L
     private const val VOTE_DURATION_MS = 15_000L
     private const val INITIAL_VOTE_REVEAL_DURATION_MS = 5_000L
@@ -407,13 +407,6 @@ object GameLoopManager {
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
         updateCoupleChannelPermissions(game, coupleChannel, isNight = true)
         updateDeadChannelPermissions(game, deadChannel)
-
-        mafiaChannel.edit {
-            addRoleOverwrite(game.guild.id) {
-                allowed = Permissions(Permission.SendMessages, Permission.UseApplicationCommands)
-                denied = Permissions(Permission.ReadMessageHistory)
-            }
-        }
 
         alivePlayers.forEach { player ->
             player.allAbilities
