@@ -39,6 +39,12 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Conc
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
+import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
+import org.beobma.mafia42discordproject.job.ability.general.list.Escape
+import org.beobma.mafia42discordproject.job.ability.general.list.Innocence
+import org.beobma.mafia42discordproject.job.ability.general.list.Jury
+import org.beobma.mafia42discordproject.job.ability.general.list.MindReading
+import org.beobma.mafia42discordproject.job.ability.general.list.Will
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
@@ -89,6 +95,9 @@ object GameLoopManager {
     private const val PROBATION_DISCOVERY_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485026577610703000/v1-_70Quh-Wmb9ZFVNCbnfkgmA72QZfsKd6CwwUuLiDO25gNgl3l-UiOGyWQNCbxRRfmykJG5UyvAuipvrlfSVWe5mEKilEuBMoaieLofY6Rf5Hdog2Gg7cf-RiqrNrgXRU5GSQxiJwRorEo-JVWIA.webp?ex=69c05e46&is=69bf0cc6&hm=4f084aa32d244df25bafd30549631dc28009f00831b5ad6ed2bbf02df7b5d939&"
     private const val NURSE_DOCTOR_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485041686743744632/B3X9qY9DRgztfGRfTvOmaWzHqY-GRAJ8OFxFmU-mJWPq0RalAYlysco8cTNxJ1vTBYkabPX3KX6luBLqKylwb5BwiQKvDpJL_2sBLnZmwyNgklA3GW8tbIzwt3Sjba6jnyy-Rgy4K_0ggw2aFse9qw.webp?ex=69c06c58&is=69bf1ad8&hm=f280af1c360cc62dd6c0bdbe79a3f284824f5c221088cb6571e43924d2b8ec98&"
     private const val BELONGINGS_REVEAL_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485064103654326362/RoJTMDyTb8Fsc4xISb-b-FpabFGGEC2lEphQj-TPdy5jqQOPoiglPiBQnN9ZRPnwgAXnpw8NA1cIZe1Owz83imTIj3F7_u5gs_1Xp6kDJxhqHLY40_2WpoS8sqmkWhBM9sC0On5EsConl97VZ5twnQ.webp?ex=69c08139&is=69bf2fb9&hm=8558bb6cbfa42f90d449e7ee4874628383ed3503a4f973b0a71f725207e2973c&"
+    private const val ESCAPE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485068268518641804/FGY_RI7iQoyC4rGWNM7VvnxZ7deIbe6jMdxCocerKyOYAEhugy1Al6xM16fuD1wq1Y5cJ4RT2_Mu85JJCF3qygvj56JeMkwlnYSqiG_EeLjMpJYty9OKTXvyYtF-rXdWNY5Qf-hIQOGl3y_IyOXtA.webp?ex=69c0851a&is=69bf339a&hm=03f024962d2a5f70c4fda843ca2baf4b81bacd340b86d5151b7f6d5bdfe4b592&"
+    private const val ESCAPE_DEATH_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485068400043626496/uyd_Tgfv6NhX8X3b60JHJzKo0V-L40BD_wEhnmhYs4TFroVjc08r_ZwR52fekvW4okZ4zrff6t9lnG42n8cTEomUI5gXJhGQCYC2Hk6FUC62CGt0-C5shAvv_9qHTdNpyvRYkVgBBdiMfT-TtLrPkQ.webp?ex=69c08539&is=69bf33b9&hm=38e7d92b214404036675aba36deb468aa2f6493b2b9b17f69751bcffacdb6dec&"
+    private const val INNOCENCE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485069339408335011/yNSYVlFExulsh1yqgC_ocOl1-cnVgzSWTdrT1F6D8PxhJMSKF24PRhZSkVW7ybLC50--Jte3jCS8qlOHLoGYUk5REnG_bWIGZWByWpNTnJcLueDMSBOrjx5ngRD15lIRAxKXyG09Y6G-wFG8oRWyaA.webp?ex=69c08619&is=69bf3499&hm=13cf9f57c385b905c9d01f664ae5cd488d8510c4c15a9b67ca1c6bf9f0ecad66&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -273,6 +282,7 @@ object GameLoopManager {
     }
 
     suspend fun startNightPhase(game: Game) {
+        notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
         game.prophetSpecialWinScheduledTeam = null
@@ -283,6 +293,8 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.pendingDayStartDiscoveries.clear()
         game.concealmentForcedQuietNight = false
+        game.megaphoneUsedTonight = false
+        game.willByPlayerId.clear()
         game.coupleSacrificeMap.clear()
         game.activeThreatenedVoters.clear()
         game.probationOriginalJobsByPlayer.clear()
@@ -506,6 +518,7 @@ object GameLoopManager {
         resolveCabalSpecialWinReadiness(game)
         resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnDeaths = (summary.deaths + poisonedVictims).distinct()
+        revealNightWillIfNeeded(game, dawnDeaths)
         val dawnPresentation = buildDawnPresentation(
             game = game,
             deaths = dawnDeaths,
@@ -639,6 +652,7 @@ object GameLoopManager {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(game.pendingDayStartDiscoveries.toList(), game)
             game.pendingDayStartDiscoveries.clear()
         }
+        deliverSecretLetters(game)
         notifyPendingPoisonEffects(game)
 
         mainChannel.edit {
@@ -799,8 +813,10 @@ object GameLoopManager {
 
     suspend fun startVotePhase(game: Game) {
         val mainChannel = game.mainChannel ?: return
+        processEscapedPlayerDeaths(game)
         game.currentPhase = GamePhase.VOTE
         game.currentMainVotes.clear()
+        game.currentFakeVotes.clear()
         game.defenseTargetId = null
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
@@ -889,6 +905,7 @@ object GameLoopManager {
             }
         }
         val voteCounts = mutableMapOf<PlayerData, Int>()
+        val fakeVoteCounts = mutableMapOf<PlayerData, Int>()
         var invalidVoteCount = 0
         val weightedVoteTargets = mutableListOf<PlayerData>()
         val gangsterTransferredVoteWeights = mutableMapOf<Snowflake, Int>()
@@ -938,6 +955,14 @@ object GameLoopManager {
             }
         }
 
+        game.currentFakeVotes.forEach { (voterId, targetId) ->
+            val voter = game.getPlayer(voterId) ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (voter.state.isDead || target.state.isDead) return@forEach
+            fakeVoteCounts[target] = (fakeVoteCounts[target] ?: 0) + 1
+            weightedVoteTargets += target
+        }
+
         if (weightedVoteTargets.isNotEmpty()) {
             delay(1_000L)
             val progressiveVoteCounts = mutableMapOf<PlayerData, Int>()
@@ -951,7 +976,8 @@ object GameLoopManager {
                     tallyMessage.edit {
                         content = buildFinalVoteTallyContent(
                             alivePlayers = alivePlayers,
-                            voteCounts = progressiveVoteCounts
+                            voteCounts = progressiveVoteCounts,
+                            fakeVoteCounts = fakeVoteCounts
                         )
                     }
                 }
@@ -971,6 +997,21 @@ object GameLoopManager {
         val maxVotedPlayers = voteCounts.filter { it.value == maxVotes }.keys.toList()
 
         if (maxVotedPlayers.size > 1) {
+            val halfThreshold = (alivePlayers.size + 1) / 2
+            if (maxVotes < halfThreshold) {
+                val juryResolved = resolveJuryTarget(game, maxVotedPlayers)
+                if (juryResolved != null) {
+                    game.sendMainChannerMessage("배심원의 결정으로 인해 투표 대상이 정해졌습니다!")
+                    if (isInnocentTarget(game, juryResolved)) {
+                        game.sendMainChannelMessageWithImage(
+                            imageLink = INNOCENCE_IMAGE_URL,
+                            message = "${juryResolved.member.effectiveName}님은 결백합니다!"
+                        )
+                        return null
+                    }
+                    return juryResolved
+                }
+            }
             game.sendMainChannelMessageWithImage(
                 imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
                 message = "처형될 대상을 고르지 못했습니다."
@@ -979,6 +1020,13 @@ object GameLoopManager {
         }
 
         val finalTarget = maxVotedPlayers.first()
+        if (isInnocentTarget(game, finalTarget)) {
+            game.sendMainChannelMessageWithImage(
+                imageLink = INNOCENCE_IMAGE_URL,
+                message = "${finalTarget.member.effectiveName}님은 결백합니다!"
+            )
+            return null
+        }
         return finalTarget
     }
 
@@ -993,6 +1041,11 @@ object GameLoopManager {
             if (target.state.isDead) return@forEach
             currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
         }
+        game.currentFakeVotes.values.forEach { targetId ->
+            val target = game.getPlayer(targetId) ?: return@forEach
+            if (target.state.isDead) return@forEach
+            currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
+        }
 
         return buildString {
             alivePlayers.forEach { player ->
@@ -1004,12 +1057,128 @@ object GameLoopManager {
 
     private fun buildFinalVoteTallyContent(
         alivePlayers: List<PlayerData>,
-        voteCounts: Map<PlayerData, Int>
+        voteCounts: Map<PlayerData, Int>,
+        fakeVoteCounts: Map<PlayerData, Int> = emptyMap()
     ): String {
         return buildString {
             alivePlayers.forEach { player ->
-                appendLine("- ${player.member.effectiveName}: ${voteCounts[player] ?: 0}표")
+                val total = (voteCounts[player] ?: 0)
+                val fakeCount = fakeVoteCounts[player] ?: 0
+                if (fakeCount > 0) {
+                    appendLine("- ${player.member.effectiveName}: ${total}표 (위증 ${fakeCount}표 포함)")
+                } else {
+                    appendLine("- ${player.member.effectiveName}: ${total}표")
+                }
             }
+        }
+    }
+
+    private fun resolveJuryTarget(game: Game, tiedTargets: List<PlayerData>): PlayerData? {
+        val juryVoteCounts = mutableMapOf<PlayerData, Int>()
+        game.currentMainVotes.forEach { (voterId, targetIdString) ->
+            val voter = game.getPlayer(voterId) ?: return@forEach
+            if (voter.state.isDead || voter.allAbilities.none { it is Jury }) return@forEach
+            val target = game.getPlayer(Snowflake(targetIdString)) ?: return@forEach
+            if (target !in tiedTargets) return@forEach
+            juryVoteCounts[target] = (juryVoteCounts[target] ?: 0) + 1
+        }
+
+        if (juryVoteCounts.isEmpty()) return null
+        val maxJuryVotes = juryVoteCounts.values.maxOrNull() ?: return null
+        val topTargets = juryVoteCounts.filterValues { it == maxJuryVotes }.keys
+        return topTargets.singleOrNull()
+    }
+
+    private fun isInnocentTarget(game: Game, candidate: PlayerData): Boolean {
+        if (candidate.allAbilities.none { it is Innocence }) return false
+        val candidateVoteTargetId = game.currentMainVotes[candidate.member.id] ?: return false
+        val candidateVoteTarget = game.getPlayer(Snowflake(candidateVoteTargetId)) ?: return false
+        if (candidateVoteTarget.state.isDead) return false
+
+        val sameTeam = (candidate.job is Evil) == (candidateVoteTarget.job is Evil)
+        if (sameTeam) return false
+
+        val reverseVoteTargetId = game.currentMainVotes[candidateVoteTarget.member.id]
+        return reverseVoteTargetId != candidate.member.id.toString()
+    }
+
+    private fun notifyMindReadingResults(game: Game) {
+        if (game.currentMainVotes.isEmpty()) return
+
+        game.playerDatas
+            .filter { !it.state.isDead && it.allAbilities.any { ability -> ability is MindReading } }
+            .forEach { mindReader ->
+                val voters = game.currentMainVotes
+                    .filterValues { it == mindReader.member.id.toString() }
+                    .keys
+                    .mapNotNull { voterId -> game.getPlayer(voterId)?.member?.effectiveName }
+
+                cabalNotificationScope.launch {
+                    runCatching {
+                        val message = if (voters.isEmpty()) {
+                            "독심술 결과: 당신에게 투표한 사람이 없습니다."
+                        } else {
+                            "독심술 결과: 당신에게 투표한 사람 - ${voters.joinToString(", ")}"
+                        }
+                        mindReader.member.getDmChannel().createMessage(message)
+                    }
+                }
+            }
+    }
+
+    private suspend fun processEscapedPlayerDeaths(game: Game) {
+        val pendingTargets = game.pendingEscapedPlayerIds.toList()
+        if (pendingTargets.isEmpty()) return
+
+        pendingTargets.forEach { escapedPlayerId ->
+            val escapedPlayer = game.getPlayer(escapedPlayerId) ?: run {
+                game.pendingEscapedPlayerIds.remove(escapedPlayerId)
+                return@forEach
+            }
+            if (escapedPlayer.state.isDead) {
+                game.pendingEscapedPlayerIds.remove(escapedPlayerId)
+                return@forEach
+            }
+
+            escapedPlayer.state.isDead = true
+            game.pendingEscapedPlayerIds.remove(escapedPlayerId)
+            game.nightEvents += GameEvent.PlayerDied(escapedPlayer, isLynch = true)
+            applyPoliceAutopsy(game, escapedPlayer)
+            game.sendMainChannelMessageWithImage(
+                imageLink = ESCAPE_DEATH_IMAGE_URL,
+                message = "투표에서 도주한 ${escapedPlayer.member.effectiveName}님이 사망하였습니다."
+            )
+            revealBelongingsIfNeeded(game, escapedPlayer)
+        }
+
+        dispatchEvents(game)
+        game.nightEvents.clear()
+        game.deadChannel?.let { updateDeadChannelPermissions(game, it) }
+    }
+
+    private fun deliverSecretLetters(game: Game) {
+        if (game.pendingLettersByRecipient.isEmpty()) return
+        val deliveries = game.pendingLettersByRecipient.toMap()
+        game.pendingLettersByRecipient.clear()
+
+        deliveries.forEach { (recipientId, letters) ->
+            val recipient = game.getPlayer(recipientId) ?: return@forEach
+            cabalNotificationScope.launch {
+                runCatching {
+                    recipient.member.getDmChannel().createMessage("[밀서 도착]\n${letters.joinToString("\n\n")}")
+                }
+            }
+        }
+    }
+
+    private suspend fun revealNightWillIfNeeded(game: Game, deadPlayers: List<PlayerData>) {
+        val willOwners = deadPlayers.filter { player ->
+            player.allAbilities.any { it is Will } && game.willByPlayerId[player.member.id]?.isNotBlank() == true
+        }
+
+        willOwners.forEach { player ->
+            val willMessage = game.willByPlayerId.remove(player.member.id) ?: return@forEach
+            game.sendMainChannerMessage("[유언] ${player.member.effectiveName}: $willMessage")
         }
     }
 
@@ -1163,6 +1332,21 @@ object GameLoopManager {
                 game.unwrittenRuleBlockedTargetIdTonight = target.member.id
             }
             mainChannel.createMessage("정치인은 투표로 죽지 않습니다")
+            game.defenseTargetId = null
+            return
+        }
+
+        val hasMartyrExplosionTarget = ((target.job as? Martyr)?.defenseBombTargetId != null)
+        if (
+            !hasMartyrExplosionTarget &&
+            target.allAbilities.any { it is Escape } &&
+            target.member.id !in game.pendingEscapedPlayerIds
+        ) {
+            game.pendingEscapedPlayerIds += target.member.id
+            game.sendMainChannelMessageWithImage(
+                imageLink = ESCAPE_IMAGE_URL,
+                message = "${target.member.effectiveName}님이 투표에서 도주하였습니다!"
+            )
             game.defenseTargetId = null
             return
         }
@@ -2176,7 +2360,7 @@ object GameLoopManager {
         if (
             attacker.allAbilities.any { it is Exorcism } &&
             target.job !is Evil &&
-            ShamaningPolicy.canBeShamaned(target)
+            target.allAbilities.none { it is EarthboundSpirit }
         ) {
             target.state.isShamaned = true
         }

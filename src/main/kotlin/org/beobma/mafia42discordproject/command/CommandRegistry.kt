@@ -13,6 +13,10 @@ object CommandRegistry {
         DebugCommand,
         ShamanRelayCommand,
         ShamanedRelayCommand,
+        MegaphoneCommand,
+        SecretLetterCommand,
+        WillCommand,
+        PerjuryCommand,
     )
 
     fun all(): List<DiscordCommand> = registeredCommands
