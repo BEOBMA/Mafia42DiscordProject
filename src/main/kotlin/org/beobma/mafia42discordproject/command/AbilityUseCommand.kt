@@ -26,6 +26,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.dete
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
@@ -190,6 +192,13 @@ object AbilityUseCommand : DiscordCommand {
         return caster.allAbilities
             .filterIsInstance<ActiveAbility>()
             .filter { it.usablePhase == game.currentPhase }
+            .filter { ability ->
+                if (ability is GodfatherAbility) {
+                    GodfatherContactPolicy.canUseExecution(game, caster)
+                } else {
+                    true
+                }
+            }
     }
 
     private fun isBlockedByUnwrittenRule(game: Game, directTarget: PlayerData?): Boolean {
