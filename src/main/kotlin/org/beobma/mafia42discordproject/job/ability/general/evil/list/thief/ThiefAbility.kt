@@ -22,12 +22,12 @@ import org.beobma.mafia42discordproject.job.evil.list.Thief
 class ThiefAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "도벽"
     override val description: String = "투표시간마다 원하는 플레이어의 고유 능력을 훔쳐 밤까지 사용할 수 있다."
-    override val image: String = THIEF_STEAL_IMAGE_URL
-    override val usablePhase: GamePhase = GamePhase.DAY
+    override val image: String = ""
+    override val usablePhase: GamePhase = GamePhase.VOTE
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
         if (game.currentPhase != usablePhase) {
-            return AbilityResult(false, "도벽은 낮에만 사용할 수 있습니다.")
+            return AbilityResult(false, "도벽은 투표 시간에만 사용할 수 있습니다.")
         }
         if (caster.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 도벽을 사용할 수 없습니다.")

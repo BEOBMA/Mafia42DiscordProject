@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.detective
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
