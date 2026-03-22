@@ -3054,7 +3054,7 @@ object GameLoopManager {
             target.state.isShamaned = true
         }
 
-        if (attacker.allAbilities.any { it is Probation } && target.job !is Evil) {
+        if (attacker.allAbilities.any { it is Probation }) {
             val originalJob = target.job ?: return
             game.nightEvents += GameEvent.JobDiscovered(
                 discoverer = attacker,
@@ -3066,7 +3066,10 @@ object GameLoopManager {
                 imageUrl = PROBATION_DISCOVERY_IMAGE_URL
             )
             game.probationOriginalJobsByPlayer[target.member.id] = originalJob
-            target.job = Citizen()
+
+            if (target.job !is Evil) {
+                target.job = Citizen()
+            }
         }
     }
 
