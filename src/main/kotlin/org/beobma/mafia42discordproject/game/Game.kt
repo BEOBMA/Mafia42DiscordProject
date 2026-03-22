@@ -27,6 +27,11 @@ data class SeductionStatus(
     var isPermanent: Boolean = false
 )
 
+data class SecretLetterDelivery(
+    val title: String,
+    val content: String
+)
+
 data class Game(
     var playerDatas: MutableList<PlayerData>,
     val guild: Guild,
@@ -70,7 +75,7 @@ data class Game(
     val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
     var megaphoneUsedTonight: Boolean = false
     val usedSecretLetterPlayerIds: MutableSet<Snowflake> = mutableSetOf()
-    val pendingLettersByRecipient: MutableMap<Snowflake, MutableList<String>> = mutableMapOf()
+    val pendingLettersByRecipient: MutableMap<Snowflake, MutableList<SecretLetterDelivery>> = mutableMapOf()
     val willByPlayerId: MutableMap<Snowflake, String> = mutableMapOf()
     // 건달 공갈(일시) 및 길동무(영구) 투표권 박탈 상태
     var activeThreatenedVoters: MutableMap<Snowflake, Snowflake> = mutableMapOf() // Key: 대상, Value: 건달

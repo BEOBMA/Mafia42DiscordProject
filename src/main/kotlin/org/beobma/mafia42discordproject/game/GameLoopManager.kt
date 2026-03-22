@@ -1615,7 +1615,10 @@ object GameLoopManager {
             val recipient = game.getPlayer(recipientId) ?: return@forEach
             cabalNotificationScope.launch {
                 runCatching {
-                    recipient.member.getDmChannel().createMessage("[밀서 도착]\n${letters.joinToString("\n\n")}")
+                    val letterMessage = letters.joinToString("\n\n") { letter ->
+                        "${letter.title}\n${letter.content}"
+                    }
+                    recipient.member.getDmChannel().createMessage(letterMessage)
                 }
             }
         }
