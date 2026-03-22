@@ -25,10 +25,12 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.evil.list.Beastman
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -126,7 +128,7 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
-        val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
+        val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
             null
@@ -153,6 +155,9 @@ object AbilityUseCommand : DiscordCommand {
         }
 
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
+            notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
+        }
+        if (result.isSuccess && selectedAbility is BeastmanAbility && target != null && caster.job is Beastman && caster.state.isTamed) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
         if (result.isSuccess && effectiveTarget != null) {
