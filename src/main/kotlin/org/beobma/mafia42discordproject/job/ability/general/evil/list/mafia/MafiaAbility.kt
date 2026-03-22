@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Agent
 import org.beobma.mafia42discordproject.job.definition.list.Couple
 import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
@@ -97,7 +98,7 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
     private fun isPoliceLine(target: PlayerData): Boolean {
         val targetJob = target.job ?: return false
-        return targetJob is Police || targetJob is Detective || targetJob is Agent
+        return targetJob is Police || targetJob is Detective || targetJob is Agent || targetJob is Vigilante
     }
 
     private fun canUseWinOrDead(game: Game, caster: PlayerData): Boolean {

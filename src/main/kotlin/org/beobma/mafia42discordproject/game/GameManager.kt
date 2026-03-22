@@ -92,7 +92,7 @@ object GameManager {
         val message: String
     )
 
-    private val policeJobNames = setOf("경찰", "요원")
+    private val policeJobNames = setOf("경찰", "요원", "자경단원")
     private val excludedVirtualPreferenceJobNames = setOf("시민", "악인")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
