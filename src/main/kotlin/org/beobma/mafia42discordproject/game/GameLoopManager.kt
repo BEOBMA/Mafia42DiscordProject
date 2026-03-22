@@ -2368,7 +2368,7 @@ object GameLoopManager {
             attacks = attacks,
             deaths = deaths,
             presentation = buildDefaultDawnPresentation(
-                attacks = attacks,
+                attacksByKey = game.nightAttacks,
                 deaths = deaths,
                 poisonedDeaths = poisonedDeaths,
                 game = game
@@ -2391,10 +2391,10 @@ object GameLoopManager {
     }
 
     private fun buildDefaultDawnPresentation(
-        attacks: List<AttackEvent>,
+        attacksByKey: Map<String, AttackEvent>,
         deaths: List<PlayerData>,
         poisonedDeaths: List<PlayerData>,
-        game: Game // Game 파라미터 추가 필요 (호출부에도 game을 넘겨주어야 함)
+        game: Game
     ): DawnPresentation {
 
         // 연인이 희생해서 죽은 사람이 있는지 확인
@@ -2406,72 +2406,80 @@ object GameLoopManager {
             return DawnPresentation(imageUrl = "", message = "")
         }
 
-        // 마피아팀 킬 (마피아, 도둑 등)
-        val mafiaKillVictim = attacks
-            .firstOrNull {
-                val attackerJob = it.attacker.job
-                (attackerJob?.name == "마피아" || (attackerJob is Thief && attackerJob.abilities.any { it.name == "처형" })) &&
-                        it.target in deaths
-            }
-            ?.target
-        val beastKillVictim = attacks
-            .firstOrNull { it.attacker.job is Beastman }
-            ?.target
-            ?.takeIf { it in deaths }
-        val poisonedDeathVictim = poisonedDeaths.firstOrNull()
-        val vigilanteKillVictim = attacks
-            .firstOrNull { it.attacker.job is Vigilante }
-            ?.target
-            ?.takeIf { it in deaths && it.job is Evil }
-        val godfatherKillVictim = attacks
-            .firstOrNull { it.attacker.job is Godfather }
-            ?.target
-            ?.takeIf { it in deaths }
-
         val doctorSavedTarget = game.doctorSavedTargetTonight
+        val attacks = attacksByKey.values.toList()
+        val deathsSet = deaths.toSet()
+        val messageLines = mutableListOf<String>()
 
-        return if (vigilanteKillVictim != null) {
-            vigilanteKillVictim.state.isJobPubliclyRevealed = true
-            val revealedJob = vigilanteKillVictim.job
-            DawnPresentation(
-                imageUrl = VIGILANTE_EXECUTION_IMAGE_URL,
-                message = "${vigilanteKillVictim.member.effectiveName}가 살해당하였습니다." +
-                    if (revealedJob != null) "\n${vigilanteKillVictim.member.effectiveName}님의 직업은 ${revealedJob.name}입니다." else ""
-            )
-        } else if (godfatherKillVictim != null) {
-            DawnPresentation(
-                imageUrl = GODFATHER_EXECUTION_IMAGE_URL,
-                message = "${godfatherKillVictim.member.effectiveName}가 살해당하였습니다."
-            )
-        } else if (beastKillVictim != null) {
-            DawnPresentation(
-                imageUrl = BEASTMAN_ATTACK_IMAGE_URL,
-                message = "${beastKillVictim.member.effectiveName}님이 짐승에게 습격당하였습니다."
-            )
-        } else if (mafiaKillVictim == null) {
-            if (poisonedDeathVictim != null) {
-                DawnPresentation(
-                    imageUrl = SystemImage.DEATH_BY_POISON.imageUrl,
-                    message = "${poisonedDeathVictim.member.effectiveName}님이 중독으로 사망했습니다."
-                )
-            } else if (doctorSavedTarget != null) {
-                game.publiclyRevealedAbilityTargetIds += doctorSavedTarget.member.id
-                DawnPresentation(
-                    imageUrl = SystemImage.DOCTOR_HEAL.imageUrl,
-                    message = "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
-                )
-            } else {
-                DawnPresentation(
-                    imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
-                    message = "조용하게 밤이 넘어갔습니다."
-                )
+        var imageUrl = ""
+        fun pickImage(candidate: String) {
+            if (imageUrl.isBlank()) {
+                imageUrl = candidate
             }
-        } else {
-            DawnPresentation(
-                imageUrl = SystemImage.DEATH_BY_MAFIA.imageUrl,
-                message = "${mafiaKillVictim.member.effectiveName}이(가) 살해당했습니다."
+        }
+
+        attacks
+            .filter { it.attacker.job is Vigilante && it.target in deathsSet && it.target.job is Evil }
+            .map { it.target }
+            .distinctBy { it.member.id }
+            .forEach { victim ->
+                victim.state.isJobPubliclyRevealed = true
+                val revealedJob = victim.job
+                messageLines += "${victim.member.effectiveName}가 살해당하였습니다." +
+                    if (revealedJob != null) "\n${victim.member.effectiveName}님의 직업은 ${revealedJob.name}입니다." else ""
+                pickImage(VIGILANTE_EXECUTION_IMAGE_URL)
+            }
+
+        attacks
+            .filter { it.attacker.job is Godfather && it.target in deathsSet }
+            .map { it.target }
+            .distinctBy { it.member.id }
+            .forEach { victim ->
+                messageLines += "${victim.member.effectiveName}가 살해당하였습니다."
+                pickImage(GODFATHER_EXECUTION_IMAGE_URL)
+            }
+
+        attacks
+            .filter { it.attacker.job is Beastman && it.target in deathsSet }
+            .map { it.target }
+            .distinctBy { it.member.id }
+            .forEach { victim ->
+                messageLines += "${victim.member.effectiveName}님이 짐승에게 습격당하였습니다."
+                pickImage(BEASTMAN_ATTACK_IMAGE_URL)
+            }
+
+        attacksByKey["MAFIA_TEAM"]
+            ?.target
+            ?.takeIf { it in deathsSet }
+            ?.let { victim ->
+                messageLines += "${victim.member.effectiveName}이(가) 살해당했습니다."
+                pickImage(SystemImage.DEATH_BY_MAFIA.imageUrl)
+            }
+
+        poisonedDeaths
+            .distinctBy { it.member.id }
+            .forEach { victim ->
+                messageLines += "${victim.member.effectiveName}님이 중독으로 사망했습니다."
+                pickImage(SystemImage.DEATH_BY_POISON.imageUrl)
+            }
+
+        if (doctorSavedTarget != null) {
+            game.publiclyRevealedAbilityTargetIds += doctorSavedTarget.member.id
+            messageLines += "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
+            pickImage(SystemImage.DOCTOR_HEAL.imageUrl)
+        }
+
+        if (messageLines.isEmpty()) {
+            return DawnPresentation(
+                imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
+                message = "조용하게 밤이 넘어갔습니다."
             )
         }
+
+        return DawnPresentation(
+            imageUrl = imageUrl,
+            message = messageLines.joinToString("\n")
+        )
     }
 
     private fun dispatchEvents(game: Game): List<GameEvent> {
