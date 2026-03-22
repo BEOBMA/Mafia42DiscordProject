@@ -889,9 +889,14 @@ object GameLoopManager {
 
     private fun canAccessMafiaChannel(game: Game, player: PlayerData): Boolean {
         if (player.job is Mafia) return true
-        if (player.state.hasContactedMafiaByInformant) return true
+        if (!isMafiaSupportJob(player)) return false
 
-        return hasContactedMafiaByJobState(game, player)
+        return player.state.hasContactedMafiaByInformant || hasContactedMafiaByJobState(game, player)
+    }
+
+    private fun isMafiaSupportJob(player: PlayerData): Boolean {
+        val job = player.job
+        return job is Evil && job !is Mafia && job !is Villain
     }
 
     private fun hasContactedMafiaByJobState(game: Game, player: PlayerData): Boolean {

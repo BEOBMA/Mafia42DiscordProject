@@ -1363,6 +1363,7 @@ object GameManager {
     }
 
     private fun hasContactedMafiaTeam(game: Game, player: PlayerData): Boolean {
+        if (!isMafiaSupportJob(player)) return false
         if (player.state.hasContactedMafiaByInformant) return true
 
         return when (val job = player.job) {
@@ -1377,6 +1378,11 @@ object GameManager {
             is Witch -> job.hasContactedMafia
             else -> false
         }
+    }
+
+    private fun isMafiaSupportJob(player: PlayerData): Boolean {
+        val job = player.job
+        return job is Evil && job !is Mafia && job !is Villain
     }
 
     private fun parseTargetPlayer(game: Game, raw: String): PlayerData? {
