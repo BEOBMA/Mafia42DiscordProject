@@ -821,8 +821,16 @@ object GameLoopManager {
             }
 
             game.playerDatas.forEach { player ->
+                if (player.state.isDead) {
+                    addMemberOverwrite(player.member.id) {
+                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        denied = Permissions(Permission.SendMessages)
+                    }
+                    return@forEach
+                }
+
                 if (canAccessMafiaChannel(game, player)) {
-                    val canSend = !player.state.isDead && isNight && !shouldRestrictCommunication(player)
+                    val canSend = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
                         allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
                         denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
