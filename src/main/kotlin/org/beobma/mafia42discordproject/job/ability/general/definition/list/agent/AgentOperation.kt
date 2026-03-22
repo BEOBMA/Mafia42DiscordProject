@@ -19,7 +19,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Swindler
 class AgentOperation : JobUniqueAbility, PassiveAbility {
     override val name: String = "공작"
     override val description: String = "낮마다 지령을 받아 시민 한 명의 직업을 알아낸다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485262025503543296/ab687d3d987ef0a3.png?ex=69c1398d&is=69bfe80d&hm=aabd95e5fd4cce953c75121175e301434a18af98b094505e08fc55bde2586001&"
 
     companion object {
         private val agentDmScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -40,12 +40,12 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
 
         val selectedTarget = candidates.shuffled().firstOrNull()
         if (selectedTarget == null) {
-            sendDm(owner, "아무런 정보가 도착하지 않았습니다.")
+            sendDm(owner, "지령이 도착하지 않았습니다.")
             return
         }
 
         val discoveredJob = FrogCurseManager.displayedJob(selectedTarget) ?: run {
-            sendDm(owner, "아무런 정보가 도착하지 않았습니다.")
+            sendDm(owner, "지령이 도착하지 않았습니다.")
             return
         }
 
