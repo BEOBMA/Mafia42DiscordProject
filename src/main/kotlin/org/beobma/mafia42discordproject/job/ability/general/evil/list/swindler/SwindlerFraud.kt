@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.swindler
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,7 +16,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Swindler
 class SwindlerFraud : JobUniqueAbility, PassiveAbility {
     override val name: String = "사기"
     override val description: String = "게임 시작 시 시민 한 명의 정체를 알아내고 그 직업으로 변장한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485101958561005750/BPW0MHzwutemHCShBg0ZT-eplKvZXUkajGj0sU1D0_vJm5F6NQO4OKdZv1GkJSGf7bMRngaCXF4DUIj8hE4g_f-mjt2mjilcy5TNaPN1HQ5OGbWdMObnuh1x_wa18r74nz2LHVebMSakUmGg-OHhTA.webp?ex=69c0a47a&is=69bf52fa&hm=601879c3b9e0d766c07c2536349d3ec0854b3365ba4370205eddb0e79b449cce&"
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485289269777137826/595e6ae33bfcef82.png?ex=69c152ed&is=69c0016d&hm=9da8157e3070226e17a1dac177c376cd29d951f0a616c9e6f998eb1edcc353e5&"
 
     override fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {
         if (newPhase != GamePhase.NIGHT) return

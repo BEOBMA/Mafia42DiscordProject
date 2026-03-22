@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.spy
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -9,8 +8,8 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -20,8 +19,8 @@ import org.beobma.mafia42discordproject.job.evil.list.Spy
 
 class SpyAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "첩보"
-    override val description: String = "밤마다 플레이어 한 명을 선택하여 직업을 알아낼 수 있다. 마피아와 접선할 경우, 한 번 더 능력을 사용할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485095367002554611/gSi2xCM8lqqiXJjf7wnnHF9ZFquwAUP9CwUR6086i8uZC4Y4h-T-W9O911C9Dq9njgQpc1uRkplrXXKK68uathlGas1KAuz3mu1Ne2cAWayhde6Wex68kt0eMUvU0PlgH0WHI437-tVhpnl_JdZucg.webp?ex=69c09e57&is=69bf4cd7&hm=88c5f17a652a634f03d8cfb3b613fa47e08f57ace7a19a07f5020e3f36447c2d&"
+    override val description: String = "밤마다 플레이어 한 명을 선택하여 직업을 알 수 있으며 마피아라면 접선한다. 마피아와 접선할 경우, 한 번 더 능력을 사용할 수 있다."
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485290520623317272/eee6f191ce4f18c1.png?ex=69c15417&is=69c00297&hm=e74e7a2ce5c8d60fd994f790561fffb9b7738d182b61ea06a19d6584fcf4887c&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
