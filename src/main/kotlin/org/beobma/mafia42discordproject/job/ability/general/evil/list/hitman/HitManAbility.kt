@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -22,7 +21,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
     override val description: String = "두 번째 밤부터 공개적으로 능력이 사용된 대상을 제외한 시민 두 명을 지목하여 직업을 맞출 경우 둘 다 암살한다."
-    override val image: String = ""
+    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485287583767593093/683eeae42023178e.png?ex=69c1515b&is=69bfffdb&hm=b56804106cb11e70e684403213a6acef4fe8b650c898da7920ea31eb0daa1b11&"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     fun activateWithJobName(game: Game, caster: PlayerData, target: PlayerData?, guessedJobName: String?): AbilityResult {
