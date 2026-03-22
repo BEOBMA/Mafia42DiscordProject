@@ -144,12 +144,12 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
         if (target != null && GameLoopManager.isMadScientistDistortionHidden(target)) {
-            DiscordMessageManager.respondEphemeral(event, "왜곡된 재생 상태의 과학자는 아직 스킬 대상으로 지정할 수 없습니다.")
+            DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
             return
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         if (effectiveTarget != null && GameLoopManager.isMadScientistDistortionHidden(effectiveTarget)) {
-            DiscordMessageManager.respondEphemeral(event, "왜곡된 재생 상태의 과학자는 아직 스킬 대상으로 지정할 수 없습니다.")
+            DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
             return
         }
         val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
@@ -234,6 +234,16 @@ object AbilityUseCommand : DiscordCommand {
         val target = directTarget ?: return false
         if (target.member.id != blockedTargetId) return false
         return target.job is Judge || target.job is Politician
+    }
+
+    private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {
+        return when (selectedAbility) {
+            is DoctorAbility -> "이미 사망한 플레이어는 치료할 수 없습니다."
+            is MafiaAbility, is GodfatherAbility, is BeastmanAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
+            is NurseAbility -> "사망한 플레이어는 처방 대상으로 지정할 수 없습니다."
+            is DetectiveAbility -> "사망한 플레이어는 추리 대상으로 지정할 수 없습니다."
+            else -> "이미 사망한 플레이어는 대상으로 지정할 수 없습니다."
+        }
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
