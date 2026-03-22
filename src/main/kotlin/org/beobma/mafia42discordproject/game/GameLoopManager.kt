@@ -2588,15 +2588,22 @@ object GameLoopManager {
     private suspend fun announceSourceMafiaCountAtNightStart(game: Game) {
         if (game.dayCount <= 1) return
 
-        val hasAliveSource = game.playerDatas.any { player ->
+        val aliveSources = game.playerDatas.filter { player ->
             !player.state.isDead && player.allAbilities.any { it is Source }
         }
-        if (!hasAliveSource) return
+        if (aliveSources.isEmpty()) return
 
         val aliveMafiaTeamCount = game.playerDatas.count { player ->
             !player.state.isDead && player.job is Evil
         }
-        game.sendMainChannerMessage("정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남은 것이 밝혀졌습니다.")
+
+        aliveSources.forEach { sourcePlayer ->
+            runCatching {
+                sourcePlayer.member.getDmChannel().createMessage(
+                    "정보원 능력 결과: 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남아 있습니다."
+                )
+            }
+        }
     }
 
     private suspend fun revealBelongingsIfNeeded(game: Game, victim: PlayerData) {
