@@ -9,6 +9,8 @@ import dev.kord.core.event.message.MessageCreateEvent
 interface DiscordCommand {
     val name: String
     val description: String
+    val aliases: List<String>
+        get() = emptyList()
 
     suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent)
 
@@ -22,7 +24,15 @@ interface DiscordCommand {
         kord.createGlobalChatInputCommand(name, description)
     }
 
+    suspend fun registerGlobal(name: String, kord: Kord) {
+        kord.createGlobalChatInputCommand(name, description)
+    }
+
     suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
+        kord.createGuildChatInputCommand(guildId, name, description)
+    }
+
+    suspend fun registerGuild(name: String, kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description)
     }
 }

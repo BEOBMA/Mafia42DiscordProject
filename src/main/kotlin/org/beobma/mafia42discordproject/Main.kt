@@ -33,7 +33,8 @@ suspend fun main() {
 
     kord.on<ReadyEvent> {
         println("✅ 로그인 완료: ${kord.getSelf().tag}")
-        println("사용 가능한 슬래시 명령어: ${commands.joinToString { "/${it.name}" }}")
+        val commandNames = commands.flatMap(CommandRegistry::allNames)
+        println("사용 가능한 슬래시 명령어: ${commandNames.joinToString { "/$it" }}")
     }
 
     kord.on<GuildChatInputCommandInteractionCreateEvent> {
@@ -91,53 +92,62 @@ private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>
 
     if (guildId != null) {
         commands.forEach { command ->
-            upsertGuildChatInputCommand(kord, guildId, command)
+            CommandRegistry.allNames(command).forEach { commandName ->
+                upsertGuildChatInputCommand(kord, guildId, command, commandName)
+            }
         }
         println("✅ 길드 슬래시 명령어 동기화 완료 (guildId=$guildId)")
         return
     }
 
     commands.forEach { command ->
-        upsertGlobalChatInputCommand(kord, command)
+        CommandRegistry.allNames(command).forEach { commandName ->
+            upsertGlobalChatInputCommand(kord, command, commandName)
+        }
     }
     println("✅ 글로벌 슬래시 명령어 동기화 완료")
     println("ℹ️ 빠른 반영이 필요하면 DISCORD_GUILD_ID를 설정하세요.")
 }
 
-private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
+private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand, commandName: String) {
     val existingCommand = kord.getGlobalApplicationCommands()
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
+        .filter { it.type == ApplicationCommandType.ChatInput && it.name == commandName }
         .firstOrNull()
 
     if (existingCommand != null) {
-        println("ℹ️ 글로벌 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name}")
+        println("ℹ️ 글로벌 명령어가 이미 존재하여 생성을 건너뜁니다: /$commandName")
         return
     }
 
     runCatching {
-        command.registerGlobal(kord)
+        command.registerGlobal(commandName, kord)
     }.onSuccess {
-        println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
+        println("➕ 글로벌 명령어를 생성했습니다: /$commandName")
     }.onFailure { error ->
-        println("⚠️ 글로벌 명령어 생성 실패로 건너뜁니다: /${command.name}, reason=${error.message}")
+        println("⚠️ 글로벌 명령어 생성 실패로 건너뜁니다: /$commandName, reason=${error.message}")
     }
 }
 
-private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
+private suspend fun upsertGuildChatInputCommand(
+    kord: Kord,
+    guildId: Snowflake,
+    command: DiscordCommand,
+    commandName: String,
+) {
     val existingCommand = kord.getGuildApplicationCommands(guildId)
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
+        .filter { it.type == ApplicationCommandType.ChatInput && it.name == commandName }
         .firstOrNull()
 
     if (existingCommand != null) {
-        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name} (guildId=$guildId)")
+        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /$commandName (guildId=$guildId)")
         return
     }
 
     runCatching {
-        command.registerGuild(kord, guildId)
+        command.registerGuild(commandName, kord, guildId)
     }.onSuccess {
-        println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
+        println("➕ 길드 명령어를 생성했습니다: /$commandName (guildId=$guildId)")
     }.onFailure { error ->
-        println("⚠️ 길드 명령어 생성 실패로 건너뜁니다: /${command.name} (guildId=$guildId), reason=${error.message}")
+        println("⚠️ 길드 명령어 생성 실패로 건너뜁니다: /$commandName (guildId=$guildId), reason=${error.message}")
     }
 }
