@@ -770,6 +770,11 @@ object GameManager {
                             }
                         }
 
+                        buildMafiaTeammateMessage(this@initializeExtraAbilitySelectionForPlayers, player)
+                            ?.let { dmChannel.createMessage(it) }
+                        buildCouplePartnerMessage(this@initializeExtraAbilitySelectionForPlayers, player)
+                            ?.let { dmChannel.createMessage(it) }
+
                         if (session != null) {
                             sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
                         } else {
@@ -787,6 +792,34 @@ object GameManager {
         }
 
         assignVirtualPlayerExtraAbilities(players)
+    }
+
+    private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
+        if (player.job !is Mafia) return null
+
+        val teammateNames = game.playerDatas
+            .filter { candidate ->
+                candidate.member.id != player.member.id &&
+                    candidate.job is Mafia
+            }
+            .map { it.member.effectiveName }
+
+        if (teammateNames.isEmpty()) return null
+        return "당신과 함께하는 다른 마피아: ${teammateNames.joinToString(", ")}"
+    }
+
+    private fun buildCouplePartnerMessage(game: Game, player: PlayerData): String? {
+        val coupleJob = player.job as? Couple ?: return null
+        val partnerId = coupleJob.pairedPlayerId ?: return null
+        if (partnerId == player.member.id) return null
+
+        val partnerName = game.playerDatas
+            .firstOrNull { it.member.id == partnerId }
+            ?.member
+            ?.effectiveName
+            ?: return null
+
+        return "당신의 짝 연인은 ${partnerName}입니다."
     }
 
     private fun appendAbilityImages(
