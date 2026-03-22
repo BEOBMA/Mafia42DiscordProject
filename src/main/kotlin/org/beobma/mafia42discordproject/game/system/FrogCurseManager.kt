@@ -28,7 +28,8 @@ object FrogCurseManager {
 
     fun displayedJob(target: PlayerData): Job? {
         val actualJob = target.job ?: return null
-        return if (isCursed(target)) Frog() else actualJob
+        if (isCursed(target)) return Frog()
+        return SwindlerManager.disguisedJobOf(target) ?: actualJob
     }
 
     fun canUseActiveAbility(caster: PlayerData, ability: ActiveAbility): Boolean {

@@ -92,6 +92,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import org.beobma.mafia42discordproject.job.evil.list.MadScientist
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
+import org.beobma.mafia42discordproject.job.evil.list.Swindler
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Witch
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
@@ -465,11 +466,25 @@ object GameLoopManager {
 
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"]
         if (mafiaAttack != null) {
+            val selectedMafiaTarget = resolveOriginallySelectedMafiaTarget(game, mafiaAttack)
+            var swindlerNegotiationBlockedExecution = false
+
+            SwindlerManager.shouldTriggerNegotiation(game, selectedMafiaTarget)?.let { (swindlerPlayer, swindlerWasMafiaTarget) ->
+                if (swindlerWasMafiaTarget) {
+                    playersToDie.remove(swindlerPlayer)
+                    game.concealmentForcedQuietNight = true
+                    swindlerNegotiationBlockedExecution = true
+                }
+                SwindlerManager.contactMafia(game, swindlerPlayer)
+            }
+
             val targetSurvived = mafiaAttack.target !in playersToDie
             game.mafiaAttackFailedPreviousNight = targetSurvived
 
             if (targetSurvived) {
-                applyMafiaExecutionFailureEffects(game, mafiaAttack)
+                if (!swindlerNegotiationBlockedExecution) {
+                    applyMafiaExecutionFailureEffects(game, mafiaAttack)
+                }
             } else {
                 registerCoupleResentment(game, mafiaAttack)
                 applyMafiaExecutionSuccessEffects(game, mafiaAttack)
@@ -832,6 +847,7 @@ object GameLoopManager {
             player.job is Hostess && (player.job as Hostess).hasContactedMafia -> true
             player.job is MadScientist && player.state.hasContactedMafiaOnDeath -> true
             player.job is Spy && (player.job as Spy).hasContactedMafia -> true
+            player.job is Swindler && (player.job as Swindler).hasContactedMafia -> true
             player.job is Thief && (player.job as Thief).hasContactedMafia -> true
             player.job is Witch && (player.job as Witch).hasContactedMafia -> true
             else -> false

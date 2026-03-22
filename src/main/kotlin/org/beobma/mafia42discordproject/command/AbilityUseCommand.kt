@@ -17,6 +17,7 @@ import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.SwindlerManager
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
@@ -196,6 +197,7 @@ object AbilityUseCommand : DiscordCommand {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
         if (result.isSuccess && effectiveTarget != null) {
+            SwindlerManager.notifyBeautyTrap(effectiveTarget, caster)
             Humint.notifyIfTriggered(game, caster, effectiveTarget, selectedAbility)
             DetectiveAbility.notifyTargetSelection(game, caster, effectiveTarget, selectedAbility)
         }
