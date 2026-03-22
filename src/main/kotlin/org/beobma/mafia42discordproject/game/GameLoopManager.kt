@@ -850,7 +850,15 @@ object GameLoopManager {
                 if (canAccessMafiaChannel(game, player)) {
                     val canSend = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        allowed = if (canSend) {
+                            Permissions(
+                                Permission.ViewChannel,
+                                Permission.ReadMessageHistory,
+                                Permission.SendMessages
+                            )
+                        } else {
+                            Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        }
                         denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
                     }
                 } else {
