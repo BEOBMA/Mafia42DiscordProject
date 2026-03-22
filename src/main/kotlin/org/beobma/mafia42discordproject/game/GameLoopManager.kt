@@ -81,6 +81,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.mart
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
+import org.beobma.mafia42discordproject.job.evil.list.Godfather
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
@@ -106,6 +107,8 @@ object GameLoopManager {
     private const val BEASTMAN_TAMED_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485075910263570463/XEMOjk-m1HtYEFgz0clURpnMQNiipyYZimPOWIPk6vogykiTNhInvt8W531YXrAjxtYqqnzoWbXKIk1C6nH1wOhkfPxHrCmz6q6LKWoBuR1AFmg2p5pEcApZ0SkwsLjqLjnyckqSMh5kVO9IVn4UHQ.webp?ex=69c08c38&is=69bf3ab8&hm=26ac26dcc50bc338b595319249a45f1cfb20d3a242bf6f6a8f6e740164d0c5de&"
     private const val BEASTMAN_ROAR_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485077233570812125/wLyCdbdvcKvKkGkmdkRW6vhDbtnasWFp5qGexUOnT488bF4RZzIXcAul1YGMNyw2pxxh9qJZooXhedNZeOR6eXjRq198saXx3yLZKkc_Oia88BI5rizeBltm0qJjbeHb3YPb4lL_n8UP-1IE2RT9Qg.webp?ex=69c08d73&is=69bf3bf3&hm=0c6ab1e928750c3fcd8355850ddefcab3380f44f519ace364157a5e36026fef9&"
     private const val VIGILANTE_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485082843393687690/Nu_4LgYjmQsjtz9Guhs_Vi6TduYsooqYsidxH3JULrfO9FKUR-bA7XlF_Xt_fmArScHnzeTIbRB1Fi1jbJcfo2ueRPQKC752PcZkqMf9q-F37QTZ2fx_4L7MfMZpQ4baqvVEFiP7-rx9MK48M1ZkLw.webp?ex=69c092ad&is=69bf412d&hm=0f4f08d96f674dc64170d6c252644367505f7290e17d6a05278199de541cb557&"
+    private const val GODFATHER_CONTACT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087325703901365/6Dt6As_ReET4vjOl3djPFyzLrg-v8hvaMe42oBrrf6ROTHOk1ejUYjwk-vn9DfryaLt8v06oG-aRbrGZgELlBM9G8ciLeqIsvKT4OZMroiRIz-6t3GyftqwT67UHpzqiI3o7Ja9CelJpOrgibccDPg.webp?ex=69c096da&is=69bf455a&hm=270ad9182d231294d6116d48e9fd7378731ccbe3553fd8f20a1d8bf282236c92&"
+    private const val GODFATHER_EXECUTION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485087458973450440/JMivfRSM1woZcZCwYUiFomJa5e6hG7Nss4xAl5wx1vzzoCkUrdxBlsSLh4M_79MjdKDh4q2kBDhucJpsrvZ7YNkuyVHHr_A32nhIGOsOafwBd0qwarqdazI1Z8mJeFvNMaa7vJX2ywZFd-mxzAtWug.webp?ex=69c096f9&is=69bf4579&hm=a9035324581fb576d6a0bb2c02a8fbae8d28152939f032bea8e0f61af822df61&"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -756,13 +759,27 @@ object GameLoopManager {
                 }
             }
         }
+
+        notifyGodfatherContactInMafiaChannel(game, mafiaChannel)
+    }
+
+    private suspend fun notifyGodfatherContactInMafiaChannel(game: Game, mafiaChannel: TextChannel) {
+        game.playerDatas.forEach { player ->
+            if (player.state.isDead) return@forEach
+            if (player.job !is Godfather) return@forEach
+            if (player.state.hasAnnouncedGodfatherContact) return@forEach
+            if (!GodfatherContactPolicy.canContactMafia(game)) return@forEach
+
+            player.state.hasAnnouncedGodfatherContact = true
+            mafiaChannel.createMessage("$GODFATHER_CONTACT_IMAGE_URL\n접선했습니다.")
+        }
     }
 
     private fun canAccessMafiaChannel(game: Game, player: PlayerData): Boolean {
         return when {
             player.job is Mafia -> true
             player.job is Beastman && player.state.isTamed -> true
-            player.job is org.beobma.mafia42discordproject.job.evil.list.Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
+            player.job is Godfather && GodfatherContactPolicy.canContactMafia(game) -> true
             else -> false
         }
     }
@@ -1865,6 +1882,10 @@ object GameLoopManager {
             .firstOrNull { it.attacker.job is Vigilante }
             ?.target
             ?.takeIf { it in deaths && it.job is Evil }
+        val godfatherKillVictim = attacks
+            .firstOrNull { it.attacker.job is Godfather }
+            ?.target
+            ?.takeIf { it in deaths }
 
         val doctorSavedTarget = game.doctorSavedTargetTonight
 
@@ -1875,6 +1896,11 @@ object GameLoopManager {
                 imageUrl = VIGILANTE_EXECUTION_IMAGE_URL,
                 message = "${vigilanteKillVictim.member.effectiveName}가 살해당하였습니다." +
                     if (revealedJob != null) "\n${vigilanteKillVictim.member.effectiveName}님의 직업은 ${revealedJob.name}입니다." else ""
+            )
+        } else if (godfatherKillVictim != null) {
+            DawnPresentation(
+                imageUrl = GODFATHER_EXECUTION_IMAGE_URL,
+                message = "${godfatherKillVictim.member.effectiveName}가 살해당하였습니다."
             )
         } else if (beastKillVictim != null) {
             DawnPresentation(
