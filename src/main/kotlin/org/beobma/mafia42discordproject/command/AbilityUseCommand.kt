@@ -30,6 +30,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.JobManager
@@ -242,6 +243,7 @@ object AbilityUseCommand : DiscordCommand {
             is MafiaAbility, is GodfatherAbility, is BeastmanAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
             is NurseAbility -> "사망한 플레이어는 처방 대상으로 지정할 수 없습니다."
             is DetectiveAbility -> "사망한 플레이어는 추리 대상으로 지정할 수 없습니다."
+            is SpyAbility -> "사망한 플레이어는 첩보 대상으로 지정할 수 없습니다."
             else -> "이미 사망한 플레이어는 대상으로 지정할 수 없습니다."
         }
     }
