@@ -69,6 +69,15 @@ object JobDiscoveryNotificationManager {
                 event.sourceAbilityName == "암시" -> {
                     append("${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
                 }
+                event.sourceAbilityName == "이슈" -> {
+                    if (event.triggeredByTact) {
+                        append("${event.target.member.effectiveName}님이 당신의 정체를 알아냈습니다!")
+                        appendLine()
+                        append("${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
+                    } else {
+                        append("(${event.target.member.effectiveName})님이 (${event.revealedJob.name})이라는 정보를 공유받았습니다.")
+                    }
+                }
 
                 else -> {
                     append("당신은 ${event.target.member.effectiveName}님의 직업이 [${event.revealedJob.name}](인) 것을 알아냈습니다.")

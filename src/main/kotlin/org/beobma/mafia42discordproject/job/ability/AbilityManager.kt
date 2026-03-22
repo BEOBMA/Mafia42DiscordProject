@@ -49,6 +49,7 @@ object AbilityManager {
             org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Postmortem(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule(),
+            org.beobma.mafia42discordproject.job.ability.general.definition.list.paparazzi.Issue(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.paparazzi.Tact(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential(),
