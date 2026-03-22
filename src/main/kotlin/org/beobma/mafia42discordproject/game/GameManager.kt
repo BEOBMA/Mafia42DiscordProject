@@ -1145,12 +1145,11 @@ object GameManager {
         val game = currentGame ?: return false
         val member = event.member ?: return false
         val player = game.getPlayer(member.id) ?: return false
-        if (!player.state.isDead && !GameLoopManager.isMadScientistDistortionHidden(player)) return false
+        if (!GameLoopManager.isMadScientistDistortionHidden(player) && !player.state.isDead) return false
 
         val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
-        val textChannel = event.message.channel as? TextChannel
 
-        if (isDeadChannel && !player.state.isShamaned && player.state.isDead) {
+        if (isDeadChannel && player.state.isDead) {
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
@@ -1160,15 +1159,9 @@ object GameManager {
             return false
         }
 
-        if (isDeadChannel && player.state.isShamaned) {
-            runCatching { event.message.delete("성불 상태 일반 채팅 차단") }
-            runCatching {
-                textChannel?.createMessage("성불 상태에서는 죽은 자들의 채팅에 메시지를 보낼 수 없습니다.")
-            }
-            return true
-        }
+        if (player.state.isDead) return false
 
-        runCatching { event.message.delete("사망/왜곡 상태 채팅 차단") }
+        runCatching { event.message.delete("왜곡 상태 채팅 차단") }
         return true
     }
 

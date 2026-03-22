@@ -87,6 +87,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.gang
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Godfather
@@ -1760,7 +1761,9 @@ object GameLoopManager {
         if (shouldRevealJudge) {
             judgeJob.hasRevealedAuthority = true
             judgePlayer.state.isJobPubliclyRevealed = true
-            game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
+            if (judgePlayer.allAbilities.any { it is UnwrittenRule }) {
+                game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
+            }
 
             mainChannel.createMessage(
                 "판사 ${judgePlayer.member.effectiveName}님이 모습을 드러냈습니다. 선고에 따라 이번 투표는 ${if (judgeVote == true) "찬성" else "반대"}로 결정됩니다."
@@ -1827,7 +1830,9 @@ object GameLoopManager {
             val politicianJob = target.job ?: return
             if (!target.state.isJobPubliclyRevealed) {
                 target.state.isJobPubliclyRevealed = true
-                game.unwrittenRuleBlockedTargetIdTonight = target.member.id
+                if (target.allAbilities.any { it is UnwrittenRule }) {
+                    game.unwrittenRuleBlockedTargetIdTonight = target.member.id
+                }
             }
             
             // 단순 텍스트 대신, 처세 컷신 송출을 위한 직업 공개 퍼블릭 이벤트 방출
@@ -3107,7 +3112,7 @@ object GameLoopManager {
             )
             game.probationOriginalJobsByPlayer[target.member.id] = originalJob
 
-            if (target.job !is Evil) {
+            if (originalJob !is Evil) {
                 target.job = Citizen()
             }
         }

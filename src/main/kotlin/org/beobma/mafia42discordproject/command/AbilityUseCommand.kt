@@ -27,14 +27,13 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.admi
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
-import org.beobma.mafia42discordproject.job.definition.list.Judge
-import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -242,7 +241,7 @@ object AbilityUseCommand : DiscordCommand {
         val blockedTargetId = game.unwrittenRuleBlockedTargetIdTonight ?: return false
         val target = directTarget ?: return false
         if (target.member.id != blockedTargetId) return false
-        return target.job is Judge || target.job is Politician
+        return target.allAbilities.any { it is UnwrittenRule }
     }
 
     private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {
