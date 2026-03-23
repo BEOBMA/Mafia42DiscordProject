@@ -14,8 +14,8 @@ import org.beobma.mafia42discordproject.game.GameLoopManager
 object DayTimeAdjustCommand : DiscordCommand {
     override val name: String = "daytime"
     override val description: String = "낮 시간 15초 증가/감소 (하루 1회)"
-    override val koreanName: String = "낮시간"
-    override val aliases: Set<String> = setOf("낮시간")
+    override val koreanName: String = "시간"
+    override val aliases: Set<String> = setOf("시간")
 
     private const val actionOptionName = "action"
     private const val increaseValue = "increase"

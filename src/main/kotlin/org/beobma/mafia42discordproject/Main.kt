@@ -1,7 +1,6 @@
 package org.beobma.mafia42discordproject
 
 import dev.kord.common.annotation.KordPreview
-import dev.kord.common.entity.ApplicationCommandType
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
@@ -9,8 +8,7 @@ import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
 import org.beobma.mafia42discordproject.command.DiscordCommand
@@ -67,7 +65,6 @@ suspend fun main() {
         command.handleAutoComplete(this)
     }
 
-    // UI 상호작용 버튼 리스너 일괄등록
     val interactionListeners = listOf(
         MainVoteListener,
         ProsConsVoteListener,
@@ -90,54 +87,72 @@ private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>
         ?.let(::Snowflake)
 
     if (guildId != null) {
+        deleteAllGuildCommands(kord, guildId)
+
         commands.forEach { command ->
-            upsertGuildChatInputCommand(kord, guildId, command)
+            runCatching {
+                command.registerGuild(kord, guildId)
+            }.onSuccess {
+                println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
+            }.onFailure { error ->
+                println("⚠️ 길드 명령어 생성 실패: /${command.name} (guildId=$guildId), reason=${error.message}")
+            }
         }
-        println("✅ 길드 슬래시 명령어 동기화 완료 (guildId=$guildId)")
+
+        println("✅ 길드 슬래시 명령어 전체 재생성 완료 (guildId=$guildId)")
         return
     }
 
+    deleteAllGlobalCommands(kord)
+
     commands.forEach { command ->
-        upsertGlobalChatInputCommand(kord, command)
+        runCatching {
+            command.registerGlobal(kord)
+        }.onSuccess {
+            println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
+        }.onFailure { error ->
+            println("⚠️ 글로벌 명령어 생성 실패: /${command.name}, reason=${error.message}")
+        }
     }
-    println("✅ 글로벌 슬래시 명령어 동기화 완료")
+
+    println("✅ 글로벌 슬래시 명령어 전체 재생성 완료")
     println("ℹ️ 빠른 반영이 필요하면 DISCORD_GUILD_ID를 설정하세요.")
 }
 
-private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
-    val existingCommand = kord.getGlobalApplicationCommands()
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-        .firstOrNull()
+private suspend fun deleteAllGuildCommands(kord: Kord, guildId: Snowflake) {
+    val existingCommands = kord.getGuildApplicationCommands(guildId).toList()
 
-    if (existingCommand != null) {
-        println("ℹ️ 글로벌 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name}")
+    if (existingCommands.isEmpty()) {
+        println("ℹ️ 삭제할 길드 명령어가 없습니다. (guildId=$guildId)")
         return
     }
 
-    runCatching {
-        command.registerGlobal(kord)
-    }.onSuccess {
-        println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
-    }.onFailure { error ->
-        println("⚠️ 글로벌 명령어 생성 실패로 건너뜁니다: /${command.name}, reason=${error.message}")
+    existingCommands.forEach { command ->
+        runCatching {
+            command.delete()
+        }.onSuccess {
+            println("🗑️ 길드 명령어 삭제: ${command.name} (guildId=$guildId)")
+        }.onFailure { error ->
+            println("⚠️ 길드 명령어 삭제 실패: ${command.name} (guildId=$guildId), reason=${error.message}")
+        }
     }
 }
 
-private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
-    val existingCommand = kord.getGuildApplicationCommands(guildId)
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-        .firstOrNull()
+private suspend fun deleteAllGlobalCommands(kord: Kord) {
+    val existingCommands = kord.getGlobalApplicationCommands().toList()
 
-    if (existingCommand != null) {
-        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name} (guildId=$guildId)")
+    if (existingCommands.isEmpty()) {
+        println("ℹ️ 삭제할 글로벌 명령어가 없습니다.")
         return
     }
 
-    runCatching {
-        command.registerGuild(kord, guildId)
-    }.onSuccess {
-        println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
-    }.onFailure { error ->
-        println("⚠️ 길드 명령어 생성 실패로 건너뜁니다: /${command.name} (guildId=$guildId), reason=${error.message}")
+    existingCommands.forEach { command ->
+        runCatching {
+            command.delete()
+        }.onSuccess {
+            println("🗑️ 글로벌 명령어 삭제: ${command.name}")
+        }.onFailure { error ->
+            println("⚠️ 글로벌 명령어 삭제 실패: ${command.name}, reason=${error.message}")
+        }
     }
 }
