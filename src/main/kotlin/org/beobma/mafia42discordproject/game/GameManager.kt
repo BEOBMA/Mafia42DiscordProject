@@ -6,6 +6,7 @@ import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.channel.createMessage
+import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
@@ -1162,11 +1163,22 @@ object GameManager {
         gameLoopJob = null
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
+        releaseAllPlayerMutes(gameToStop)
 
         gameToStop.mainChannel = null
         gameToStop.mafiaChannel = null
         gameToStop.coupleChannel = null
         gameToStop.deadChannel = null
+    }
+
+    suspend fun releaseAllPlayerMutes(game: Game) {
+        game.playerDatas.forEach { player ->
+            runCatching {
+                player.member.edit {
+                    muted = false
+                }
+            }
+        }
     }
 
     private suspend fun sendGameChannelSpacer(game: Game) {
