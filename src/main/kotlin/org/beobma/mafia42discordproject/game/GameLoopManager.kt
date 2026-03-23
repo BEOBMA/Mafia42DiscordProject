@@ -1953,9 +1953,9 @@ object GameLoopManager {
         resolveTerminalSpecialWin(game)?.let { return it }
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
-        val mafiaCount = alivePlayers.count { it.job is Evil }
+        val mafiaCount = alivePlayers.count { player -> isMafiaTeamForWinCondition(game, player) }
         val citizenCount = alivePlayers.sumOf { player ->
-            if (player.job is Evil) {
+            if (isMafiaTeamForWinCondition(game, player)) {
                 0
             } else {
                 when (player.job) {
@@ -1982,6 +1982,14 @@ object GameLoopManager {
                 findAliveDictatorshipPolitician(game) == null -> Team.MAFIA
             else -> null
         }
+    }
+
+    private fun isMafiaTeamForWinCondition(game: Game, player: PlayerData): Boolean {
+        val job = player.job
+        if (job is Mafia) return true
+        if (job !is Evil || job is Villain) return false
+
+        return player.state.hasContactedMafiaByInformant || hasContactedMafiaByJobState(game, player)
     }
 
     private fun findAliveDictatorshipPolitician(game: Game): PlayerData? {
