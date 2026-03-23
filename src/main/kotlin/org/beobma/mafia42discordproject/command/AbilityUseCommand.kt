@@ -165,6 +165,7 @@ object AbilityUseCommand : DiscordCommand {
         } else {
             null
         }
+        val previousAbilityTargetId = game.abilityTargetByUserThisPhase[caster.member.id]
 
         val result = when (selectedAbility) {
             is AdministratorAbility -> {
@@ -200,7 +201,13 @@ object AbilityUseCommand : DiscordCommand {
         if (result.isSuccess && effectiveTarget != null) {
             SwindlerManager.notifyBeautyTrap(effectiveTarget, caster)
             Humint.notifyIfTriggered(game, caster, effectiveTarget, selectedAbility)
-            DetectiveAbility.notifyTargetSelection(game, caster, effectiveTarget, selectedAbility)
+            DetectiveAbility.notifyTargetSelection(
+                game = game,
+                caster = caster,
+                selectedTarget = effectiveTarget,
+                usedAbility = selectedAbility,
+                previousTargetId = previousAbilityTargetId
+            )
         }
 
         val message = if (result.isSuccess) {
