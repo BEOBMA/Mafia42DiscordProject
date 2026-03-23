@@ -48,6 +48,10 @@ object JobDiscoveryNotificationManager {
             when {
                 event.sourceAbilityName == "도굴" -> {
                     append("${event.revealedJob.name} 직업을 획득하였습니다.")
+                    event.note?.takeIf { it.isNotBlank() }?.let { note ->
+                        appendLine()
+                        append(note)
+                    }
                 }
 
                 event.sourceAbilityName == "수습" -> {
