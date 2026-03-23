@@ -4,6 +4,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Citizen
@@ -43,9 +44,13 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
 
         // [계승]이 있으면 도굴 대상이 보유한 부가 능력까지 함께 계승
         val hasSuccession = ownerExtras.any { it is Succession }
+        val inheritedExtraAbilityNames = mutableListOf<String>()
         if (hasSuccession) {
             originalVictimJob.extraAbilities.forEach { ability ->
-                mergedExtras.putIfAbsent(ability::class.qualifiedName ?: ability.name, ability)
+                val clonedAbility = cloneAbility(ability)
+                if (mergedExtras.putIfAbsent(clonedAbility::class.qualifiedName ?: clonedAbility.name, clonedAbility) == null) {
+                    inheritedExtraAbilityNames += clonedAbility.name
+                }
             }
         }
 
@@ -62,8 +67,28 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             actualJob = originalVictimJob,
             revealedJob = originalVictimJob,
             sourceAbilityName = name,
-            resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN
+            resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN,
+            note = buildStealNote(victim, originalVictimJob.name, inheritedExtraAbilityNames)
         )
+    }
+
+    private fun buildStealNote(victim: PlayerData, originalJobName: String, inheritedExtraAbilityNames: List<String>): String {
+        val inheritedPart = if (inheritedExtraAbilityNames.isNotEmpty()) {
+            "계승한 추가 능력: ${inheritedExtraAbilityNames.distinct().joinToString(", ")}"
+        } else {
+            "계승한 추가 능력: 없음"
+        }
+        return "도굴 대상: ${victim.member.effectiveName} (약탈 전 직업: $originalJobName)\n$inheritedPart"
+    }
+
+    private fun cloneAbility(ability: Ability): Ability {
+        return runCatching {
+            val constructor = ability::class.java.getDeclaredConstructor()
+            constructor.isAccessible = true
+            constructor.newInstance()
+        }.getOrElse {
+            ability
+        }
     }
 }
 
