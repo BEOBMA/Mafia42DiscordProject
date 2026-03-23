@@ -47,7 +47,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (firstTargetId == null) {
             hitManJob.firstContractTargetId = effectiveTarget.member.id
             hitManJob.firstContractGuessedJobName = guessedJob.name
-            return AbilityResult(true, intuitionMessage(target, effectiveTarget, guessedJob.name))
+            return AbilityResult(true, contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name))
         }
 
         if (firstTargetId == effectiveTarget.member.id) {
@@ -59,7 +59,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         val firstJobName = hitManJob.firstContractGuessedJobName
             ?: return AbilityResult(false, "첫 번째 직업 정보가 유실되었습니다. 다시 시도해 주세요.")
 
-        val secondIntuition = intuitionMessage(target, effectiveTarget, guessedJob.name)
+        val secondIntuition = contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name)
 
         hitManJob.firstContractTargetId = null
         hitManJob.firstContractGuessedJobName = null
@@ -72,7 +72,17 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         return AbilityResult(false, "청부는 /use 명령에서 대상과 직업을 함께 선택해야 합니다.")
     }
 
-    private fun intuitionMessage(originalTarget: PlayerData, effectiveTarget: PlayerData, guessedJobName: String): String {
+    private fun contractSelectionMessage(
+        caster: PlayerData,
+        originalTarget: PlayerData,
+        effectiveTarget: PlayerData,
+        guessedJobName: String
+    ): String {
+        val hasIntuition = caster.job?.extraAbilities?.any { it is Intuition } == true
+        if (!hasIntuition) {
+            return "${originalTarget.member.effectiveName}님을 ${guessedJobName}(으)로 지목했습니다."
+        }
+
         val isCorrect = effectiveTarget.job?.name == guessedJobName
         return "${originalTarget.member.effectiveName}님의 정체는 ${guessedJobName}이(가) ${if (isCorrect) "맞습니다." else "아닙니다."}"
     }
