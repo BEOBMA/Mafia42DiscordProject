@@ -85,6 +85,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
@@ -559,7 +560,10 @@ object GameLoopManager {
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
-            (player.job as? Nurse)?.currentHealTarget = null
+            (player.job as? Nurse)?.let { nurse ->
+                nurse.currentHealTarget = null
+                nurse.prescribedTargetId = null
+            }
             (player.job as? Gangster)?.finalizeNightThreatSelection()
             (player.job as? Hypnotist)?.let { hypnotist ->
                 if (hypnotist.blockedNightsRemaining > 0) {
@@ -2139,6 +2143,7 @@ object GameLoopManager {
 
     private fun notifyJudgeProsVoters(game: Game, target: PlayerData) {
         val judgePlayer = findAliveJudge(game) ?: return
+        if (judgePlayer.allAbilities.none { it is GovernmentAuthority }) return
         val prosVoters = game.currentProsConsVotes
             .filterValues { it }
             .keys
