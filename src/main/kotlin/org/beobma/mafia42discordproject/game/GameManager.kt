@@ -1655,19 +1655,21 @@ object GameManager {
     fun receiveProsConsVote(voterId: Snowflake, isPros: Boolean): Boolean {
         val game = currentGame ?: return false
 
-        if (game.currentPhase != GamePhase.VOTE) return false
-        val voter = game.getPlayer(voterId) ?: return false
-        if (voter.state.isDead) return false
-        if (voterId in game.permanentlyDisenfranchisedVoters) return false
-        if (game.activeThreatenedVoters.containsKey(voterId)) return false
-        val dictatorshipPolitician = game.playerDatas
-            .filter { !it.state.isDead && it.job !is Evil }
-            .singleOrNull()
-            ?.takeIf { it.job is Politician }
-        if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
-        if (game.currentProsConsVotes.containsKey(voterId)) return false
+        return synchronized(game) {
+            if (game.currentPhase != GamePhase.VOTE) return@synchronized false
+            val voter = game.getPlayer(voterId) ?: return@synchronized false
+            if (voter.state.isDead) return@synchronized false
+            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
+            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
+            val dictatorshipPolitician = game.playerDatas
+                .filter { !it.state.isDead && it.job !is Evil }
+                .singleOrNull()
+                ?.takeIf { it.job is Politician }
+            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized false
+            if (game.currentProsConsVotes.containsKey(voterId)) return@synchronized false
 
-        game.currentProsConsVotes[voterId] = isPros
-        return true
+            game.currentProsConsVotes[voterId] = isPros
+            true
+        }
     }
 }
