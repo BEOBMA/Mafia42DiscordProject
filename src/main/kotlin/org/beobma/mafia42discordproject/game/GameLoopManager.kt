@@ -543,6 +543,7 @@ object GameLoopManager {
             game.pendingDayStartDiscoveries += additionalDeferredEvents
         }
         JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents.filterNot(::shouldNotifyAtDayStart))
+        applyProbationCitizenConversion(game)
 
         val summary = NightResolutionSummary(
             processedEvents = processedEvents + additionalProcessedEvents,
@@ -3187,10 +3188,16 @@ object GameLoopManager {
                 imageUrl = PROBATION_DISCOVERY_IMAGE_URL
             )
             game.probationOriginalJobsByPlayer[target.member.id] = originalJob
+        }
+    }
 
-            if (originalJob !is Evil) {
-                target.job = Citizen()
-            }
+    private fun applyProbationCitizenConversion(game: Game) {
+        if (game.probationOriginalJobsByPlayer.isEmpty()) return
+
+        game.probationOriginalJobsByPlayer.forEach { (playerId, originalJob) ->
+            if (originalJob is Evil) return@forEach
+            val player = game.getPlayer(playerId) ?: return@forEach
+            player.job = Citizen()
         }
     }
 
