@@ -90,6 +90,9 @@ class Looting : JobUniqueAbility, PassiveAbility {
         val originalVictimJob = game.probationOriginalJobsByPlayer[victim.member.id] ?: victim.job ?: return
         val isEvil = originalVictimJob is Evil
 
+        // [도굴]에서 원래 직업을 추적할 수 있도록 변경 전 직업을 보존
+        game.probationOriginalJobsByPlayer.putIfAbsent(victim.member.id, originalVictimJob)
+
         // 팀에 따라 각각 Citizen(), Villain() 클래스 인스턴스로 대체
         victim.job = if (isEvil) Villain() else Citizen()
     }
