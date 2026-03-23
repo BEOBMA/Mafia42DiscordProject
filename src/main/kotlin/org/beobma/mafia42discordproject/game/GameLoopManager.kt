@@ -434,6 +434,10 @@ object GameLoopManager {
         resolveAdministratorInvestigations(game)
         resolveReporterScoops(game)
         applyBeastmanExecutionOverride(game)
+        val healedTargetsTonight = game.nightEvents
+            .filterIsInstance<GameEvent.PlayerHealed>()
+            .map { it.target }
+            .toMutableSet()
 
         game.nightAttacks.values.forEach { attackEvent ->
             val target = attackEvent.target
@@ -447,13 +451,16 @@ object GameLoopManager {
 
             // 패시브(방탄 등)가 방어력(healTier)에 개입할 기회를 주기 위한 평가 이벤트 통보
             game.nightEvents += GameEvent.BeforeAttackEvaluated(attackEvent)
-            dispatchEvents(game)
+            val processedEvents = dispatchEvents(game)
+            processedEvents
+                .filterIsInstance<GameEvent.PlayerHealed>()
+                .forEach { healedTargetsTonight += it.target }
 
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent
                 playersToDie.remove(target)
 
-                val healedByDoctor = game.nightEvents.filterIsInstance<GameEvent.PlayerHealed>().any { it.target == target }
+                val healedByDoctor = target in healedTargetsTonight
                 if (healedByDoctor) {
                     game.doctorSavedTargetTonight = target
                 }
