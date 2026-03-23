@@ -2240,6 +2240,14 @@ object GameLoopManager {
         game.currentPhase = GamePhase.END
         GameManager.releaseAllPlayerMutes(game)
         val resultMessage = "${winningTeam.displayName} 승리: ${winningTeam.winMessage}"
+        val playerJobRevealMessage = buildString {
+            appendLine("## 플레이어 직업 공개")
+            game.playerDatas.forEachIndexed { index, playerData ->
+                val deathStatus = if (playerData.state.isDead) "사망" else "생존"
+                val jobName = playerData.job?.name ?: "알 수 없음"
+                appendLine("${index + 1}. ${playerData.member.effectiveName} - $jobName ($deathStatus)")
+            }
+        }.trim()
 
         if (winningTeam.winImageUrl != null) {
             game.sendMainChannelMessageWithImage(
@@ -2250,6 +2258,8 @@ object GameLoopManager {
             // 이미지가 없다면 기존처럼 텍스트만 전송
             game.sendMainChannerMessage(resultMessage)
         }
+
+        game.sendMainChannerMessage(playerJobRevealMessage)
     }
 
     suspend fun runGameLoop(game: Game) {
