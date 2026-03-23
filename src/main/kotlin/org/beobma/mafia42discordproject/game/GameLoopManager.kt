@@ -8,6 +8,7 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
+import dev.kord.core.entity.TeamMember
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.thread.ThreadChannel
 import dev.kord.rest.builder.channel.addMemberOverwrite
@@ -1949,7 +1950,7 @@ object GameLoopManager {
         if (isCabalSpecialWinReady(game)) {
             return Team.CABAL_SPECIAL
         }
-        resolveProphetSpecialWin(game)?.let { return it }
+        resolveProphetSpecialWin(game)?.let { return Team.PROPHET_SPECIAL }
         resolveTerminalSpecialWin(game)?.let { return it }
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
