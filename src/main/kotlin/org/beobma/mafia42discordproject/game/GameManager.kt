@@ -82,12 +82,15 @@ object GameManager {
     private var gameLoopJob: kotlinx.coroutines.Job? = null
 
     private const val FULL_GAME_PLAYER_COUNT = 8
+    private const val EXTENDED_ROLE_RULE_START_COUNT = 9
+    private const val MAX_GAME_PLAYER_COUNT = 20
 
     private data class RequiredRoleCounts(
         val mafiaCount: Int,
         val assistantCount: Int,
         val doctorCount: Int,
-        val policeCount: Int
+        val policeCount: Int,
+        val citizenCount: Int = 0
     )
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
@@ -192,6 +195,12 @@ object GameManager {
                 guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
             }
             .toList()
+        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+            deferredResponse.respond {
+                content = "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+            }
+            return
+        }
 
         val membersWithoutPreference = membersInSameVoice.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
@@ -255,6 +264,12 @@ object GameManager {
                 guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
             }
             .toList()
+        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+            event.message.channel.createMessage(
+                "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+            )
+            return
+        }
 
         val membersWithoutPreference = membersInSameVoice.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
@@ -431,14 +446,15 @@ object GameManager {
 
         trace.add("[1단계] 참여 인원: ${players.size}명")
         trace.add(
-            "[1단계] 고정 배정 직업: 마피아 ${requiredCounts.mafiaCount}명, 보조계열 ${requiredCounts.assistantCount}명, 의사 ${requiredCounts.doctorCount}명, 경찰계열 ${requiredCounts.policeCount}명"
+            "[1단계] 고정 배정 직업: 마피아 ${requiredCounts.mafiaCount}명, 보조계열 ${requiredCounts.assistantCount}명, 의사 ${requiredCounts.doctorCount}명, 경찰계열 ${requiredCounts.policeCount}명, 시민 ${requiredCounts.citizenCount}명"
         )
 
         val requiredFixedCount =
             requiredCounts.mafiaCount +
                 requiredCounts.assistantCount +
                 requiredCounts.doctorCount +
-                requiredCounts.policeCount
+                requiredCounts.policeCount +
+                requiredCounts.citizenCount
 
         val slotCountForNonFixed = players.size - requiredFixedCount
         if (slotCountForNonFixed <= 0) {
@@ -458,7 +474,17 @@ object GameManager {
 
 
     private fun resolveRequiredRoleCounts(playerCount: Int): RequiredRoleCounts {
-        return if (playerCount >= FULL_GAME_PLAYER_COUNT) {
+        return if (playerCount >= EXTENDED_ROLE_RULE_START_COUNT) {
+            val mafiaCount = 2 + ((playerCount - EXTENDED_ROLE_RULE_START_COUNT) / 2)
+            val citizenCount = if (playerCount % 2 == 0) 1 else 0
+            RequiredRoleCounts(
+                mafiaCount = mafiaCount,
+                assistantCount = 1,
+                doctorCount = 1,
+                policeCount = 1,
+                citizenCount = citizenCount
+            )
+        } else if (playerCount >= FULL_GAME_PLAYER_COUNT) {
             RequiredRoleCounts(mafiaCount = 2, assistantCount = 1, doctorCount = 1, policeCount = 1)
         } else {
             when (playerCount) {
@@ -702,6 +728,13 @@ object GameManager {
             unassigned.remove(player)
             player.assignedJob = selectedPoliceJob
             trace.add("[3단계] 경찰계열 배정: ${player.name} -> ${selectedPoliceJob.name}")
+        }
+
+        repeat(requiredCounts.citizenCount) {
+            if (unassigned.isEmpty()) return@repeat
+            val player = unassigned.removeFirst()
+            player.assignedJob = JobManager.findByName("시민") ?: doctor
+            trace.add("[3단계] 시민 배정: ${player.name} -> ${player.assignedJob?.name}")
         }
 
         unassigned.forEach { player ->
