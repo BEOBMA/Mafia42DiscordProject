@@ -7,6 +7,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object GameStopCommand : DiscordCommand {
     override val name: String = "gamestop"
     override val description: String = "게임을 종료합니다."
+    override val koreanName: String = "게임종료"
+    override val aliases: Set<String> = setOf("게임종료", "종료")
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         GameManager.stop(event)

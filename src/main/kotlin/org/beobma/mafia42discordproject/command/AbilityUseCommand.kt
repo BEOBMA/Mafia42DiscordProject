@@ -41,6 +41,8 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
     override val description: String = "use ability"
+    override val koreanName: String = "사용"
+    override val aliases: Set<String> = setOf("사용")
 
     private const val abilityOptionName = "use_ability"
     private const val targetOptionName = "use_target"
@@ -271,12 +273,14 @@ object AbilityUseCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             registerOptions()
         }
     }
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             registerOptions()
         }
     }

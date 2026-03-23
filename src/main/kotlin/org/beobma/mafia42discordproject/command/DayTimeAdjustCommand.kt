@@ -14,10 +14,14 @@ import org.beobma.mafia42discordproject.game.GameLoopManager
 object DayTimeAdjustCommand : DiscordCommand {
     override val name: String = "daytime"
     override val description: String = "낮 시간 15초 증가/감소 (하루 1회)"
+    override val koreanName: String = "낮시간"
+    override val aliases: Set<String> = setOf("낮시간")
 
     private const val actionOptionName = "action"
     private const val increaseValue = "increase"
     private const val decreaseValue = "decrease"
+    private const val increaseKoValue = "증가"
+    private const val decreaseKoValue = "감소"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val interaction = event.interaction
@@ -34,8 +38,8 @@ object DayTimeAdjustCommand : DiscordCommand {
         }
 
         val isIncrease = when (action) {
-            increaseValue -> true
-            decreaseValue -> false
+            increaseValue, increaseKoValue -> true
+            decreaseValue, decreaseKoValue -> false
             else -> null
         }
         val result = when (isIncrease) {
@@ -66,12 +70,12 @@ object DayTimeAdjustCommand : DiscordCommand {
         }
 
         val action = args.firstOrNull()?.lowercase()
-        if (action !in setOf("up", "down", increaseValue, decreaseValue)) {
+        if (action !in setOf("up", "down", increaseValue, decreaseValue, increaseKoValue, decreaseKoValue)) {
             event.message.channel.createMessage("사용법: !daytime <up|down>")
             return
         }
 
-        val isIncrease = action == "up" || action == increaseValue
+        val isIncrease = action == "up" || action == increaseValue || action == increaseKoValue
         val result = GameLoopManager.adjustDayTimeByPlayer(game, actorId, isIncrease)
         event.message.channel.createMessage(result.message)
         if (result.isSuccess) {
@@ -86,17 +90,21 @@ object DayTimeAdjustCommand : DiscordCommand {
             required = true
             choice("increase (+15초)", increaseValue)
             choice("decrease (-15초)", decreaseValue)
+            choice("증가 (+15초)", increaseKoValue)
+            choice("감소 (-15초)", decreaseKoValue)
         }
     }
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             registerOptions()
         }
     }
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             registerOptions()
         }
     }

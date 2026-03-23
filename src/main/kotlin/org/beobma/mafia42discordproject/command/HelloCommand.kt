@@ -7,6 +7,8 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 object HelloCommand : DiscordCommand {
     override val name: String = "hello"
     override val description: String = "봇이 인사합니다."
+    override val koreanName: String = "안녕"
+    override val aliases: Set<String> = setOf("안녕", "인사")
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val mention = DiscordMessageManager.mention(event.interaction.user)

@@ -18,6 +18,8 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 object JobPreferenceCommand : DiscordCommand {
     override val name: String = "jobpreference"
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
+    override val koreanName: String = "직업선호"
+    override val aliases: Set<String> = setOf("직업선호", "직업선호설정")
 
     private const val maxAutoCompleteChoices = 25
     private const val assistantOption = "보조계열"
@@ -27,19 +29,24 @@ object JobPreferenceCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             registerJobOptions()
         }
     }
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             registerJobOptions()
         }
     }
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val query = event.interaction.focusedOption.value.trim()
-        val optionName = event.interaction.focusedOption.value
+        val optionName = event.interaction.command.options.entries
+            .firstOrNull { it.value.focused }
+            ?.key
+            ?: return
 
         val suggestions = getAllowedJobsByOption(optionName)
             .asSequence()

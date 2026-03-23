@@ -15,6 +15,8 @@ import org.beobma.mafia42discordproject.job.JobManager
 object DebugCommand : DiscordCommand {
     override val name: String = "debug"
     override val description: String = "디버깅용 보조 명령어"
+    override val koreanName: String = "디버그"
+    override val aliases: Set<String> = setOf("디버그")
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         InteractionErrorHandler.runSafely("slash-debug") {
@@ -37,14 +39,14 @@ object DebugCommand : DiscordCommand {
         }
 
         when (args.first().lowercase()) {
-            "help" -> event.message.channel.createMessage(buildHelpMessage())
-            "status" -> event.message.channel.createMessage(buildStatus(game))
-            "phase" -> handlePhase(event, game, args.drop(1))
-            "day" -> handleDay(event, game, args.drop(1))
-            "job" -> handleJob(event, game, args.drop(1))
-            "dead" -> handleDead(event, game, args.drop(1))
-            "shamaned" -> handleShamaned(event, game, args.drop(1))
-            "reset" -> handleReset(event, game, args.drop(1))
+            "help", "도움말" -> event.message.channel.createMessage(buildHelpMessage())
+            "status", "상태" -> event.message.channel.createMessage(buildStatus(game))
+            "phase", "페이즈" -> handlePhase(event, game, args.drop(1))
+            "day", "낮" -> handleDay(event, game, args.drop(1))
+            "job", "직업" -> handleJob(event, game, args.drop(1))
+            "dead", "사망" -> handleDead(event, game, args.drop(1))
+            "shamaned", "성불" -> handleShamaned(event, game, args.drop(1))
+            "reset", "초기화" -> handleReset(event, game, args.drop(1))
             else -> event.message.channel.createMessage("알 수 없는 디버그 하위 명령어입니다. `!debug help` 를 확인해 주세요.")
         }
     }

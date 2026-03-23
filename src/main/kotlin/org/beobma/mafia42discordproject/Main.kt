@@ -12,6 +12,7 @@ import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
+import org.beobma.mafia42discordproject.command.DebugCommand
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
@@ -55,10 +56,9 @@ suspend fun main() {
         if (tokens.isEmpty()) return@on
 
         val commandName = tokens.first().lowercase()
-        if (GameManager.handleSpiritCommands(this, commandName, tokens.drop(1))) return@on
-        if (commandName != "debug" && GameManager.enforceDeadPlayerChatRestriction(this)) return@on
-
         val command = CommandRegistry.find(commandName) ?: return@on
+        if (GameManager.handleSpiritCommands(this, commandName, tokens.drop(1))) return@on
+        if (command != DebugCommand && GameManager.enforceDeadPlayerChatRestriction(this)) return@on
         command.handleMessage(this, tokens.drop(1))
     }
 

@@ -10,6 +10,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object MegaphoneCommand : DiscordCommand {
     override val name: String = "megaphone"
     override val description: String = "확성기 메시지를 전송합니다."
+    override val koreanName: String = "확성기"
+    override val aliases: Set<String> = setOf("확성기")
     private const val messageOptionName = "message"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
@@ -20,6 +22,7 @@ object MegaphoneCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "전송할 확성기 메시지") {
                 required = true
             }
@@ -28,6 +31,7 @@ object MegaphoneCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "전송할 확성기 메시지") {
                 required = true
             }

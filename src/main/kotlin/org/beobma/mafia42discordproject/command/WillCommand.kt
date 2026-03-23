@@ -10,6 +10,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object WillCommand : DiscordCommand {
     override val name: String = "will"
     override val description: String = "밤에 유언을 작성합니다."
+    override val koreanName: String = "유언"
+    override val aliases: Set<String> = setOf("유언")
     private const val messageOptionName = "message"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
@@ -20,6 +22,7 @@ object WillCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "유언 내용") {
                 required = true
             }
@@ -28,6 +31,7 @@ object WillCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "유언 내용") {
                 required = true
             }

@@ -12,6 +12,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object ShamanRelayCommand : DiscordCommand {
     override val name: String = "shaman-relay"
     override val description: String = "영매가 죽은 자들의 채널로 접신 메시지를 전달합니다."
+    override val koreanName: String = "접신"
+    override val aliases: Set<String> = setOf("접신")
     private const val messageOptionName = "message"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
@@ -28,6 +30,7 @@ object ShamanRelayCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "죽은 자들에게 전달할 메시지") {
                 required = true
             }
@@ -36,6 +39,7 @@ object ShamanRelayCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             string(messageOptionName, "죽은 자들에게 전달할 메시지") {
                 required = true
             }
