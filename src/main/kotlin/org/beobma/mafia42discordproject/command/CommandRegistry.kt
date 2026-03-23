@@ -22,5 +22,10 @@ object CommandRegistry {
 
     fun all(): List<DiscordCommand> = registeredCommands
 
-    fun find(name: String): DiscordCommand? = registeredCommands.firstOrNull { it.name == name }
+    fun find(name: String): DiscordCommand? {
+        val normalizedName = name.lowercase()
+        return registeredCommands.firstOrNull { command ->
+            command.name == normalizedName || command.aliases.contains(normalizedName)
+        }
+    }
 }

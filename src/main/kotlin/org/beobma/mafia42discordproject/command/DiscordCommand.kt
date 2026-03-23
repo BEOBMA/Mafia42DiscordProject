@@ -9,6 +9,8 @@ import dev.kord.core.event.message.MessageCreateEvent
 interface DiscordCommand {
     val name: String
     val description: String
+    val koreanName: String? get() = null
+    val aliases: Set<String> get() = emptySet()
 
     suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent)
 
@@ -19,10 +21,14 @@ interface DiscordCommand {
     }
 
     suspend fun registerGlobal(kord: Kord) {
-        kord.createGlobalChatInputCommand(name, description)
+        kord.createGlobalChatInputCommand(name, description) {
+            this@DiscordCommand.applyKoreanLocalization(this)
+        }
     }
 
     suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
-        kord.createGuildChatInputCommand(guildId, name, description)
+        kord.createGuildChatInputCommand(guildId, name, description) {
+            this@DiscordCommand.applyKoreanLocalization(this)
+        }
     }
 }

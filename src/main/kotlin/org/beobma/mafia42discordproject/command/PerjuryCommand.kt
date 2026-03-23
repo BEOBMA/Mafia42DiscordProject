@@ -10,6 +10,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object PerjuryCommand : DiscordCommand {
     override val name: String = "perjury"
     override val description: String = "투표 시간에 가짜 투표를 행사합니다."
+    override val koreanName: String = "위증"
+    override val aliases: Set<String> = setOf("위증")
     private const val targetOptionName = "target"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
@@ -28,6 +30,7 @@ object PerjuryCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             user(targetOptionName, "가짜 투표 대상") {
                 required = true
             }
@@ -36,6 +39,7 @@ object PerjuryCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             user(targetOptionName, "가짜 투표 대상") {
                 required = true
             }

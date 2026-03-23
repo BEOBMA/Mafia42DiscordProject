@@ -7,6 +7,8 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 object PingCommand : DiscordCommand {
     override val name: String = "ping"
     override val description: String = "봇 응답 속도를 확인합니다."
+    override val koreanName: String = "핑"
+    override val aliases: Set<String> = setOf("핑")
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         DiscordMessageManager.respondPublic(event, "Pong! 🏓")

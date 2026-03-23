@@ -11,6 +11,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object SecretLetterCommand : DiscordCommand {
     override val name: String = "secret-letter"
     override val description: String = "특정 대상에게 밀서를 보냅니다."
+    override val koreanName: String = "밀서"
+    override val aliases: Set<String> = setOf("밀서")
     private const val targetOptionName = "target"
     private const val messageOptionName = "message"
 
@@ -32,6 +34,7 @@ object SecretLetterCommand : DiscordCommand {
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
+            applyKoreanLocalization(this)
             user(targetOptionName, "밀서를 받을 대상") {
                 required = true
             }
@@ -43,6 +46,7 @@ object SecretLetterCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
+            applyKoreanLocalization(this)
             user(targetOptionName, "밀서를 받을 대상") {
                 required = true
             }

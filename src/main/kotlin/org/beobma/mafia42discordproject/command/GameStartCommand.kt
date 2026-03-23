@@ -7,6 +7,8 @@ import org.beobma.mafia42discordproject.game.GameManager
 object GameStartCommand : DiscordCommand {
     override val name: String = "gamestart"
     override val description: String = "게임을 시작합니다."
+    override val koreanName: String = "게임시작"
+    override val aliases: Set<String> = setOf("게임시작", "시작")
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         GameManager.start(event)
