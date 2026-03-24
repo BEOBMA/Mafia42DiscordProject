@@ -128,9 +128,12 @@ curl -i http://localhost:2333/version
 - `2xx`면 성공으로 처리
 - `2xx`가 아니면 실패로 처리하며, 봇 로그/응답에 상태 코드와 본문이 포함됩니다.
 
-## 4) 외부 API 최소 구현 예시 (Node.js)
+## 4) 외부 API 구현 예시 (Node.js)
 
 아래는 동작 개념을 보여주는 최소 예시입니다. 실제 운영에서는 인증, 입력 검증, 에러 처리, 재시도 로직을 강화하세요.
+
+레포에는 위 개념을 바로 실행해볼 수 있는 Wrapper 구현이 `external-player/`에 포함되어 있습니다.
+해당 구현은 Lavalink 없이도 Discord Voice + ffmpeg로 바로 재생할 수 있습니다.
 
 ```js
 import express from "express";
