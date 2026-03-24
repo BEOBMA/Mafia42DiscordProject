@@ -58,6 +58,9 @@ lavalink:
     frameBufferDurationMs: 5000
 ```
 
+레포에 기본 템플릿 파일을 추가해두었습니다:  
+`deploy/lavalink/application.yml`
+
 ### B. `docker-compose.yml` 예시
 
 ```yaml
@@ -72,9 +75,13 @@ services:
       - ./application.yml:/opt/Lavalink/application.yml:ro
 ```
 
+레포에 기본 템플릿 파일을 추가해두었습니다:  
+`deploy/lavalink/docker-compose.yml`
+
 실행:
 
 ```bash
+cd deploy/lavalink
 docker compose up -d
 ```
 
