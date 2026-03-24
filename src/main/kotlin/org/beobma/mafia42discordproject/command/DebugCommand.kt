@@ -55,7 +55,7 @@ object DebugCommand : DiscordCommand {
     private suspend fun handlePlaySound(event: MessageCreateEvent, args: List<String>) {
         val soundName = args.joinToString(" ").trim()
         if (soundName.isBlank()) {
-            event.message.channel.createMessage("사용법: `!debug playsound <외부 오디오 URL 또는 파일 경로>`")
+            event.message.channel.createMessage("사용법: `!debug playsound <외부 오디오 URL>`")
             return
         }
 
@@ -245,7 +245,7 @@ object DebugCommand : DiscordCommand {
             - !debug dead <@유저|me> <on|off>
             - !debug shamaned <@유저|me> <on|off>
             - !debug reset <@유저|me>
-            - !debug playsound <외부 오디오 URL 또는 파일 경로>
+            - !debug playsound <외부 오디오 URL>
 
             영매(성불) 테스트 추천 순서
             1) !debug dead <대상> on
