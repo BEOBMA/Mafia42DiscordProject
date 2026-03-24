@@ -720,9 +720,6 @@ object GameLoopManager {
             originalTarget.state.isJobPubliclyRevealed = true
 
             val deadRole = (deadPlayer.job as? Couple)?.role
-            val originalRole = (originalTarget.job as? Couple)?.role.toDisplayName()
-            val deadJobName = deadPlayer.job?.name ?: "알 수 없음"
-            val originalJobName = originalTarget.job?.name ?: "알 수 없음"
 
             // 1. 성별에 따른 이미지 URL 선택
             val imageUrl = when (deadRole) {
@@ -732,8 +729,7 @@ object GameLoopManager {
             }
 
             // 2. 메시지 구성
-            val message = "연인의 희생이 발동했습니다. ${originalTarget.member.effectiveName}(${originalRole})의 대가로 ${deadPlayer.member.effectiveName}(${deadRole?.toDisplayName() ?: "미정"})가 대신 사망했습니다.\n" +
-                    "직업 공개: ${originalTarget.member.effectiveName} - ${originalJobName}, ${deadPlayer.member.effectiveName} - ${deadJobName}"
+            val message = "${deadPlayer.member.effectiveName}님이 연인 ${originalTarget.member.effectiveName}님을 살리고 대신 마피아에게 살해당했습니다!"
 
             // 3. 텍스트 대신 이미지와 함께 전송
             game.sendMainChannelMessageWithImage(
@@ -741,12 +737,6 @@ object GameLoopManager {
                 message = message
             )
         }
-    }
-
-    private fun CoupleRole?.toDisplayName(): String = when (this) {
-        CoupleRole.MALE -> "남성"
-        CoupleRole.FEMALE -> "여성"
-        null -> "미정"
     }
 
     suspend fun startDayPhase(
