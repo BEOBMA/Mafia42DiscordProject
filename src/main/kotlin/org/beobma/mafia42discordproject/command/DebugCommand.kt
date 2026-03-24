@@ -47,8 +47,26 @@ object DebugCommand : DiscordCommand {
             "dead", "사망" -> handleDead(event, game, args.drop(1))
             "shamaned", "성불" -> handleShamaned(event, game, args.drop(1))
             "reset", "초기화" -> handleReset(event, game, args.drop(1))
+            "playsound", "소리재생" -> handlePlaySound(event, args.drop(1))
             else -> event.message.channel.createMessage("알 수 없는 디버그 하위 명령어입니다. `!debug help` 를 확인해 주세요.")
         }
+    }
+
+    private suspend fun handlePlaySound(event: MessageCreateEvent, args: List<String>) {
+        val soundName = args.joinToString(" ").trim()
+        if (soundName.isBlank()) {
+            event.message.channel.createMessage("사용법: `!debug playsound <외부 오디오 URL 또는 파일 경로>`")
+            return
+        }
+
+        val result = GameManager.playSound(soundName)
+        if (result.isSuccess) {
+            event.message.channel.createMessage("사운드 재생 완료: `$soundName`")
+            return
+        }
+
+        val reason = result.exceptionOrNull()?.message ?: "알 수 없는 오류"
+        event.message.channel.createMessage("사운드 재생 실패: `$soundName`\n사유: $reason")
     }
 
     private suspend fun handlePhase(event: MessageCreateEvent, game: Game, args: List<String>) {
@@ -227,6 +245,7 @@ object DebugCommand : DiscordCommand {
             - !debug dead <@유저|me> <on|off>
             - !debug shamaned <@유저|me> <on|off>
             - !debug reset <@유저|me>
+            - !debug playsound <외부 오디오 URL 또는 파일 경로>
 
             영매(성불) 테스트 추천 순서
             1) !debug dead <대상> on

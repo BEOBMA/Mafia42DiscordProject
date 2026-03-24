@@ -48,6 +48,7 @@ data class Game(
     var initialPlayerCount: Int = 0
     var nightPhaseStartedAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
+    var gameVoiceChannelId: Snowflake? = null
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
     var coupleChannel: TextChannel? = null
