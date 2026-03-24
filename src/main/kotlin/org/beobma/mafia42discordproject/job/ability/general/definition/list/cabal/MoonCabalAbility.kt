@@ -52,9 +52,9 @@ class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
         cabal.moonMarkedSunTonight = isSunTarget
 
         return if (isSunTarget) {
-            AbilityResult(true, "접선에 성공할 수 있도록 해 비밀결사를 지목했습니다.")
+            AbilityResult(true, "${target.member.effectiveName}님에게서 비밀결사의 표식을 찾는 중입니다.")
         } else {
-            AbilityResult(true, "대상을 지정했습니다. 해 비밀결사를 지목해야 특수 승리가 준비됩니다.")
+            AbilityResult(true, "${target.member.effectiveName}님에게서 비밀결사의 표식을 찾는 중입니다.")
         }
     }
 }

@@ -2660,7 +2660,7 @@ object GameLoopManager {
         aliveSources.forEach { sourcePlayer ->
             runCatching {
                 sourcePlayer.member.getDmChannel().createMessage(
-                    "정보원 능력 결과: 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남아 있습니다."
+                    "정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남은 것을 확인했습니다."
                 )
             }
         }
