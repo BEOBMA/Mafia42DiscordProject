@@ -2327,7 +2327,7 @@ object GameLoopManager {
                     sendCabalDm(selectedTarget, "비밀결사의 표식이 발견되었습니다.")
                 }
             } else {
-                sendCabalDm(sunPlayer, "밀사 결과: 아니다.")
+                sendCabalDm(sunPlayer, "${selectedTarget?.member?.effectiveName}님은 비밀결사가 아닙니다.")
             }
         }
     }
