@@ -661,7 +661,6 @@ object GameLoopManager {
             priestJob.pendingResurrectionTargetId = null
 
             if (priestPlayer.state.isDead) {
-                game.sendMainChannerMessage("성직자 ${priestPlayer.member.effectiveName}님이 사망하여 소생이 취소되었습니다.")
                 return@forEach
             }
 
@@ -695,7 +694,7 @@ object GameLoopManager {
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
 
-            game.sendMainChannerMessage("성직자의 소생으로 ${target.member.effectiveName}님이 부활했습니다.")
+            game.sendMainChannerMessage("${target.member.effectiveName}님이 부활했습니다.")
         }
     }
 
@@ -1388,7 +1387,7 @@ object GameLoopManager {
                 ?.takeUnless { it.state.isDead }
             return if (politicianTarget != null) {
                 mainChannel.createMessage(
-                    "독재가 발동되어 ${dictatorshipPolitician.member.effectiveName}님의 선택으로 ${politicianTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                    "${politicianTarget.member.effectiveName}의 최후의 변론"
                 )
                 politicianTarget
             } else {
@@ -1407,7 +1406,7 @@ object GameLoopManager {
                 ?.takeUnless { it.state.isDead }
             return if (judgeTarget != null) {
                 mainChannel.createMessage(
-                    "판사의 선고로 ${judgeTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                    "${judgeTarget.member.effectiveName}의 최후의 변론"
                 )
                 judgeTarget
             } else {
