@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
+import org.beobma.mafia42discordproject.discord.DiscordVoiceManager
 import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -221,8 +222,10 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
+        this.gameVoiceChannelId = voiceChannelId
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
+        val voiceJoinResult = DiscordVoiceManager.moveBotToVoiceChannel(guild, voiceChannelId)
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -236,6 +239,11 @@ object GameManager {
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
+                if (voiceJoinResult.isSuccess) {
+                    appendLine("봇 음성 입장: 성공")
+                } else {
+                    appendLine("봇 음성 입장: 실패 (${voiceJoinResult.exceptionOrNull()?.message ?: "알 수 없는 오류"})")
+                }
                 appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
@@ -290,8 +298,10 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
+        this.gameVoiceChannelId = voiceChannelId
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
+        val voiceJoinResult = DiscordVoiceManager.moveBotToVoiceChannel(guild, voiceChannelId)
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -304,6 +314,12 @@ object GameManager {
 
         event.message.channel.createMessage(
             buildString {
+                appendLine("현재 음성채널: ${voiceChannel.mention}")
+                if (voiceJoinResult.isSuccess) {
+                    appendLine("봇 음성 입장: 성공")
+                } else {
+                    appendLine("봇 음성 입장: 실패 (${voiceJoinResult.exceptionOrNull()?.message ?: "알 수 없는 오류"})")
+                }
                 appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
@@ -1169,6 +1185,12 @@ object GameManager {
         gameToStop.mafiaChannel = null
         gameToStop.coupleChannel = null
         gameToStop.deadChannel = null
+        gameToStop.gameVoiceChannelId = null
+    }
+
+    suspend fun playSound(source: String): Result<Unit> {
+        val game = currentGame ?: return Result.failure(IllegalStateException("진행 중인 게임이 없습니다."))
+        return DiscordVoiceManager.playExternalSound(game, source)
     }
 
     suspend fun releaseAllPlayerMutes(game: Game) {
