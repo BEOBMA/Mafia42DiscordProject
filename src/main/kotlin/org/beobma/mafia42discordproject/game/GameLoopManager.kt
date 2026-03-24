@@ -1404,7 +1404,7 @@ object GameLoopManager {
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
-                    message = "독재 상태에서 정치인의 투표가 없어 처형될 대상을 고르지 못했습니다."
+                    message = "처형될 대상을 고르지 못했습니다."
                 )
                 null
             }
@@ -1423,7 +1423,7 @@ object GameLoopManager {
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
-                    message = "판사의 선고가 없어 처형될 대상을 고르지 못했습니다."
+                    message = "처형될 대상을 고르지 못했습니다."
                 )
                 null
             }
@@ -1830,14 +1830,14 @@ object GameLoopManager {
             }
 
             mainChannel.createMessage(
-                "판사 ${judgePlayer.member.effectiveName}님이 모습을 드러냈습니다. 선고에 따라 이번 투표는 ${if (judgeVote == true) "찬성" else "반대"}로 결정됩니다."
+                "판사 ${judgePlayer.member.effectiveName}님이 모습을 드러냈습니다. 선고에 따라 이번 투표는 ${if (judgeVote) "찬성" else "반대"}로 결정됩니다."
             )
         }
 
         notifyJudgeProsVoters(game, target)
 
         if (findRevealedAliveJudge(game) != null && judgeVote == null) {
-            mainChannel.createMessage("판사가 찬반 선고를 하지 않아 이번 처형은 자동으로 반대로 처리됩니다.")
+            mainChannel.createMessage("${target.member.effectiveName}님의 처형이 부결되었습니다.")
         }
 
         val finalDecision = when {
