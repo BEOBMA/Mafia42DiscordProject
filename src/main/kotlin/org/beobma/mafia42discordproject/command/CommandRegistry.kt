@@ -11,6 +11,7 @@ object CommandRegistry {
         DayTimeAdjustCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
+        JobInfoImageCommand,
         DebugCommand,
         ShamanRelayCommand,
         ShamanedRelayCommand,
