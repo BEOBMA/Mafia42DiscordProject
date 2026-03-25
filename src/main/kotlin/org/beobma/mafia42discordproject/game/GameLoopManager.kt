@@ -8,19 +8,13 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
-import dev.kord.core.entity.TeamMember
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.thread.ThreadChannel
 import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.component.option
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.playGameSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImageAndSound
@@ -29,86 +23,47 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Belongings
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Source
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.Calm
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.Obituary
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.soldier.MentalStrength
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Terminal
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.assistance.TheInformant
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Analysis
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Distortion
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Concealment
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exorcism
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.Terminal
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.assistance.TheInformant
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Analysis
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.madscientist.Distortion
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
-import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
-import org.beobma.mafia42discordproject.job.ability.general.list.Escape
-import org.beobma.mafia42discordproject.job.ability.general.list.Innocence
-import org.beobma.mafia42discordproject.job.ability.general.list.Jury
-import org.beobma.mafia42discordproject.job.ability.general.list.MindReading
-import org.beobma.mafia42discordproject.job.ability.general.list.Will
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.Calm
-import org.beobma.mafia42discordproject.job.definition.list.Administrator
-import org.beobma.mafia42discordproject.job.definition.list.Cabal
-import org.beobma.mafia42discordproject.job.definition.list.CabalRole
-import org.beobma.mafia42discordproject.job.definition.list.Citizen
-import org.beobma.mafia42discordproject.job.definition.list.Couple
-import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
-import org.beobma.mafia42discordproject.job.definition.list.Doctor
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
-import org.beobma.mafia42discordproject.job.definition.list.Detective
-import org.beobma.mafia42discordproject.job.definition.list.Gangster
-import org.beobma.mafia42discordproject.job.definition.list.Hacker
-import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
-import org.beobma.mafia42discordproject.job.definition.list.Judge
-import org.beobma.mafia42discordproject.job.definition.list.Mercenary
-import org.beobma.mafia42discordproject.job.definition.list.Nurse
-import org.beobma.mafia42discordproject.job.definition.list.Police
-import org.beobma.mafia42discordproject.job.definition.list.Politician
-import org.beobma.mafia42discordproject.job.definition.list.Priest
-import org.beobma.mafia42discordproject.job.definition.list.Prophet
-import org.beobma.mafia42discordproject.job.definition.list.Reporter
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.CombinedAttack
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Resolute
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
+import org.beobma.mafia42discordproject.job.ability.general.list.*
+import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
-import org.beobma.mafia42discordproject.job.evil.list.Beastman
-import org.beobma.mafia42discordproject.job.evil.list.Godfather
-import org.beobma.mafia42discordproject.job.evil.list.HitMan
-import org.beobma.mafia42discordproject.job.evil.list.Hostess
-import org.beobma.mafia42discordproject.job.evil.list.MadScientist
-import org.beobma.mafia42discordproject.job.evil.list.Mafia
-import org.beobma.mafia42discordproject.job.evil.list.Spy
-import org.beobma.mafia42discordproject.job.evil.list.Swindler
-import org.beobma.mafia42discordproject.job.evil.list.Thief
-import org.beobma.mafia42discordproject.job.evil.list.Villain
-import org.beobma.mafia42discordproject.job.evil.list.Witch
-import org.beobma.mafia42discordproject.job.definition.list.Martyr
-import org.beobma.mafia42discordproject.job.definition.list.Mentalist
-import org.beobma.mafia42discordproject.job.definition.list.Vigilante
+import org.beobma.mafia42discordproject.job.evil.list.*
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
     private const val NIGHT_DURATION_MS = 40_000L
@@ -745,7 +700,6 @@ object GameLoopManager {
     }
 
     private suspend fun announceCoupleSacrificeReveal(game: Game, deaths: List<PlayerData>) {
-        val mainChannel = game.mainChannel ?: return
 
         deaths.forEach { deadPlayer ->
             val originalTargetId = game.coupleSacrificeMap[deadPlayer.member.id] ?: return@forEach
