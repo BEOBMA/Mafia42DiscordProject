@@ -2,12 +2,14 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.behavior.interaction.suggestString
+import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
-import dev.kord.core.behavior.interaction.response.respond
-import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.rest.builder.interaction.string
+import io.ktor.client.request.forms.*
+import io.ktor.utils.io.*
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
@@ -16,7 +18,6 @@ import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
@@ -62,7 +63,12 @@ object JobInfoImageCommand : DiscordCommand {
         val response = event.interaction.deferEphemeralResponse()
         response.respond {
             content = "${selectedJob.name} 직업 정보입니다."
-            addFile("${selectedJob.name}-info.png", ByteArrayInputStream(imageBytes))
+            addFile(
+                "${selectedJob.name}-info.png",
+                ChannelProvider(imageBytes.size.toLong()) {
+                    ByteReadChannel(imageBytes)
+                }
+            )
         }
     }
 
