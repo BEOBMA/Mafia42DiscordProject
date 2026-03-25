@@ -94,11 +94,21 @@ object LavalinkManager {
     suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, query: String): PlayResult {
         ensureInitialized()
 
-        resetVoiceHandshakeState(guildId.toString())
-        connectBotToVoiceChannel(kord, guildId, voiceChannelId)
+        val guildIdString = guildId.toString()
+        val existingState = voiceStates[guildIdString]
+        val existingServer = voiceServerUpdates[guildIdString]
 
-        if (!waitForVoiceHandshake(guildId.toString())) {
-            return PlayResult(false, "음성 채널 연결 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        val needsNewConnection =
+            existingState == null ||
+                    existingServer == null ||
+                    existingState.channelId != voiceChannelId.toString()
+
+        if (needsNewConnection) {
+            connectBotToVoiceChannel(kord, guildId, voiceChannelId)
+
+            if (!waitForVoiceHandshake(guildIdString)) {
+                return PlayResult(false, "음성 채널 연결 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.")
+            }
         }
 
         val resolvedQuery = if (query.startsWith("http://") || query.startsWith("https://")) {
