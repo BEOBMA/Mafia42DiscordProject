@@ -5,6 +5,7 @@
 ## 제공 엔드포인트
 
 - `GET /health`
+- `GET /play` (`405 Method Not Allowed`, 안내용 응답)
 - `POST /play`
   - Header: `Authorization: Bearer <WRAPPER_AUTH_TOKEN>`
   - Body:

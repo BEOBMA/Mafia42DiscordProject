@@ -19,8 +19,13 @@ object PlaySoundCommand : DiscordCommand {
 
     private const val sourceOptionName = "source"
 
+    private fun normalizeSource(rawSource: String): String {
+        val unwrapped = rawSource.trim().removeSurrounding("<", ">")
+        return unwrapped.replace("\\n", "").trim()
+    }
+
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val source = event.interaction.command.strings[sourceOptionName]?.trim()
+        val source = event.interaction.command.strings[sourceOptionName]?.let(::normalizeSource)
         if (source.isNullOrBlank()) {
             DiscordMessageManager.respondEphemeral(event, "사용법: /playsound source:<외부 오디오 URL>")
             return
@@ -54,7 +59,7 @@ object PlaySoundCommand : DiscordCommand {
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
-        val source = args.joinToString(" ").trim()
+        val source = normalizeSource(args.joinToString(" "))
         if (source.isBlank()) {
             event.message.channel.createMessage("사용법: !playsound <외부 오디오 URL>")
             return
