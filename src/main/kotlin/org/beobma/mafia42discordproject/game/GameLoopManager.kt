@@ -882,8 +882,8 @@ object GameLoopManager {
             game.playerDatas.forEach { player ->
                 if (player.state.isDead) {
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                        denied = Permissions(Permission.SendMessages)
+                        allowed = Permissions(Permission.ViewChannel)
+                        denied = Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
                     }
                     return@forEach
                 }
@@ -894,13 +894,16 @@ object GameLoopManager {
                         allowed = if (canSend) {
                             Permissions(
                                 Permission.ViewChannel,
-                                Permission.ReadMessageHistory,
                                 Permission.SendMessages
                             )
                         } else {
-                            Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                            Permissions(Permission.ViewChannel)
                         }
-                        denied = if (canSend) Permissions() else Permissions(Permission.SendMessages)
+                        denied = if (canSend) {
+                            Permissions(Permission.ReadMessageHistory)
+                        } else {
+                            Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                        }
                     }
                 } else {
                     addMemberOverwrite(player.member.id) {
@@ -1305,8 +1308,8 @@ object GameLoopManager {
             game.playerDatas.forEach { player ->
                 if (player.state.isDead) {
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                        denied = Permissions(Permission.SendMessages)
+                        allowed = Permissions(Permission.ViewChannel)
+                        denied = Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
                     }
                     return@forEach
                 }
@@ -1314,8 +1317,12 @@ object GameLoopManager {
                 if (player.job is Couple) {
                     val canAccess = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
-                        denied = if (canAccess) Permissions() else Permissions(Permission.SendMessages)
+                        allowed = Permissions(Permission.ViewChannel)
+                        denied = if (canAccess) {
+                            Permissions(Permission.ReadMessageHistory)
+                        } else {
+                            Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                        }
                     }
                 } else {
                     addMemberOverwrite(player.member.id) {
@@ -1356,16 +1363,15 @@ object GameLoopManager {
                     allowed = if (player.state.isDead) {
                         Permissions(
                             Permission.ViewChannel,
-                            Permission.ReadMessageHistory,
                             Permission.SendMessages
                         )
                     } else {
-                        Permissions(Permission.ViewChannel, Permission.ReadMessageHistory)
+                        Permissions(Permission.ViewChannel)
                     }
                     denied = if (player.state.isDead) {
-                        Permissions()
+                        Permissions(Permission.ReadMessageHistory)
                     } else {
-                        Permissions(Permission.SendMessages)
+                        Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
                     }
                 }
             }
