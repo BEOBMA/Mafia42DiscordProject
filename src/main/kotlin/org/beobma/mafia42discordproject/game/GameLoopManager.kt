@@ -1139,17 +1139,9 @@ object GameLoopManager {
         }
 
         val supportJobName = supportJobNameOverride ?: contactPlayer.job?.name ?: "악인"
-        val contactedEvilPlayers = game.playerDatas
-            .filter { !it.state.isDead && it.job is Evil && it.job !is Mafia && it.job !is Villain }
-            .filter { canAccessMafiaChannel(game, it) }
-            .joinToString(", ") { player ->
-                val jobName = player.job?.name ?: "악인"
-                "$jobName ${player.member.effectiveName}님"
-            }
-            .ifBlank { "없음" }
 
         mafiaChannel.createMessage(
-            "$contactImageUrl\n$mafiaDescription $supportJobName ${contactPlayer.member.effectiveName}님이 접선했습니다.\n마피아 외 접선 악인: $contactedEvilPlayers"
+            "$contactImageUrl\n$mafiaDescription $supportJobName ${contactPlayer.member.effectiveName}님이 접선했습니다."
         )
     }
 
