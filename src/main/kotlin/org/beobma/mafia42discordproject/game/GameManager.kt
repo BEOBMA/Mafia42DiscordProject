@@ -225,7 +225,6 @@ object GameManager {
         this.gameVoiceChannelId = voiceChannelId
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
-        val voiceJoinResult = DiscordVoiceManager.moveBotToVoiceChannel(guild, voiceChannelId)
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -239,11 +238,6 @@ object GameManager {
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                if (voiceJoinResult.isSuccess) {
-                    appendLine("봇 음성 입장: 성공")
-                } else {
-                    appendLine("봇 음성 입장: 실패 (${voiceJoinResult.exceptionOrNull()?.message ?: "알 수 없는 오류"})")
-                }
                 appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
@@ -301,7 +295,6 @@ object GameManager {
         this.gameVoiceChannelId = voiceChannelId
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
-        val voiceJoinResult = DiscordVoiceManager.moveBotToVoiceChannel(guild, voiceChannelId)
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -315,11 +308,6 @@ object GameManager {
         event.message.channel.createMessage(
             buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                if (voiceJoinResult.isSuccess) {
-                    appendLine("봇 음성 입장: 성공")
-                } else {
-                    appendLine("봇 음성 입장: 실패 (${voiceJoinResult.exceptionOrNull()?.message ?: "알 수 없는 오류"})")
-                }
                 appendLine("인원 수: ${membersInSameVoice.size}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
@@ -1192,11 +1180,6 @@ object GameManager {
         val activeGame = currentGame
         val targetGuild = activeGame?.guild ?: guild
         val targetVoiceChannelId = activeGame?.gameVoiceChannelId ?: voiceChannelId
-
-        val moveResult = DiscordVoiceManager.moveBotToVoiceChannel(targetGuild, targetVoiceChannelId)
-        if (moveResult.isFailure) {
-            return moveResult
-        }
 
         return DiscordVoiceManager.playExternalSound(targetGuild, targetVoiceChannelId, source)
     }
