@@ -52,6 +52,7 @@ data class Game(
     var mafiaChannel: TextChannel? = null
     var coupleChannel: TextChannel? = null
     var deadChannel: TextChannel? = null
+    var voiceChannelId: Snowflake? = null
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
@@ -61,6 +62,7 @@ data class Game(
     var mafiaAttackFailedPreviousNight: Boolean = false
     var concealmentForcedQuietNight: Boolean = false
     var doctorSavedTargetTonight: PlayerData? = null
+    var mafiaExecutionSucceededLastNight: Boolean = false
     val coupleSacrificeMap: MutableMap<Snowflake, Snowflake> = mutableMapOf()
 
     // 투표
