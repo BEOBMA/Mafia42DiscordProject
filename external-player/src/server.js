@@ -49,6 +49,13 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.get("/play", (_req, res) => {
+  return res.status(405).json({
+    message: "Method Not Allowed",
+    hint: "Use POST /play with JSON body: { guildId, voiceChannelId, source }"
+  });
+});
+
 app.post("/play", authMiddleware, validatePlayRequest, async (req, res) => {
   const { guildId, voiceChannelId, source } = req.body;
 
