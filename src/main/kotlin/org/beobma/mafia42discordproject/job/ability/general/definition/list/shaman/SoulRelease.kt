@@ -49,7 +49,7 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     if (isEarthbound) {
-                        "${target.member.effectiveName}님은 지박령이라 성불되지 않았습니다. 직업만 확인했습니다.\n$image"
+                        "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n$image"
                     } else {
                         "${target.member.effectiveName}님을 성불하였습니다.\n$image"
                     }
@@ -64,9 +64,9 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
 
         val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
         return if (isEarthbound) {
-            AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다. (지박령으로 성불되지 않음) 직업: $revealedJobName")
+            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불하는데 실패했습니다.")
         } else {
-            AbilityResult(true, "${target.member.effectiveName}님을 성불했습니다. 직업: $revealedJobName")
+            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불했습니다.")
         }
     }
 }
