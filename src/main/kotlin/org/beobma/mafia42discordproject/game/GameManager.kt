@@ -223,6 +223,7 @@ object GameManager {
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
+        this.voiceChannelId = voiceChannelId
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -292,6 +293,7 @@ object GameManager {
         GameLoopManager.resetTimeThreadState()
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
+        this.voiceChannelId = voiceChannelId
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
