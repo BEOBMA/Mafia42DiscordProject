@@ -164,20 +164,32 @@ object LavalinkManager {
     private fun trySendVoiceUpdate(guildId: String) {
         val session = voiceSessionIds[guildId] ?: return
         val server = voiceServerUpdates[guildId] ?: return
-        val webSocket = ws ?: return
+        val currentSessionId = sessionId ?: return
 
         val payload = buildJsonObject {
-            put("op", "voiceUpdate")
-            put("guildId", guildId)
-            put("sessionId", session)
-            put("event", buildJsonObject {
+            put("voice", buildJsonObject {
+                put("sessionId", session)
                 put("token", server.token)
-                put("guild_id", server.guildId)
                 put("endpoint", server.endpoint)
             })
         }
 
-        webSocket.sendText(json.encodeToString(JsonObject.serializer(), payload), true)
+        val response = runCatching {
+            sendPatch(
+                url = "${baseHttpUrl()}/v4/sessions/$currentSessionId/players/$guildId",
+                body = json.encodeToString(JsonObject.serializer(), payload)
+            )
+        }.getOrElse { error ->
+            println("❌ Lavalink voiceUpdate 전송 실패(guildId=$guildId): ${error.message}")
+            return
+        }
+
+        if (response.statusCode() !in 200..299) {
+            println("❌ Lavalink voiceUpdate 응답 실패(guildId=$guildId, status=${response.statusCode()}): ${response.body()}")
+            return
+        }
+
+        println("✅ Lavalink voiceUpdate 적용 완료(guildId=$guildId)")
     }
 
     private fun extractTrack(loaded: JsonObject): LavalinkTrack? {
@@ -227,6 +239,9 @@ object LavalinkManager {
                     "ready" -> {
                         sessionId = jsonMessage.stringOrNull("sessionId")
                         println("✅ Lavalink ready: sessionId=$sessionId")
+                        voiceSessionIds.keys.forEach { guildId ->
+                            trySendVoiceUpdate(guildId)
+                        }
                     }
                     "event" -> {
                         val type = jsonMessage.stringOrNull("type") ?: "unknown"
