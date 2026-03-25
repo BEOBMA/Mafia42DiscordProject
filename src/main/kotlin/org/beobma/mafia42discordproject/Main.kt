@@ -5,9 +5,11 @@ import dev.kord.common.entity.ApplicationCommandType
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
+import dev.kord.core.event.guild.VoiceServerUpdateEvent
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.core.event.user.VoiceStateUpdateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -30,7 +32,6 @@ suspend fun main() {
 
     val kord = Kord(token)
     LavalinkManager.initialize(kord)
-    LavalinkManager.registerLogging(kord)
 
     val commands = CommandRegistry.all()
 
@@ -69,6 +70,14 @@ suspend fun main() {
     kord.on<GuildAutoCompleteInteractionCreateEvent> {
         val command = CommandRegistry.find(interaction.command.rootName) ?: return@on
         command.handleAutoComplete(this)
+    }
+
+    kord.on<VoiceStateUpdateEvent> {
+        LavalinkManager.handleVoiceStateUpdate(this, kord)
+    }
+
+    kord.on<VoiceServerUpdateEvent> {
+        LavalinkManager.handleVoiceServerUpdate(this)
     }
 
     // UI 상호작용 버튼 리스너 일괄등록

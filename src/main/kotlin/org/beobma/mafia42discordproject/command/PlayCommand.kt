@@ -49,7 +49,7 @@ object PlayCommand : DiscordCommand {
             return
         }
 
-        val result = LavalinkManager.play(guild, voiceChannel, query)
+        val result = LavalinkManager.play(kord = event.kord, guildId = guild.id, voiceChannelId = voiceChannel.id, query = query)
         if (result.success) {
             DiscordMessageManager.respondPublic(event, result.message)
             return
