@@ -689,7 +689,11 @@ object GameLoopManager {
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
 
-            game.sendMainChannerMessageAndSound("${target.member.effectiveName}님이 부활했습니다.", PRIEST_RESURRECTION_SOUND_URL)
+            game.sendMainChannelMessageWithImageAndSound(
+                imageLink = SystemImage.PRIEST_RESURRECTION.imageUrl,
+                message = "${target.member.effectiveName}님이 부활했습니다.",
+                soundUrl = PRIEST_RESURRECTION_SOUND_URL
+            )
         }
     }
 
