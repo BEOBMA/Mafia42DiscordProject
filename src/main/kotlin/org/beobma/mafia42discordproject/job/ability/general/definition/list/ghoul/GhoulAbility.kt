@@ -78,7 +78,7 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
         } else {
             ""
         }
-        return "${victim.member.effectiveName}님의 직업을 도굴해 ${originalJobName}이(가) 되었습니다.\n$inheritedPart"
+        return "$originalJobName 직업을 획득하였습니다.\n$inheritedPart"
     }
 
     private fun cloneAbility(ability: Ability): Ability {
