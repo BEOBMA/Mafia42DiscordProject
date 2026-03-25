@@ -2535,6 +2535,15 @@ object GameLoopManager {
             }
 
         attacks
+            .filter { it.attacker.job is Mercenary && it.target in deathsSet }
+            .map { it.target }
+            .distinctBy { it.member.id }
+            .forEach { victim ->
+                messageLines += "${victim.member.effectiveName}가 살해당하였습니다."
+                pickImage(SystemImage.MERCENARY_EXECUTION.imageUrl)
+            }
+
+        attacks
             .filter { it.attacker.job is Godfather && it.target in deathsSet }
             .map { it.target }
             .distinctBy { it.member.id }
@@ -2822,6 +2831,10 @@ object GameLoopManager {
             val killingAttack = unblockedAttacks.firstOrNull { it.target == client } ?: return@forEach
             mercenary.hasExecutionAuthority = true
             mercenary.clientKilledByPlayerId = killingAttack.attacker.member.id
+            sendCabalDm(
+                mercenaryPlayer,
+                "${SystemImage.MERCENARY_CLIENT_DEATH.imageUrl}\n의뢰인 (${client.member.effectiveName})님이 사망했습니다."
+            )
         }
     }
 
