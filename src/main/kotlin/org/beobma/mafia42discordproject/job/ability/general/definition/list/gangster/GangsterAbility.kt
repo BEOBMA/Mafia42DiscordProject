@@ -54,12 +54,6 @@ class GangsterAbility : ActiveAbility, JobUniqueAbility {
             gangster.remainingThreatUsesTonight += 1
         }
 
-        val remainingUseText = if (gangster.remainingThreatUsesTonight > 0) {
-            " (추가 사용 가능 횟수: ${gangster.remainingThreatUsesTonight}회)"
-        } else {
-            ""
-        }
-
-        return AbilityResult(true, "${target.member.effectiveName}님에게 위협을 가했습니다. $remainingUseText")
+        return AbilityResult(true, "${target.member.effectiveName}님을 협박했습니다.")
     }
 }
