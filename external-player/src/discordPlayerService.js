@@ -36,14 +36,16 @@ export class DiscordPlayerService {
       throw new Error(`Voice channel not found: ${voiceChannelId}`);
     }
 
-    const connection = this.getOrCreateConnection({
+    await this.ensureConnectionReady({
       guildId,
       voiceChannelId,
       adapterCreator: guild.voiceAdapterCreator
     });
 
-    await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-
+    const connection = getVoiceConnection(guildId);
+    if (!connection) {
+      throw new Error(`Voice connection unavailable after join: ${guildId}`);
+    }
     const player = this.getOrCreatePlayer(guildId, connection);
     const ffmpegErrorLogs = [];
     const transcoder = new prism.FFmpeg({
@@ -113,6 +115,37 @@ export class DiscordPlayerService {
       selfDeaf: false,
       selfMute: false
     });
+  }
+
+  async ensureConnectionReady({ guildId, voiceChannelId, adapterCreator }) {
+    const firstAttempt = this.getOrCreateConnection({
+      guildId,
+      voiceChannelId,
+      adapterCreator
+    });
+
+    try {
+      await entersState(firstAttempt, VoiceConnectionStatus.Ready, 20_000);
+      return firstAttempt;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("aborted")) {
+        throw error;
+      }
+
+      console.warn(
+        `[external-player] voice ready wait aborted once; retrying join (guild=${guildId}, channel=${voiceChannelId})`
+      );
+      firstAttempt.destroy();
+
+      const retryConnection = this.getOrCreateConnection({
+        guildId,
+        voiceChannelId,
+        adapterCreator
+      });
+      await entersState(retryConnection, VoiceConnectionStatus.Ready, 20_000);
+      return retryConnection;
+    }
   }
 
   getOrCreatePlayer(guildId, connection) {
