@@ -108,6 +108,9 @@ object GameLoopManager {
     private const val DOCTOR_HEAL_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473230868490/8aef28dff96e1583.mp3?ex=69c50468&is=69c3b2e8&hm=1485ce4ed9bb19295bf6278d2b5438984f160bd377a3e2943a2fb7ec2bcdebfc&"
     private const val POLITICIAN_SURVIVAL_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473499439195/c176cb7d4b93080a.mp3?ex=69c50468&is=69c3b2e8&hm=2a484c7ee861c647d22688aff52d4b7d4f7cc58a5c00851a84df9b62f6e7a960&"
     private const val TERRORIST_EXPLOSION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473834979328/af7f17aeb1cf52dc.mp3?ex=69c50468&is=69c3b2e8&hm=74d3bc27bc48f64f1a49d0ceaa2bdfb1d0a240686d9546b65464e1aed490ab6e&"
+    private const val TERRORIST_NIGHT_MAFIA_BOMB_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376146680549416/42efd32d67aaaa7e.png?ex=69c54728&is=69c3f5a8&hm=2d9b8b86eeba1020000544342ef61408e5c24b15909e3ea56689f4e999205fea&"
+    private const val TERRORIST_NIGHT_EXPLOSION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376146340675755/d454e22abbd494d0.png?ex=69c54728&is=69c3f5a8&hm=38d97dd3438ba02f3b3e9b7bbdc261d7b231db8f95f0c600e508d3a6c01721be&"
+    private const val TERRORIST_VOTE_EXPLOSION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376147120816169/06c9a2ad4abad628.png?ex=69c54729&is=69c3f5a9&hm=145950034cbee6d3534eadbc5466d128f0abd4ee8512c8326715de9059304f37&"
     private const val REPORTER_SCOOP_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304474145493162/675f0fc9f74c2bc8.mp3?ex=69c50468&is=69c3b2e8&hm=c8d8b4f38fc637fccc661911d2c289231c6db4da5e9f0d8fd426ccd5aab15126&"
     private const val CABAL_SPECIAL_WIN_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486305821058142319/f7f1bbcda4a01966.mp3?ex=69c505a9&is=69c3b429&hm=323088428bff36241aafac7cee4767b7ab1196f8304f6336015827dd0c1f8efe&"
 
@@ -2234,8 +2237,17 @@ object GameLoopManager {
             player.state.isJobPubliclyRevealed = true
             selectedTarget.state.isJobPubliclyRevealed = true
 
-            game.sendMainChannerMessageAndSound(
-                "테러리스트 ${player.member.effectiveName}님이 마피아 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!",
+            val (explosionImageUrl, explosionMessage) = if (isNightBombTriggered) {
+                TERRORIST_NIGHT_MAFIA_BOMB_IMAGE_URL to
+                    "테러리스트 ${player.member.effectiveName}님이 마피아 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!"
+            } else {
+                TERRORIST_NIGHT_EXPLOSION_IMAGE_URL to
+                    "테러리스트 ${player.member.effectiveName}님이 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!"
+            }
+
+            game.sendMainChannelMessageWithImageAndSound(
+                explosionImageUrl,
+                explosionMessage,
                 TERRORIST_EXPLOSION_SOUND_URL
             )
         }
@@ -2253,7 +2265,8 @@ object GameLoopManager {
         executedTarget.state.isJobPubliclyRevealed = true
         selectedTarget.state.isJobPubliclyRevealed = true
 
-        game.sendMainChannerMessageAndSound(
+        game.sendMainChannelMessageWithImageAndSound(
+            TERRORIST_VOTE_EXPLOSION_IMAGE_URL,
             "테러리스트 ${executedTarget.member.effectiveName}님이 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!",
             TERRORIST_EXPLOSION_SOUND_URL
         )
