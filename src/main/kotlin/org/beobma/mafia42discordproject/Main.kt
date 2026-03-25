@@ -18,6 +18,7 @@ import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
+import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
@@ -28,6 +29,9 @@ suspend fun main() {
         ?: error("DISCORD_TOKEN 환경 변수가 설정되지 않았습니다.")
 
     val kord = Kord(token)
+    LavalinkManager.initialize(kord)
+    LavalinkManager.registerLogging(kord)
+
     val commands = CommandRegistry.all()
 
     syncSlashCommands(kord, commands)
