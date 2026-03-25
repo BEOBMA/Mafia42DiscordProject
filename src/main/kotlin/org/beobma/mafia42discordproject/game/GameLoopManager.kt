@@ -143,6 +143,7 @@ object GameLoopManager {
 
     private const val NIGHT_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391134654504/01bd79a79298e120.mp3?ex=69c50189&is=69c3b009&hm=444421edd57486f4b554f3f83e6be6db037ee8cf837b64e37f0dc4bd122cf718&"
     private const val DAY_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391378190477/58bff3cbf7716159.mp3?ex=69c50189&is=69c3b009&hm=ac55958ed89df3d55eb6ecfbc347e602e2d060a5f4a3026b3859538b7bc0ef00&"
+    private const val VOTE_PHASE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486309923850686535/42_2023_-_.mp3?ex=69c5097c&is=69c3b7fc&hm=7bf669e52c00734555f077c6686897d5760080162338ff68eac4894f8b1634e9&"
     private const val MAFIA_EXECUTION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302536410333254/e95e5e7a2bfbb5b8.mp3?ex=69c5029a&is=69c3b11a&hm=580d69d5f014ed893bc146eaee6637af22248f0d226f113d711050a7120df1cd&"
     private const val MAD_SCIENTIST_REVIVE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302988782796840/3584907a7de3d981.mp3?ex=69c50306&is=69c3b186&hm=70be3b306f5cad61dbbaf83457074587a6069b0abe672b23c3aee10063c08609&"
     private const val SOLDIER_BULLETPROOF_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304472291348580/9afc5bd39d073e7b.mp3?ex=69c50468&is=69c3b2e8&hm=89f4b442817f589c6e91665105596bbcb672408a0d0da63f9605ee4fd9aaf2bf&"
@@ -1382,9 +1383,10 @@ object GameLoopManager {
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
-        game.sendMainChannelMessageWithImage(
+        game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483981201428709456/bd6d8d833d736bf2.png?ex=69bfdc71&is=69be8af1&hm=ca26cbd8933d3968240055b67202bfec8b35a278559172435a4515ecf3921ddb&",
-            message = "투표 시간입니다. 의심되는 사람을 투표하세요."
+            message = "투표 시간입니다. 의심되는 사람을 투표하세요.",
+            soundUrl = VOTE_PHASE_SOUND_URL
         )
         mainChannel.createMessage {
             actionRow {
