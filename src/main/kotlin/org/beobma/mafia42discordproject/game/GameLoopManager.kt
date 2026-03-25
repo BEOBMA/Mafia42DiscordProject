@@ -99,6 +99,7 @@ object GameLoopManager {
     private const val NIGHT_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391134654504/01bd79a79298e120.mp3?ex=69c50189&is=69c3b009&hm=444421edd57486f4b554f3f83e6be6db037ee8cf837b64e37f0dc4bd122cf718&"
     private const val DAY_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391378190477/58bff3cbf7716159.mp3?ex=69c50189&is=69c3b009&hm=ac55958ed89df3d55eb6ecfbc347e602e2d060a5f4a3026b3859538b7bc0ef00&"
     private const val VOTE_PHASE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486373470236442634/64816f9a106206ef.mp3?ex=69c544aa&is=69c3f32a&hm=85a0c73511801a60601625c9d13c76d765bc56b0562a10084504d01470db86a6&"
+    private const val JUDGE_VERDICT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486374876926316705/d024a2ac8c2b0b15.png?ex=69c545fa&is=69c3f47a&hm=0d7954afb00f8653203e0b2b840acff84b185b5918cfb60c93f90a0690f4d0d9&"
     private const val MAFIA_EXECUTION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302536410333254/e95e5e7a2bfbb5b8.mp3?ex=69c5029a&is=69c3b11a&hm=580d69d5f014ed893bc146eaee6637af22248f0d226f113d711050a7120df1cd&"
     private const val MAD_SCIENTIST_REVIVE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302988782796840/3584907a7de3d981.mp3?ex=69c50306&is=69c3b186&hm=70be3b306f5cad61dbbaf83457074587a6069b0abe672b23c3aee10063c08609&"
     private const val SOLDIER_BULLETPROOF_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304472291348580/9afc5bd39d073e7b.mp3?ex=69c50468&is=69c3b2e8&hm=89f4b442817f589c6e91665105596bbcb672408a0d0da63f9605ee4fd9aaf2bf&"
@@ -1851,8 +1852,9 @@ object GameLoopManager {
                 game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
             }
 
-            mainChannel.createMessage(
-                "판사 ${judgePlayer.member.effectiveName}님이 투표 결과를 정했습니다!"
+            game.sendMainChannelMessageWithImage(
+                JUDGE_VERDICT_IMAGE_URL,
+                "판사 (${judgePlayer.member.effectiveName})님이 투표 결과를 정했습니다!"
             )
         }
 
