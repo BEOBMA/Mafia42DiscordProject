@@ -689,7 +689,7 @@ object GameLoopManager {
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
 
-            game.sendMainChannerMessageAndSound("성직자의 소생으로 ${target.member.effectiveName}님이 부활했습니다.", PRIEST_RESURRECTION_SOUND_URL)
+            game.sendMainChannerMessageAndSound("${target.member.effectiveName}님이 부활했습니다.", PRIEST_RESURRECTION_SOUND_URL)
         }
     }
 
