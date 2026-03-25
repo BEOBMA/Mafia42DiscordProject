@@ -141,22 +141,25 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (!firstCorrect || !secondCorrect) return
         if (firstTarget.job is Evil || secondTarget.job is Evil) return
 
-        killByContract(game, firstTarget, withSound = true)
-        killByContract(game, secondTarget)
+        killByContract(game, listOf(firstTarget, secondTarget))
     }
 
-    private suspend fun killByContract(game: Game, target: PlayerData, withSound: Boolean = false) {
-        if (target.state.isDead) return
-        game.pendingNightDeathPlayerIds += target.member.id
-        if (target !in game.nightDeathCandidates) {
-            game.nightDeathCandidates += target
+    private suspend fun killByContract(game: Game, targets: List<PlayerData>) {
+        val aliveTargets = targets.filterNot { it.state.isDead }
+        if (aliveTargets.isEmpty()) return
+
+        aliveTargets.forEach { target ->
+            game.pendingNightDeathPlayerIds += target.member.id
+            if (target !in game.nightDeathCandidates) {
+                game.nightDeathCandidates += target
+            }
         }
-        val message = "$CONTRACT_KILL_IMAGE_URL\n${target.member.effectiveName}님이 청부업자에게 정체를 들켜 암살 당했습니다."
-        if (withSound) {
-            game.sendMainChannerMessageAndSound(message, CONTRACT_SUCCESS_SOUND_URL)
-        } else {
-            game.mainChannel?.createMessage(message)
+
+        val victims = aliveTargets.joinToString(separator = "\n") {
+            "${it.member.effectiveName}님이 청부업자에게 정체를 들켜 암살 당했습니다."
         }
+        val message = "$CONTRACT_KILL_IMAGE_URL\n$victims"
+        game.sendMainChannerMessageAndSound(message, CONTRACT_SUCCESS_SOUND_URL)
     }
 
     private fun sendSoldierCriticalMessages(caster: PlayerData, soldierTarget: PlayerData) {
