@@ -153,7 +153,7 @@ object LavalinkManager {
             return PlayResult(false, "재생 요청 실패(status=${playResponse.statusCode()}): ${playResponse.body()}")
         }
 
-        return PlayResult(true, "재생 시작: ${selectedTrack.title}")
+        return PlayResult(true, "재생 성공")
     }
 
     private fun ensureInitialized() {
