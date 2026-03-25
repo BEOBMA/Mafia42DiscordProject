@@ -126,7 +126,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
                 runCatching {
                     if (!thiefPlayer.state.hasAnnouncedThiefContact) {
                         thiefPlayer.state.hasAnnouncedThiefContact = true
-                        game.mafiaChannel?.createMessage("$THIEF_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                        GameLoopManager.announceMafiaSupportContact(game, thiefPlayer, THIEF_CONTACT_IMAGE_URL)
                     }
                     GameLoopManager.refreshMafiaChannelContactState(game)
                 }

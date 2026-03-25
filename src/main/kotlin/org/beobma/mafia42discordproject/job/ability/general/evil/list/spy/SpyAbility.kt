@@ -66,7 +66,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
             if (!spy.hasContactedMafia) {
                 spy.hasContactedMafia = true
                 spy.remainingIntelUsesTonight += 1
-                notifySpyContact(game)
+                notifySpyContact(game, caster)
             }
             return AbilityResult(true, "마피아 팀과 접선했습니다.")
         }
@@ -102,7 +102,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
                 if (victim.job is Mafia) {
                     if (!spyJob.hasContactedMafia) {
                         spyJob.hasContactedMafia = true
-                        notifySpyContact(game)
+                        notifySpyContact(game, spyPlayer)
                     }
                     return@forEach
                 }
@@ -131,10 +131,10 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        private fun notifySpyContact(game: Game) {
+        private fun notifySpyContact(game: Game, spyPlayer: PlayerData) {
             scope.launch {
                 runCatching {
-                    game.mafiaChannel?.createMessage("$SPY_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                    GameLoopManager.announceMafiaSupportContact(game, spyPlayer, SPY_CONTACT_IMAGE_URL)
                 }
                 runCatching {
                     GameLoopManager.refreshMafiaChannelContactState(game)
