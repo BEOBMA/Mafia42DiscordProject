@@ -1,13 +1,10 @@
 package org.beobma.mafia42discordproject.lavalink
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.common.entity.optional.Optional
-import dev.kord.common.entity.optional.OptionalBoolean
-import dev.kord.common.entity.optional.OptionalSnowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.guild.VoiceServerUpdateEvent
 import dev.kord.core.event.user.VoiceStateUpdateEvent
-import dev.kord.rest.json.request.CurrentVoiceStateModifyRequest
+import dev.kord.gateway.UpdateVoiceStatus
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -17,6 +14,8 @@ import java.net.http.WebSocket
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -78,6 +77,9 @@ object LavalinkManager {
     suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, query: String): PlayResult {
         ensureInitialized()
         connectBotToVoiceChannel(kord, guildId, voiceChannelId)
+        if (!waitForVoiceHandshake(guildId.toString())) {
+            return PlayResult(false, "음성 채널 연결 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        }
 
         val resolvedQuery = if (query.startsWith("http://") || query.startsWith("https://")) query else "ytsearch:$query"
         val encodedQuery = URLEncoder.encode(resolvedQuery, StandardCharsets.UTF_8)
@@ -122,14 +124,23 @@ object LavalinkManager {
     }
 
     private suspend fun connectBotToVoiceChannel(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake) {
-        kord.rest.guild.modifyCurrentVoiceState(
-            guildId = guildId,
-            request = CurrentVoiceStateModifyRequest(
-                channelId = OptionalSnowflake.Value(voiceChannelId),
-                suppress = OptionalBoolean.Missing,
-                requestToSpeakTimestamp = Optional.Missing()
+        kord.gateway.sendAll(
+            UpdateVoiceStatus(
+                guildId = guildId,
+                channelId = voiceChannelId,
+                selfMute = false,
+                selfDeaf = true
             )
         )
+    }
+
+    private suspend fun waitForVoiceHandshake(guildId: String): Boolean {
+        return withTimeoutOrNull(5_000) {
+            while (voiceSessionIds[guildId] == null || voiceServerUpdates[guildId] == null) {
+                delay(50)
+            }
+            true
+        } ?: false
     }
 
     private fun connectWebsocket() {
