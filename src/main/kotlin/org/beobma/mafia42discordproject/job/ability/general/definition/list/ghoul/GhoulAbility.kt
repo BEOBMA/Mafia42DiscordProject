@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.gho
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -68,7 +69,8 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             revealedJob = originalVictimJob,
             sourceAbilityName = name,
             resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN,
-            note = buildStealNote(victim, originalVictimJob.name, inheritedExtraAbilityNames)
+            note = buildStealNote(victim, originalVictimJob.name, inheritedExtraAbilityNames),
+            imageUrl = SystemImage.GHOUL_GRAVE_ROBBING_SUCCESS.imageUrl
         )
     }
 

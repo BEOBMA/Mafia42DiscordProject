@@ -102,6 +102,15 @@ object JobDiscoveryNotificationManager {
         if (event.sourceAbilityName == "해킹") {
             return "해커 ${event.discoverer.member.effectiveName}님이 자신의 정보를 전송하였습니다.\n$HACKER_SYNC_IMAGE_URL"
         }
+        if (event.sourceAbilityName == "도굴") {
+            return buildString {
+                append("도굴꾼 (${event.discoverer.member.effectiveName}) 님에게 도굴당해 직업이 시민으로 변경되었습니다.")
+                event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    appendLine()
+                    append(url)
+                }
+            }
+        }
 
         return buildString {
             append(event.discoverer.member.effectiveName)
