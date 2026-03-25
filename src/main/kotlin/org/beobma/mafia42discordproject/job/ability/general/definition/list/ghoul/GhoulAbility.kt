@@ -74,11 +74,11 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
 
     private fun buildStealNote(victim: PlayerData, originalJobName: String, inheritedExtraAbilityNames: List<String>): String {
         val inheritedPart = if (inheritedExtraAbilityNames.isNotEmpty()) {
-            "계승한 추가 능력: ${inheritedExtraAbilityNames.distinct().joinToString(", ")}"
+            "${inheritedExtraAbilityNames.distinct().joinToString(", ")} 스킬을 계승 받았습니다."
         } else {
-            "계승한 추가 능력: 없음"
+            ""
         }
-        return "도굴 대상: ${victim.member.effectiveName} (약탈 전 직업: $originalJobName)\n$inheritedPart"
+        return "${victim.member.effectiveName}님의 직업을 도굴해 ${originalJobName}이(가) 되었습니다.\n$inheritedPart"
     }
 
     private fun cloneAbility(ability: Ability): Ability {
