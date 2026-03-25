@@ -6,6 +6,7 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
+import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
 
@@ -31,14 +32,24 @@ object PlaySoundCommand : DiscordCommand {
             return
         }
 
+        val deferred = event.interaction.deferEphemeralResponse()
+
         val result = GameManager.playSound(source, guild, voiceChannelId)
         if (result.isSuccess) {
-            DiscordMessageManager.respondEphemeral(event, "사운드 재생 완료: `$source`")
+            InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
+                deferred.respond {
+                    this.content = "사운드 재생 완료: `$source`"
+                }
+            }
             return
         }
 
         val reason = result.exceptionOrNull()?.message ?: "알 수 없는 오류"
-        DiscordMessageManager.respondEphemeral(event, "사운드 재생 실패: `$source`\n사유: $reason")
+        InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
+            deferred.respond {
+                this.content = "사운드 재생 실패: `$source`\n사유: $reason"
+            }
+        }
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
