@@ -7,6 +7,7 @@ import {
   createAudioPlayer,
   createAudioResource,
   entersState,
+  getVoiceConnection,
   joinVoiceChannel
 } from "@discordjs/voice";
 import prism from "prism-media";
@@ -35,17 +36,16 @@ export class DiscordPlayerService {
       throw new Error(`Voice channel not found: ${voiceChannelId}`);
     }
 
-    const connection = joinVoiceChannel({
-      channelId: voiceChannelId,
+    const connection = this.getOrCreateConnection({
       guildId,
-      adapterCreator: guild.voiceAdapterCreator,
-      selfDeaf: false,
-      selfMute: false
+      voiceChannelId,
+      adapterCreator: guild.voiceAdapterCreator
     });
 
     await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
 
     const player = this.getOrCreatePlayer(guildId, connection);
+    const ffmpegErrorLogs = [];
     const transcoder = new prism.FFmpeg({
       args: [
         "-loglevel",
@@ -62,21 +62,57 @@ export class DiscordPlayerService {
       ],
       shell: false
     });
+    transcoder.on("error", (error) => {
+      console.error("[external-player] ffmpeg stream error:", error);
+    });
+    transcoder.stderr?.on("data", (chunk) => {
+      const line = chunk.toString().trim();
+      if (!line) return;
+      ffmpegErrorLogs.push(line);
+      if (ffmpegErrorLogs.length > 20) {
+        ffmpegErrorLogs.shift();
+      }
+      console.warn(`[external-player] ffmpeg: ${line}`);
+    });
     const resource = createAudioResource(transcoder, {
       inputType: StreamType.Raw,
-      inlineVolume: true
+      inlineVolume: true,
+      metadata: {
+        guildId,
+        voiceChannelId,
+        source
+      }
     });
     resource.volume?.setVolume(1.0);
 
     player.play(resource);
-    await entersState(player, AudioPlayerStatus.Playing, 20_000);
 
     return {
       accepted: true,
       mode: "discord-voice",
       guildId,
-      voiceChannelId
+      voiceChannelId,
+      note: "Playback dispatched. Check external-player logs for ffmpeg/runtime errors."
     };
+  }
+
+  getOrCreateConnection({ guildId, voiceChannelId, adapterCreator }) {
+    const existingConnection = getVoiceConnection(guildId);
+    if (existingConnection) {
+      if (existingConnection.joinConfig.channelId === voiceChannelId) {
+        return existingConnection;
+      }
+
+      existingConnection.destroy();
+    }
+
+    return joinVoiceChannel({
+      channelId: voiceChannelId,
+      guildId,
+      adapterCreator,
+      selfDeaf: false,
+      selfMute: false
+    });
   }
 
   getOrCreatePlayer(guildId, connection) {
@@ -89,7 +125,21 @@ export class DiscordPlayerService {
 
     const player = createAudioPlayer({
       behaviors: {
-        noSubscriber: NoSubscriberBehavior.Pause
+        noSubscriber: NoSubscriberBehavior.Play
+      }
+    });
+    player.on("error", (error) => {
+      console.error("[external-player] audio player error:", error);
+    });
+    player.on("stateChange", (oldState, newState) => {
+      if (
+        oldState.status !== newState.status &&
+        (newState.status === AudioPlayerStatus.Idle ||
+          newState.status === AudioPlayerStatus.Playing)
+      ) {
+        console.log(
+          `[external-player] player state ${oldState.status} -> ${newState.status} (guild=${guildId})`
+        );
       }
     });
     connection.subscribe(player);
