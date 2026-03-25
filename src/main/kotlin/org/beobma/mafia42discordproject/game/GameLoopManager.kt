@@ -2191,7 +2191,7 @@ object GameLoopManager {
         cabalNotificationScope.launch {
             runCatching {
                 judgePlayer.member.getDmChannel().createMessage(
-                    "관권 발동 정보: ${target.member.effectiveName} 처형 찬성 투표자 - $prosMessage"
+                    "${target.member.effectiveName} 처형 찬성 투표자 - $prosMessage"
                 )
             }
         }
@@ -2233,9 +2233,7 @@ object GameLoopManager {
             selectedTarget.state.isJobPubliclyRevealed = true
 
             game.sendMainChannerMessageAndSound(
-                "테러리스트의 자폭이 발동했습니다. ${player.member.effectiveName}님과 ${selectedTarget.member.effectiveName}님의 정체가 공개됩니다.\n" +
-                    "직업 공개: ${player.member.effectiveName} - ${player.job?.name ?: "알 수 없음"}, " +
-                    "${selectedTarget.member.effectiveName} - ${selectedTarget.job?.name ?: "알 수 없음"}",
+                "테러리스트 ${player.member.effectiveName}님이 마피아 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!",
                 TERRORIST_EXPLOSION_SOUND_URL
             )
         }
@@ -2254,9 +2252,7 @@ object GameLoopManager {
         selectedTarget.state.isJobPubliclyRevealed = true
 
         game.sendMainChannerMessageAndSound(
-            "테러리스트의 산화가 발동했습니다. ${executedTarget.member.effectiveName}님과 ${selectedTarget.member.effectiveName}님이 함께 사망합니다.\n" +
-                "직업 공개: ${executedTarget.member.effectiveName} - ${executedTarget.job?.name ?: "알 수 없음"}, " +
-                "${selectedTarget.member.effectiveName} - ${selectedTarget.job?.name ?: "알 수 없음"}",
+            "테러리스트 ${executedTarget.member.effectiveName}님이 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!",
             TERRORIST_EXPLOSION_SOUND_URL
         )
         refreshMafiaChannelContactState(game)
