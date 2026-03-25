@@ -43,7 +43,7 @@ object SwindlerManager {
         swindler.hasContactedMafia = true
 
         runCatching {
-            game.mafiaChannel?.createMessage("$SWINDLER_CONTACT_IMAGE_URL\n**접선했습니다.**")
+            GameLoopManager.announceMafiaSupportContact(game, swindlerPlayer, SWINDLER_CONTACT_IMAGE_URL)
         }
         runCatching {
             GameLoopManager.refreshMafiaChannelContactState(game)

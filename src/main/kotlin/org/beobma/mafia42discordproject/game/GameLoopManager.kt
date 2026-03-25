@@ -928,7 +928,7 @@ object GameLoopManager {
             if (!GodfatherContactPolicy.canContactMafia(game)) return@forEach
 
             player.state.hasAnnouncedGodfatherContact = true
-            mafiaChannel.createMessage("$GODFATHER_CONTACT_IMAGE_URL\n접선했습니다.")
+            announceMafiaSupportContact(game, player, GODFATHER_CONTACT_IMAGE_URL)
         }
     }
 
@@ -1107,11 +1107,9 @@ object GameLoopManager {
 
         if (!victim.state.hasContactedMafiaOnDeath) {
             victim.state.hasContactedMafiaOnDeath = true
-            game.mafiaChannel?.let { mafiaChannel ->
-                if (!victim.state.hasAnnouncedMadScientistContact) {
-                    victim.state.hasAnnouncedMadScientistContact = true
-                    mafiaChannel.createMessage("$MAD_SCIENTIST_CONTACT_IMAGE_URL\n접선했습니다.")
-                }
+            if (!victim.state.hasAnnouncedMadScientistContact) {
+                victim.state.hasAnnouncedMadScientistContact = true
+                announceMafiaSupportContact(game, victim, MAD_SCIENTIST_CONTACT_IMAGE_URL)
             }
         }
 
@@ -1123,12 +1121,45 @@ object GameLoopManager {
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = game.currentPhase == GamePhase.NIGHT)
     }
 
-    suspend fun notifyHitmanContact(game: Game, hitmanPlayer: PlayerData) {
+    suspend fun announceMafiaSupportContact(
+        game: Game,
+        contactPlayer: PlayerData,
+        contactImageUrl: String,
+        supportJobNameOverride: String? = null
+    ) {
         val mafiaChannel = game.mafiaChannel ?: return
+        val aliveMafiaNames = game.playerDatas
+            .filter { !it.state.isDead && it.job is Mafia }
+            .map { it.member.effectiveName }
+
+        val mafiaDescription = if (aliveMafiaNames.isEmpty()) {
+            "마피아가 없는 상태에서"
+        } else {
+            "마피아 ${aliveMafiaNames.joinToString(", ")}님과"
+        }
+
+        val supportJobName = supportJobNameOverride ?: contactPlayer.job?.name ?: "악인"
+        val contactedEvilPlayers = game.playerDatas
+            .filter { !it.state.isDead && it.job is Evil && it.job !is Mafia && it.job !is Villain }
+            .filter { canAccessMafiaChannel(game, it) }
+            .joinToString(", ") { player ->
+                val jobName = player.job?.name ?: "악인"
+                "$jobName ${player.member.effectiveName}님"
+            }
+            .ifBlank { "없음" }
+
+        mafiaChannel.createMessage(
+            "$contactImageUrl\n$mafiaDescription $supportJobName ${contactPlayer.member.effectiveName}님이 접선했습니다.\n마피아 외 접선 악인: $contactedEvilPlayers"
+        )
+    }
+
+    suspend fun notifyHitmanContact(game: Game, hitmanPlayer: PlayerData) {
         if (hitmanPlayer.state.hasAnnouncedHitmanContact) return
         hitmanPlayer.state.hasAnnouncedHitmanContact = true
-        mafiaChannel.createMessage(
-            "https://cdn.discordapp.com/attachments/1483977619258212392/1485090211133259897/oRhn9TDiSQ7IEZDLWEVkdWYUpg-z9zOnCQ_eHxm0HDM0NUe21_6HbCdPQFIjCFqMnm38e_wbu4BZlT3Zx__1qU4k9-jkCaMyxCOPeHTxxhdaX3j_BVvsInUZvtVOOUfm5zFotdXpbKKrsg-lvqodkg.webp?ex=69c09989&is=69bf4809&hm=2cbcf46a67886753867f3c144e8eb30185fa3c23c3a97f544097880102a89290&\n접선했습니다."
+        announceMafiaSupportContact(
+            game = game,
+            contactPlayer = hitmanPlayer,
+            contactImageUrl = "https://cdn.discordapp.com/attachments/1483977619258212392/1485090211133259897/oRhn9TDiSQ7IEZDLWEVkdWYUpg-z9zOnCQ_eHxm0HDM0NUe21_6HbCdPQFIjCFqMnm38e_wbu4BZlT3Zx__1qU4k9-jkCaMyxCOPeHTxxhdaX3j_BVvsInUZvtVOOUfm5zFotdXpbKKrsg-lvqodkg.webp?ex=69c09989&is=69bf4809&hm=2cbcf46a67886753867f3c144e8eb30185fa3c23c3a97f544097880102a89290&"
         )
         refreshMafiaChannelContactState(game)
     }
@@ -1209,7 +1240,7 @@ object GameLoopManager {
 
         if (!hostessJob.hasContactedMafia && target.job is Mafia) {
             hostessJob.hasContactedMafia = true
-            game.mafiaChannel?.createMessage("$HOSTESS_CONTACT_IMAGE_URL\n접선했습니다.")
+            announceMafiaSupportContact(game, hostessPlayer, HOSTESS_CONTACT_IMAGE_URL)
             refreshMafiaChannelContactState(game)
         }
     }
@@ -2141,7 +2172,7 @@ object GameLoopManager {
             is Spy -> {
                 if (!job.hasContactedMafia) {
                     job.hasContactedMafia = true
-                    mafiaChannel.createMessage("$SPY_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                    announceMafiaSupportContact(game, player, SPY_CONTACT_IMAGE_URL)
                 }
             }
             is Thief -> {
@@ -2149,32 +2180,32 @@ object GameLoopManager {
                     job.hasContactedMafia = true
                     if (!player.state.hasAnnouncedThiefContact) {
                         player.state.hasAnnouncedThiefContact = true
-                        mafiaChannel.createMessage("$THIEF_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                        announceMafiaSupportContact(game, player, THIEF_CONTACT_IMAGE_URL)
                     }
                 }
             }
             is Witch -> {
                 if (!job.hasContactedMafia) {
                     job.hasContactedMafia = true
-                    mafiaChannel.createMessage("$WITCH_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                    announceMafiaSupportContact(game, player, WITCH_CONTACT_IMAGE_URL)
                 }
             }
             is Hostess -> {
                 if (!job.hasContactedMafia) {
                     job.hasContactedMafia = true
-                    mafiaChannel.createMessage("$HOSTESS_CONTACT_IMAGE_URL\n접선했습니다.")
+                    announceMafiaSupportContact(game, player, HOSTESS_CONTACT_IMAGE_URL)
                 }
             }
             is Swindler -> {
                 if (!job.hasContactedMafia) {
                     job.hasContactedMafia = true
-                    mafiaChannel.createMessage("$SWINDLER_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                    announceMafiaSupportContact(game, player, SWINDLER_CONTACT_IMAGE_URL)
                 }
             }
             is Godfather -> {
                 if (!player.state.hasAnnouncedGodfatherContact) {
                     player.state.hasAnnouncedGodfatherContact = true
-                    mafiaChannel.createMessage("$GODFATHER_CONTACT_IMAGE_URL\n접선했습니다.")
+                    announceMafiaSupportContact(game, player, GODFATHER_CONTACT_IMAGE_URL)
                 }
             }
             is MadScientist -> {
@@ -2183,11 +2214,11 @@ object GameLoopManager {
                 }
                 if (!player.state.hasAnnouncedMadScientistContact) {
                     player.state.hasAnnouncedMadScientistContact = true
-                    mafiaChannel.createMessage("$MAD_SCIENTIST_CONTACT_IMAGE_URL\n접선했습니다.")
+                    announceMafiaSupportContact(game, player, MAD_SCIENTIST_CONTACT_IMAGE_URL)
                 }
             }
             is Beastman -> {
-                mafiaChannel.createMessage("$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다.")
+                announceMafiaSupportContact(game, player, BEASTMAN_TAMED_IMAGE_URL)
             }
             else -> {
                 mafiaChannel.createMessage("**${player.member.effectiveName}님이 밀정 능력으로 접선했습니다.**")
