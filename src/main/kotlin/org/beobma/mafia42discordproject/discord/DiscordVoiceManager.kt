@@ -6,6 +6,7 @@ import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.entity.channel.VoiceChannel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -14,14 +15,31 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.beobma.mafia42discordproject.game.Game
 
 object DiscordVoiceManager {
-    private val httpClient = HttpClient(OkHttp)
-    private val externalPlayerBaseUrl = System.getenv("EXTERNAL_AUDIO_PLAYER_URL")?.trim()?.trimEnd('/')
-    private val externalPlayerToken = System.getenv("EXTERNAL_AUDIO_PLAYER_TOKEN")?.trim()?.takeIf { it.isNotBlank() }
-    private val externalPlayerPath = System.getenv("EXTERNAL_AUDIO_PLAYER_PATH")?.trim()?.ifBlank { null } ?: "/play"
+    private val httpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                }
+            )
+        }
+    }
+
+    private val externalPlayerBaseUrl =
+        System.getenv("EXTERNAL_AUDIO_PLAYER_URL")?.trim()?.trimEnd('/')
+
+    private val externalPlayerToken =
+        System.getenv("EXTERNAL_AUDIO_PLAYER_TOKEN")?.trim()?.takeIf { it.isNotBlank() }
+
+    private val externalPlayerPath =
+        System.getenv("EXTERNAL_AUDIO_PLAYER_PATH")?.trim()?.ifBlank { null } ?: "/play"
 
     suspend fun playExternalSound(game: Game, source: String): Result<Unit> {
         val voiceChannelId = game.gameVoiceChannelId
@@ -29,12 +47,16 @@ object DiscordVoiceManager {
         return playExternalSound(game.guild, voiceChannelId, source)
     }
 
-    suspend fun playExternalSound(guild: GuildBehavior, voiceChannelId: Snowflake, source: String): Result<Unit> {
+    suspend fun playExternalSound(
+        guild: GuildBehavior,
+        voiceChannelId: Snowflake,
+        source: String
+    ): Result<Unit> {
         val externalApiUrl = externalPlayerBaseUrl
             ?: return Result.failure(
                 IllegalStateException(
                     "외부 재생 API가 설정되지 않았습니다. EXTERNAL_AUDIO_PLAYER_URL 환경 변수를 설정해 주세요. " +
-                        "(예: https://audio-player.example.com)"
+                            "(예: https://audio-player.example.com)"
                 )
             )
 
@@ -58,7 +80,7 @@ object DiscordVoiceManager {
                 val responseBody = response.bodyAsText().ifBlank { "응답 본문 없음" }
                 error(
                     "외부 오디오 재생 API 호출 실패: url=$externalApiUrl$externalPlayerPath, " +
-                        "status=${response.status.value}, body=$responseBody"
+                            "status=${response.status.value}, body=$responseBody"
                 )
             }
         }
