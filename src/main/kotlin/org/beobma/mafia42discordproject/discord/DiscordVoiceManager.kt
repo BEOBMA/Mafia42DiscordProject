@@ -1,7 +1,6 @@
 package org.beobma.mafia42discordproject.discord
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.entity.channel.VoiceChannel
@@ -23,15 +22,6 @@ object DiscordVoiceManager {
     private val externalPlayerBaseUrl = System.getenv("EXTERNAL_AUDIO_PLAYER_URL")?.trim()?.trimEnd('/')
     private val externalPlayerToken = System.getenv("EXTERNAL_AUDIO_PLAYER_TOKEN")?.trim()?.takeIf { it.isNotBlank() }
     private val externalPlayerPath = System.getenv("EXTERNAL_AUDIO_PLAYER_PATH")?.trim()?.ifBlank { null } ?: "/play"
-
-    suspend fun moveBotToVoiceChannel(guild: GuildBehavior, voiceChannelId: Snowflake): Result<Unit> {
-        return runCatching {
-            val selfMember = guild.getMember(guild.kord.selfId)
-            selfMember.edit {
-                this.voiceChannelId = voiceChannelId
-            }
-        }
-    }
 
     suspend fun playExternalSound(game: Game, source: String): Result<Unit> {
         val voiceChannelId = game.gameVoiceChannelId
