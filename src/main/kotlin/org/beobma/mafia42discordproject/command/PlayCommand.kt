@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.rest.builder.interaction.string
+
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 
@@ -49,12 +50,16 @@ object PlayCommand : DiscordCommand {
             return
         }
 
-        val result = LavalinkManager.play(kord = event.kord, guildId = guild.id, voiceChannelId = voiceChannel.id, query = query)
-        if (result.success) {
-            DiscordMessageManager.respondPublic(event, result.message)
-            return
-        }
+        val deferredResponse = event.interaction.deferPublicResponse()
+        val result = LavalinkManager.play(
+            kord = event.kord,
+            guildId = guild.id,
+            voiceChannelId = voiceChannel.id,
+            query = query
+        )
 
-        DiscordMessageManager.respondEphemeral(event, result.message)
+        deferredResponse.respond {
+            content = result.message
+        }
     }
 }
