@@ -11,6 +11,7 @@ object CommandRegistry {
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         DebugCommand,
+        PlaySoundCommand,
         ShamanRelayCommand,
         ShamanedRelayCommand,
         MegaphoneCommand,
