@@ -1937,6 +1937,11 @@ object GameLoopManager {
                 isPublicReveal = true,
                 imageUrl = SystemImage.POLITICIAN_DICTATORSHIP.imageUrl
             )
+            game.sendMainChannelMessageWithImage(
+                imageLink = SystemImage.POLITICIAN_SURVIVE_VOTE.imageUrl,
+                message = "정치인은 투표로 죽지 않습니다."
+            )
+
             coroutineScope {
                 launch { JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game) }
                 launch { game.playGameSound(POLITICIAN_SURVIVAL_SOUND_URL) }
