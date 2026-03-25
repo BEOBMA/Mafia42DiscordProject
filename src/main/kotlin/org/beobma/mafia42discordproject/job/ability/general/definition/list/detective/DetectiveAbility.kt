@@ -73,7 +73,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
                 sendDm(
                     detectivePlayer,
-                    "추리를 시작합니다. ${usedAbility.name} 대상을 ${selectedTarget.member.effectiveName}님으로 ${action}했습니다."
+                    "${caster.member.effectiveName}님이 스킬의 대상을 ${selectedTarget.member.effectiveName}님으로 ${action}했습니다."
                 )
 
                 val hasTrap = detectivePlayer.allAbilities.any { it is Trap }
@@ -84,7 +84,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
                 val casterJobName = caster.job?.name ?: "알 수 없음"
                 sendDm(
                     detectivePlayer,
-                    "함정을 통해 직업을 알아내었습니다! 직업: $casterJobName"
+                    "함정을 통해 ${caster.member.effectiveName}님의 직업이 ${casterJobName}라는 것을 알아내었습니다."
                 )
             }
         }
