@@ -76,6 +76,7 @@ object LavalinkManager {
 
     suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, query: String): PlayResult {
         ensureInitialized()
+        resetVoiceHandshakeState(guildId.toString())
         connectBotToVoiceChannel(kord, guildId, voiceChannelId)
         if (!waitForVoiceHandshake(guildId.toString())) {
             return PlayResult(false, "음성 채널 연결 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.")
@@ -141,6 +142,11 @@ object LavalinkManager {
             }
             true
         } ?: false
+    }
+
+    private fun resetVoiceHandshakeState(guildId: String) {
+        voiceSessionIds.remove(guildId)
+        voiceServerUpdates.remove(guildId)
     }
 
     private fun connectWebsocket() {
