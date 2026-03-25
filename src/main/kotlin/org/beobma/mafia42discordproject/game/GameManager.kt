@@ -1188,9 +1188,17 @@ object GameManager {
         gameToStop.gameVoiceChannelId = null
     }
 
-    suspend fun playSound(source: String): Result<Unit> {
-        val game = currentGame ?: return Result.failure(IllegalStateException("진행 중인 게임이 없습니다."))
-        return DiscordVoiceManager.playExternalSound(game, source)
+    suspend fun playSound(source: String, guild: GuildBehavior, voiceChannelId: Snowflake): Result<Unit> {
+        val activeGame = currentGame
+        val targetGuild = activeGame?.guild ?: guild
+        val targetVoiceChannelId = activeGame?.gameVoiceChannelId ?: voiceChannelId
+
+        val moveResult = DiscordVoiceManager.moveBotToVoiceChannel(targetGuild, targetVoiceChannelId)
+        if (moveResult.isFailure) {
+            return moveResult
+        }
+
+        return DiscordVoiceManager.playExternalSound(targetGuild, targetVoiceChannelId, source)
     }
 
     suspend fun releaseAllPlayerMutes(game: Game) {

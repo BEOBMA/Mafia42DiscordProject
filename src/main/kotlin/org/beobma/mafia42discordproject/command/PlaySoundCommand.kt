@@ -24,7 +24,14 @@ object PlaySoundCommand : DiscordCommand {
             return
         }
 
-        val result = GameManager.playSound(source)
+        val guild = event.interaction.guild
+        val voiceChannelId = event.interaction.user.getVoiceStateOrNull()?.channelId
+        if (voiceChannelId == null) {
+            DiscordMessageManager.respondEphemeral(event, "음성 채널에 먼저 입장해 주세요.")
+            return
+        }
+
+        val result = GameManager.playSound(source, guild, voiceChannelId)
         if (result.isSuccess) {
             DiscordMessageManager.respondEphemeral(event, "사운드 재생 완료: `$source`")
             return
@@ -41,7 +48,18 @@ object PlaySoundCommand : DiscordCommand {
             return
         }
 
-        val result = GameManager.playSound(source)
+        val guild = event.getGuildOrNull() ?: run {
+            event.message.channel.createMessage("길드에서만 사용할 수 있습니다.")
+            return
+        }
+        val author = event.message.author?.asMemberOrNull(guild.id)
+        val voiceChannelId = author?.getVoiceStateOrNull()?.channelId
+        if (voiceChannelId == null) {
+            event.message.channel.createMessage("음성 채널에 먼저 입장해 주세요.")
+            return
+        }
+
+        val result = GameManager.playSound(source, guild, voiceChannelId)
         if (result.isSuccess) {
             event.message.channel.createMessage("사운드 재생 완료: `$source`")
             return
