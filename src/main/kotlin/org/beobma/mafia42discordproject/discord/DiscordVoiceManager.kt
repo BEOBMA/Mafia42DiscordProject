@@ -36,6 +36,10 @@ object DiscordVoiceManager {
     suspend fun playExternalSound(game: Game, source: String): Result<Unit> {
         val voiceChannelId = game.gameVoiceChannelId
             ?: return Result.failure(IllegalStateException("게임 음성 채널 정보가 없습니다."))
+        return playExternalSound(game.guild, voiceChannelId, source)
+    }
+
+    suspend fun playExternalSound(guild: GuildBehavior, voiceChannelId: Snowflake, source: String): Result<Unit> {
         val externalApiUrl = externalPlayerBaseUrl
             ?: return Result.failure(
                 IllegalStateException(
@@ -45,7 +49,7 @@ object DiscordVoiceManager {
             )
 
         return runCatching {
-            game.guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId)
+            guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId)
                 ?: error("음성 채널을 찾을 수 없습니다.")
 
             val response = httpClient.post("$externalApiUrl$externalPlayerPath") {
@@ -53,7 +57,7 @@ object DiscordVoiceManager {
                 externalPlayerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 setBody(
                     ExternalAudioPlayRequest(
-                        guildId = game.guild.id.toString(),
+                        guildId = guild.id.toString(),
                         voiceChannelId = voiceChannelId.toString(),
                         source = source
                     )

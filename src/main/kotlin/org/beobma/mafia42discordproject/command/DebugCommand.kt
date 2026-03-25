@@ -47,19 +47,25 @@ object DebugCommand : DiscordCommand {
             "dead", "사망" -> handleDead(event, game, args.drop(1))
             "shamaned", "성불" -> handleShamaned(event, game, args.drop(1))
             "reset", "초기화" -> handleReset(event, game, args.drop(1))
-            "playsound", "소리재생" -> handlePlaySound(event, args.drop(1))
+            "playsound", "소리재생" -> handlePlaySound(event, game, args.drop(1))
             else -> event.message.channel.createMessage("알 수 없는 디버그 하위 명령어입니다. `!debug help` 를 확인해 주세요.")
         }
     }
 
-    private suspend fun handlePlaySound(event: MessageCreateEvent, args: List<String>) {
+    private suspend fun handlePlaySound(event: MessageCreateEvent, game: Game, args: List<String>) {
         val soundName = args.joinToString(" ").trim()
         if (soundName.isBlank()) {
             event.message.channel.createMessage("사용법: `!debug playsound <외부 오디오 URL>`")
             return
         }
 
-        val result = GameManager.playSound(soundName)
+        val voiceChannelId = game.gameVoiceChannelId ?: event.member?.getVoiceStateOrNull()?.channelId
+        if (voiceChannelId == null) {
+            event.message.channel.createMessage("음성 채널 정보를 찾을 수 없습니다.")
+            return
+        }
+
+        val result = GameManager.playSound(soundName, game.guild, voiceChannelId)
         if (result.isSuccess) {
             event.message.channel.createMessage("사운드 재생 완료: `$soundName`")
             return
