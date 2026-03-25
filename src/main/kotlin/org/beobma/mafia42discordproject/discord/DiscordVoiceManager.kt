@@ -7,6 +7,7 @@ import dev.kord.core.entity.channel.VoiceChannel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -21,7 +22,14 @@ import kotlinx.serialization.json.Json
 import org.beobma.mafia42discordproject.game.Game
 
 object DiscordVoiceManager {
+    private const val EXTERNAL_AUDIO_API_TIMEOUT_MS = 60_000L
+
     private val httpClient = HttpClient(OkHttp) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = EXTERNAL_AUDIO_API_TIMEOUT_MS
+            connectTimeoutMillis = EXTERNAL_AUDIO_API_TIMEOUT_MS
+            socketTimeoutMillis = EXTERNAL_AUDIO_API_TIMEOUT_MS
+        }
         install(ContentNegotiation) {
             json(
                 Json {
