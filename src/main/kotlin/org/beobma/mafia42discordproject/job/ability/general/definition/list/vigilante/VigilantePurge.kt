@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "숙청"
@@ -44,7 +45,7 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         vigilante.fixedPurgeTargetId = effectiveTarget.member.id
-        vigilante.hasDiscoveredMafiaTarget = effectiveTarget.job is Evil
+        vigilante.hasDiscoveredMafiaTarget = effectiveTarget.job is Mafia
         vigilante.discoveredMafiaDayCount = if (vigilante.hasDiscoveredMafiaTarget) game.dayCount else null
 
         return if (vigilante.hasDiscoveredMafiaTarget) {

@@ -1438,13 +1438,13 @@ object GameLoopManager {
                 ?.takeUnless { it.state.isDead }
             return if (politicianTarget != null) {
                 mainChannel.createMessage(
-                    "독재가 발동되어 ${dictatorshipPolitician.member.effectiveName}님의 선택으로 ${politicianTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                    "${politicianTarget.member.effectiveName}의 최후의 변론"
                 )
                 politicianTarget
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
-                    message = "독재 상태에서 정치인의 투표가 없어 처형될 대상을 고르지 못했습니다."
+                    message = "처형될 대상을 고르지 못했습니다."
                 )
                 null
             }
@@ -1457,13 +1457,13 @@ object GameLoopManager {
                 ?.takeUnless { it.state.isDead }
             return if (judgeTarget != null) {
                 mainChannel.createMessage(
-                    "판사의 선고로 ${judgeTarget.member.effectiveName}님이 최후 변론 대상자로 지목되었습니다."
+                    "${judgeTarget.member.effectiveName}의 최후의 변론"
                 )
                 judgeTarget
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&",
-                    message = "판사의 선고가 없어 처형될 대상을 고르지 못했습니다."
+                    message = "처형될 대상을 고르지 못했습니다."
                 )
                 null
             }
@@ -1870,14 +1870,14 @@ object GameLoopManager {
             }
 
             mainChannel.createMessage(
-                "판사 ${judgePlayer.member.effectiveName}님이 모습을 드러냈습니다. 선고에 따라 이번 투표는 ${if (judgeVote == true) "찬성" else "반대"}로 결정됩니다."
+                "판사 ${judgePlayer.member.effectiveName}님이 투표 결과를 정했습니다!"
             )
         }
 
         notifyJudgeProsVoters(game, target)
 
         if (findRevealedAliveJudge(game) != null && judgeVote == null) {
-            mainChannel.createMessage("판사가 찬반 선고를 하지 않아 이번 처형은 자동으로 반대로 처리됩니다.")
+            mainChannel.createMessage("${target.member.effectiveName}님의 처형이 부결되었습니다.")
         }
 
         val finalDecision = when {
@@ -2689,7 +2689,7 @@ object GameLoopManager {
             votePresentationScope.launch {
                 runCatching {
                     policePlayer.member.getDmChannel().createMessage(
-                        "[기밀] ${selectedTarget.member.effectiveName}님 자동 조사 결과: ${if (selectedTarget.job is Evil) "마피아 팀" else "시민 팀"}"
+                        "${selectedTarget.member.effectiveName}님은 ${if (selectedTarget.job is Mafia) "마피아입니다" else "마피아가 아닙니다."}"
                     )
                 }
             }
@@ -2711,7 +2711,7 @@ object GameLoopManager {
         aliveSources.forEach { sourcePlayer ->
             runCatching {
                 sourcePlayer.member.getDmChannel().createMessage(
-                    "정보원 능력 결과: 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남아 있습니다."
+                    "정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남은 것이 밝혀졌습니다."
                 )
             }
         }
@@ -3151,7 +3151,7 @@ object GameLoopManager {
                 reporter.hasPublishedArticle = true
                 runCatching {
                     player.member.getDmChannel().createMessage(
-                        "취재 대상(${target.member.effectiveName})이 사망하여 기사를 발행하지 못했습니다."
+                        "취재 대상 ${target.member.effectiveName}님이 사망하여 기사를 발행하지 못했습니다."
                     )
                 }
                 return@forEach
