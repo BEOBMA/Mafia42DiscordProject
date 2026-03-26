@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game
 
-import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
@@ -1801,11 +1800,14 @@ object GameLoopManager {
 
         mainChannel.createMessage {
             actionRow {
-                interactionButton(ButtonStyle.Success, "vote_pros") {
-                    label = "찬성"
-                }
-                interactionButton(ButtonStyle.Danger, "vote_cons") {
-                    label = "반대"
+                stringSelect("pros_cons_vote_select") {
+                    placeholder = "찬성 / 반대 선택"
+                    option("찬성", "pros") {
+                        description = "처형에 찬성합니다."
+                    }
+                    option("반대", "cons") {
+                        description = "처형에 반대합니다."
+                    }
                 }
             }
         }
