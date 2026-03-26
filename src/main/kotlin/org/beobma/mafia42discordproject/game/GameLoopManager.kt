@@ -2285,8 +2285,6 @@ object GameLoopManager {
     suspend fun endGame(game: Game, winningTeam: Team) {
         game.isRunning = false
         game.currentPhase = GamePhase.END
-        GameArchiveManager.archive(game, endReason = "WIN_CONDITION_MET", winningTeamName = winningTeam.displayName)
-        GameManager.releaseAllPlayerMutes(game)
         val resultMessage = "${winningTeam.displayName} 승리: ${winningTeam.winMessage}"
         val playerJobRevealMessage = buildString {
             appendLine("## 플레이어 직업 공개")
@@ -2308,6 +2306,13 @@ object GameLoopManager {
         }
 
         game.sendMainChannerMessage(playerJobRevealMessage)
+
+        GameManager.finalizeGameState(
+            gameToStop = game,
+            endReason = "WIN_CONDITION_MET",
+            winningTeamName = winningTeam.displayName,
+            cancelLoopJob = false
+        )
     }
 
     suspend fun runGameLoop(game: Game) {

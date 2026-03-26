@@ -1385,7 +1385,7 @@ object GameManager {
             }
         }
 
-        stopGameState(gameToStop)
+        finalizeGameState(gameToStop, endReason = "FORCED_STOP", winningTeamName = null)
     }
 
     suspend fun stop(event: MessageCreateEvent) {
@@ -1399,15 +1399,24 @@ object GameManager {
         val mention = event.message.author?.mention.orEmpty()
         event.message.channel.createMessage("${mention}이(가) 게임을 종료했습니다.")
 
-        stopGameState(gameToStop)
+        finalizeGameState(gameToStop, endReason = "FORCED_STOP", winningTeamName = null)
     }
 
-    private suspend fun stopGameState(gameToStop: Game) {
-        GameArchiveManager.archive(gameToStop, endReason = "FORCED_STOP", winningTeamName = null)
+    suspend fun finalizeGameState(
+        gameToStop: Game,
+        endReason: String,
+        winningTeamName: String?,
+        cancelLoopJob: Boolean = true
+    ) {
+        GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         currentGame = null
         currentGuild = null
-        gameLoopJob?.cancelAndJoin()
+
+        if (cancelLoopJob) {
+            gameLoopJob?.cancelAndJoin()
+        }
         gameLoopJob = null
+
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
         releaseAllPlayerMutes(gameToStop)
