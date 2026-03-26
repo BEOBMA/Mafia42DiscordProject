@@ -17,6 +17,7 @@ import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
@@ -94,6 +95,7 @@ suspend fun main() {
     JobManager.registerAll()
     AbilityManager.registerAll()
     JobPreferenceManager.load()
+    BestJobPreferenceManager.load()
     kord.login()
 }
 

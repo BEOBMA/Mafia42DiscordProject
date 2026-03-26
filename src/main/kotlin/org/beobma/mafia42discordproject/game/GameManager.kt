@@ -32,6 +32,7 @@ import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
+import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
@@ -124,6 +125,7 @@ object GameManager {
         val memberId: Snowflake? = null,
         val name: String,
         val preferences: List<Job>,
+        val bestJob: Job? = null,
         var assignedJob: Job? = null
     )
 
@@ -315,10 +317,19 @@ object GameManager {
 
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
         val players = members.map { member ->
+            val userId = member.id.value
+            val savedBestJob = BestJobPreferenceManager.get(userId)
+            val validatedBestJob = savedBestJob?.takeIf { bestJob ->
+                BestJobPreferenceManager.isAllowedJob(userId, bestJob.name)
+            }
+            if (savedBestJob != null && validatedBestJob == null) {
+                BestJobPreferenceManager.clear(userId)
+            }
             AssignmentPlayer(
                 memberId = member.id,
                 name = member.effectiveName,
-                preferences = JobPreferenceManager.get(member.id.value).orEmpty()
+                preferences = JobPreferenceManager.get(userId).orEmpty(),
+                bestJob = validatedBestJob
             )
         }.toMutableList()
 
@@ -578,7 +589,15 @@ object GameManager {
             val preferredCandidates = effectivePreferenceNames.filter { isAssignableCandidate(it, slotCounter, remainingPlayers) }
             val fallbackCandidates = slotCounter.keys.filter { isAssignableCandidate(it, slotCounter, remainingPlayers) }
 
-            val pickedName = preferredCandidates.randomOrNull() ?: fallbackCandidates.randomOrNull() ?: continue
+            val candidateWeights = buildCandidateWeights(
+                preferredCandidates = preferredCandidates,
+                fallbackCandidates = fallbackCandidates,
+                bestJobName = player.bestJob?.name
+            )
+            val pickedName = pickNameByWeight(candidateWeights)
+                ?: preferredCandidates.randomOrNull()
+                ?: fallbackCandidates.randomOrNull()
+                ?: continue
             val pickedJob = JobManager.findByName(pickedName) ?: continue
 
             if (isPairAssignmentJob(pickedName)) {
@@ -600,7 +619,11 @@ object GameManager {
 
             player.assignedJob = pickedJob
             slotCounter[pickedName] = (slotCounter[pickedName] ?: 0) - 1
-            val reason = if (pickedName in preferredCandidates) "선호" else "무작위 보완"
+            val reason = when {
+                pickedName == player.bestJob?.name && pickedName in preferredCandidates -> "최선호 가중"
+                pickedName in preferredCandidates -> "선호"
+                else -> "무작위 보완"
+            }
             trace.add("[3단계] ${player.name} -> ${pickedName} ($reason)")
         }
 
@@ -823,6 +846,37 @@ object GameManager {
             if (weight == 0) return@forEach
             if (point < weight) {
                 return job
+            }
+            point -= weight
+        }
+        return null
+    }
+
+    private fun buildCandidateWeights(
+        preferredCandidates: List<String>,
+        fallbackCandidates: List<String>,
+        bestJobName: String?
+    ): List<Pair<String, Int>> {
+        val uniqueCandidates = (preferredCandidates + fallbackCandidates).distinct()
+        return uniqueCandidates.map { candidateName ->
+            var weight = if (candidateName in preferredCandidates) 3 else 1
+            if (bestJobName != null && candidateName == bestJobName) {
+                weight *= 3
+            }
+            candidateName to weight
+        }
+    }
+
+    private fun pickNameByWeight(weightedNames: List<Pair<String, Int>>): String? {
+        val totalWeight = weightedNames.sumOf { (_, weight) -> weight.coerceAtLeast(0) }
+        if (totalWeight <= 0) return null
+
+        var point = Random.nextInt(totalWeight)
+        weightedNames.forEach { (name, rawWeight) ->
+            val weight = rawWeight.coerceAtLeast(0)
+            if (weight == 0) return@forEach
+            if (point < weight) {
+                return name
             }
             point -= weight
         }
