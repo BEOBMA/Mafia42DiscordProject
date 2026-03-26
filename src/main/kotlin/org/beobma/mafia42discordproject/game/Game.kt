@@ -53,6 +53,7 @@ data class Game(
     var coupleChannel: TextChannel? = null
     var deadChannel: TextChannel? = null
     var voiceChannelId: Snowflake? = null
+    var hasArchivedSnapshot: Boolean = false
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
