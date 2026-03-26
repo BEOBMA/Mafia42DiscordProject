@@ -1732,10 +1732,14 @@ object GameLoopManager {
             val recipient = game.getPlayer(recipientId) ?: return@forEach
             cabalNotificationScope.launch {
                 runCatching {
-                    val letterMessage = letters.joinToString("\n\n") { letter ->
-                        "${letter.title}\n${letter.content}"
+                    recipient.member.getDmChannel().createMessage {
+                        letters.forEach { letter ->
+                            embed {
+                                title = letter.title
+                                description = letter.content
+                            }
+                        }
                     }
-                    recipient.member.getDmChannel().createMessage(letterMessage)
                 }
             }
         }
@@ -1748,7 +1752,12 @@ object GameLoopManager {
 
         willOwners.forEach { player ->
             val willMessage = game.willByPlayerId.remove(player.member.id) ?: return@forEach
-            game.sendMainChannerMessage("[유언] ${player.member.effectiveName}: $willMessage")
+            game.mainChannel?.createMessage {
+                embed {
+                    title = "유언"
+                    description = "${player.member.effectiveName}: $willMessage"
+                }
+            }
         }
     }
 

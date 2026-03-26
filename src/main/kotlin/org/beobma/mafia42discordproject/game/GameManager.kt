@@ -1626,7 +1626,12 @@ object GameManager {
         if (sender.member.id in game.usedMegaphonePlayerIds) return SpiritRelayResult(false, "확성기는 게임 중 1회만 사용할 수 있습니다.")
         if (game.megaphoneUsedTonight) return SpiritRelayResult(false, "이번 밤에는 이미 다른 플레이어가 확성기를 사용했습니다.")
 
-        game.mainChannel?.createMessage("[확성기] ${sender.member.effectiveName}: $message")
+        game.mainChannel?.createMessage {
+            embed {
+                title = "확성기"
+                description = "${sender.member.effectiveName}: $message"
+            }
+        }
         game.usedMegaphonePlayerIds += sender.member.id
         game.megaphoneUsedTonight = true
         return SpiritRelayResult(true, "확성기 메시지를 전송했습니다.")
