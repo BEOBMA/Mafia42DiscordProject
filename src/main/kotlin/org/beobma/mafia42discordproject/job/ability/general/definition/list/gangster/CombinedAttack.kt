@@ -11,6 +11,6 @@ import kotlin.reflect.KClass
 class CombinedAttack : Ability, JobSpecificExtraAbility {
     override val name: String = "연타"
     override val description: String = "전날 협박한 대상을 협박할 경우, 한 번 더 공갈 능력을 사용할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484607366048518217/3bcaf32cb617caf7.png?ex=69bed7da&is=69bd865a&hm=05ae4a232d232eb715c66c6bee41a4c8e7eb720804e8485d91d3b458b9d1b238&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(153).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Gangster::class)
 }

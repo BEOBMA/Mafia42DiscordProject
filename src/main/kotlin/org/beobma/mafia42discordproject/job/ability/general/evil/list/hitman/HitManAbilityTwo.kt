@@ -22,5 +22,5 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 class HitManAbilityTwo : PassiveAbility, JobUniqueAbility {
     override val name: String = "동업"
     override val description: String = "마피아를 지목할 경우 접선한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485288011712167976/aca592148cbcc566.png?ex=69c151c1&is=69c00041&hm=b923d6c5b533bb4fda83102fd9afafd5234d56a5c0694ae0bd5f4fe445040cd3&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(210).webp"
 }

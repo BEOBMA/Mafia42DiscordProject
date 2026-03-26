@@ -14,6 +14,6 @@ import kotlin.reflect.KClass
 class Flash : Ability, JobSpecificExtraAbility {
     override val name: String = "섬광"
     override val description: String = "밤에 자폭 능력을 성공할 경우, 자기자신은 생존한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484609922954952886/e913d4a70b6336f1.png?ex=69beda3c&is=69bd88bc&hm=983da9fede9c09e0bad5ed6bcf5bb27b05c2775144b7300656a68e2d42c9dd3e&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(175).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Martyr::class)
 }

@@ -16,7 +16,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 class MercenaryAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "의뢰"
     override val description: String = "의뢰인이 밤에 살해되면 밤마다 플레이어 한 명을 처형할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619430263521330/930fdad0076c57b6.png?ex=69bee317&is=69bd9197&hm=a0fb01e23944eb5f0cab3ad595509ef41f6716f9a897e2f1a204de8c083a7d3e&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(18).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

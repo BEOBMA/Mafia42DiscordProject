@@ -20,7 +20,7 @@ import kotlin.reflect.KClass
 class Issue : Ability, JobSpecificExtraAbility, PassiveAbility {
     override val name: String = "이슈"
     override val description: String = "하루에 한 번 시민 팀이 다른 사람의 직업을 알아낼 경우, 그 정보를 공유받는다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485332626691588136/943b5d79e18d3242.png?ex=69c17b4e&is=69c029ce&hm=cdc04761d8126eb6965946448b4d8cdbe269f9424c7a325037102b7036f876b7&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(144).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Paparazzi::class)
 
     companion object {

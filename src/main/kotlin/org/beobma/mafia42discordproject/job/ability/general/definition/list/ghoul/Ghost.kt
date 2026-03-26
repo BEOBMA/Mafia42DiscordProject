@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 class Ghost : JobSpecificExtraAbility, PassiveAbility {
     override val name: String = "망령"
     override val description: String = "첫번째 낮에 도굴당한 사람이 하는 첫번째 말을 들을 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484607961350279362/9096789f0dda5795.png?ex=69bed868&is=69bd86e8&hm=7595ff135ed3497bbb2ff16bec4c39c13456e84d4dba431d8cf028193cfce0fd&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(167).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Ghoul::class)
     override val priority: Int = 8
 

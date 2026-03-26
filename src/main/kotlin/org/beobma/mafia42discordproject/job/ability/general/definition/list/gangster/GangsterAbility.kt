@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Gangster
 class GangsterAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "공갈"
     override val description: String = "밤마다 플레이어 한 명을 선택하여 다음날 투표시 해당 플레이어의 투표권을 빼앗는다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485329765895377197/58b17d68bdd13252.png?ex=69c178a4&is=69c02724&hm=d446ab9a9181b0c073f6b00fe5c2896ee7c68a7c2fbbba2f0b950ceb7f26f957&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(148).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
