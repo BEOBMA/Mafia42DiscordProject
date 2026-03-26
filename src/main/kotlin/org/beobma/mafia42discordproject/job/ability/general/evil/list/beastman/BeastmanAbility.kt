@@ -14,7 +14,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 class BeastmanAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "갈망"
     override val description: String = "밤에 선택한 플레이어가 마피아에게 처형되거나 자신이 마피아에게 선택되면 마피아에게 길들여진다. 길들여진 후 밤에 선택한 대상을 제거할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485286543139803136/8335a871f15cfbed.png?ex=69c15063&is=69bffee3&hm=466c8ba8a8379373ceda08378ca49b5181e296de48dfe97e1da8907db49699cb&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(102).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

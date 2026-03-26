@@ -15,7 +15,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Swindler
 
 object SwindlerManager {
     const val SWINDLER_CONTACT_IMAGE_URL =
-        "https://cdn.discordapp.com/attachments/1483977619258212392/1485102540914692256/H8ETeBTIzzrPsPjS0hfbYZoKCkIgNWlsKjD_v29uvxV9Gm1waNRTl4YsmClfkeG_oQYEAlsyJh8fKm4JqZUPzDnCbl5ouVHjYeeiAcGVOfmaU9PYwVfPv1uDKV8JB8nirRsJY1TAVYaQ0E8Pf1rWIg.webp?ex=69c0a505&is=69bf5385&hm=0887e536593a5a9b353dcf4e232c179fed8639ce159f869f796614395884ee49&"
+        "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(25).webp"
 
     private val dmScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

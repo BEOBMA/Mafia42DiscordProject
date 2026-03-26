@@ -16,7 +16,7 @@ import kotlin.reflect.KClass
 class Philanthropy : PassiveAbility, JobSpecificExtraAbility {
     override val name: String = "박애"
     override val description: String = "경찰계열 직업과 의사를 제외한 플레이어를 치료할 경우 모든 부가 능력을 무시하고 성공한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484606515183616142/6076d5c9913f0cc0.png?ex=69bed70f&is=69bd858f&hm=e8ab2113889c7486dcdee73d63185980ada2cc1598a9b29d5bac1f6224e52747&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(124).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Doctor::class)
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {

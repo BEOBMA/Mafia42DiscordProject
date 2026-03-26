@@ -21,7 +21,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Witch
 class WitchAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "저주"
     override val description: String = "밤마다 플레이어 한 명의 닉네임을 적어 다음날 낮이 완전히 종료될 때까지 개구리로 변신시킨다. 마피아를 저주할 경우, 마피아와 접선한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485327075920318524/be2c85c8f0f905eb.png?ex=69c17622&is=69c024a2&hm=f3e23d6a1f08c6e4d4ff1d6b15d69f3d8f30ffec3a61a60ee955ec30c7e7ffac&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(103).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -81,7 +81,7 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         private const val NIGHT_DURATION_MS = 25_000L
         private const val CURSE_DELAY_BEFORE_NIGHT_END_MS = 10_000L
         private const val WITCH_CONTACT_IMAGE_URL =
-            "https://cdn.discordapp.com/attachments/1483977619258212392/1485100396031512647/cl_vQE1Go9NQFqAYCyBILvrv-qFYsVe42chdCkpjiznJSYTHROE-kwXb9PJlRRr9uY2yjbLeR6eME2Dh02frBvCzBH1pZiabshT-szLZKU-gsYDjkC1KnJZQ3HAhVA6tJr8B9IAnu6yr9BY6nEbC1w.webp?ex=69c0a306&is=69bf5186&hm=e9eb66bc61eebee17923a4f6283586732332411f6ea4caf35abb4c457623b9d4&"
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(12).webp"
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         fun applyOblivionCursesAtNightEnd(game: Game) {

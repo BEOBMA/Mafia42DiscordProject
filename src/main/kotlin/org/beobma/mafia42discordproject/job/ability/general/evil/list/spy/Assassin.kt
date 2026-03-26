@@ -11,6 +11,6 @@ import kotlin.reflect.KClass
 class Assassin : Ability, JobSpecificExtraAbility {
     override val name: String = "자객"
     override val description: String = "마피아가 모두 죽고 혼자 남을 경우, 직후에 조사한 대상을 처형한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484622799766290493/3ba5c6acfe5c1f74.png?ex=69bee63a&is=69bd94ba&hm=d1d4d7b4897a0808fa09dbb067a759ec8480e10f928df0776842fc7185d47733&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(161).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Spy::class)
 }

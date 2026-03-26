@@ -18,7 +18,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Villain
 class GraveRobbing : JobUniqueAbility, PassiveAbility {
     override val name: String = "도굴"
     override val description: String = "첫 번째 밤에 마피아팀에게 살해당한 사람의 직업을 얻으며, 도굴당한 대상에게 도굴꾼이 누구인지 알려지게 된다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485330050608922930/5cdd63667a7c2d0c.png?ex=69c178e8&is=69c02768&hm=6d57d1c4159137d6ea6c1071008994f1cffbd3277fd3d6839df6b04a3db93ccf&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(115).webp"
     override val priority: Int = 10
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {

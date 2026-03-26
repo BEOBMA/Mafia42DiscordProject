@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 class Screening : Ability, JobSpecificExtraAbility, PassiveAbility {
     override val name: String = "검진"
     override val description: String = "치료에 성공한 플레이어의 직업을 알아낸다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484606764669473000/395705b1bb0dc379.png?ex=69bed74b&is=69bd85cb&hm=407aec6e19d87e5858581c933d42ec9b597d49f8f710c7ca61a8927083a0f0eb&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(205).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Doctor::class)
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {

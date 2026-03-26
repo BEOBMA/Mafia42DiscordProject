@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Reporter
 class ReporterAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "특종"
     override val description: String = "밤에 한 명의 플레이어를 선택하여 직업을 알아내고 첫 번째를 제외한 낮이 될 때 기사를 내어 모든 플레이어에게 해당 사실을 알린다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485334734438531072/1f52d36dd92a43a6.png?ex=69c17d44&is=69c02bc4&hm=fa7c1c68ac505b3eb51602a0ced33a8bc34a987023dbce244be7f7fa79052d3b&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(104).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

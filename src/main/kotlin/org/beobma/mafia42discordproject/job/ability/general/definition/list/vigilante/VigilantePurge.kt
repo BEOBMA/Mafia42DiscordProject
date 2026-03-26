@@ -16,7 +16,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "숙청"
     override val description: String = "게임 당 한 번, 낮에 플레이어 한 명을 선택해 마피아 여부를 알아낼 수 있으며 밤에 마피아를 처형할 수 있다. (1회용)"
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485335685874319571/0dd66cee3c895a3b.png?ex=69c17e27&is=69c02ca7&hm=b40b73ecb6b9b11e96704a1730b1591492be3f9d7653b73b858d497fe20d5559&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(112).webp"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -49,7 +49,10 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         vigilante.discoveredMafiaDayCount = if (vigilante.hasDiscoveredMafiaTarget) game.dayCount else null
 
         return if (vigilante.hasDiscoveredMafiaTarget) {
-            AbilityResult(true, "https://cdn.discordapp.com/attachments/1483977619258212392/1485082451805208676/aksOkxuJUtWZGkfpGyP0L7hIsxVe4sWckEIp9cB6PoO0SmfBOVaBQMdikO-qQ244nZVVz4r6ZINVGL8J1CyU5T-bEpDF3xMbPaWKonTVcZNXT-K8ejtqhAkc9YjxCiQQuvg7kzO0rzOZA8JdCoBdwA.webp?ex=69c09250&is=69bf40d0&hm=c329d1bc08a98011a6d4471968f820efe5ad9fed36647d5a5e3aaeecd04b61a9&\n${target.member.effectiveName}님은 마피아 입니다.")
+            AbilityResult(
+                true,
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(4).webp\n${target.member.effectiveName}님은 마피아 입니다."
+            )
         } else {
             AbilityResult(true, "${target.member.effectiveName}님은 마피아가 아닙니다.")
         }

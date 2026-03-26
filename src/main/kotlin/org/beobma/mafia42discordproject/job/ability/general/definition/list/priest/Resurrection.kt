@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Priest
 class Resurrection : ActiveAbility, JobUniqueAbility {
     override val name: String = "소생"
     override val description: String = "밤에 죽은 플레이어 한 명을 선택해 다음 낮에 부활시킨다. (1회용)"
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485333739696554015/56e976a1cd5cc36b.png?ex=69c17c57&is=69c02ad7&hm=dbb4dcad5050aef9c5e3438b14821fcbc9bf131dc38d9b52b0798e6eb6eb75bf&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(145).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

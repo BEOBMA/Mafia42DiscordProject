@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 class Dedication : Ability, JobSpecificExtraAbility, PassiveAbility {
     override val name: String = "헌신"
     override val description: String = "짝 연인과 같은 대상을 투표할 경우, 1표가 추가된다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484604700564262952/db1c8af4250c9dcb.png?ex=69bed55f&is=69bd83df&hm=aa1c261d4b6c5f88ddaad249da431c221d89389278c8d5b094c6db9948181deb&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(114).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Couple::class)
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {

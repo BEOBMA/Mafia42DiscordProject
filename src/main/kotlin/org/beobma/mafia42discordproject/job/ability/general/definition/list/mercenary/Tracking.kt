@@ -16,6 +16,6 @@ import kotlin.reflect.KClass
 class Tracking : Ability, JobSpecificExtraAbility {
     override val name: String = "추적"
     override val description: String = "의뢰인이 밤에 사망한 다음날 밤 처음으로 지목한 플레이어가 의뢰인을 죽였을 경우, 그 플레이어의 직업을 알아낸다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484610768107339796/db867be542b53978.png?ex=69bedb05&is=69bd8985&hm=1a63fe06ac2356981489d5fc158bbbd47e5ccdb2d1986a63148cff203cf74ab6&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(111).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Mercenary::class)
 }

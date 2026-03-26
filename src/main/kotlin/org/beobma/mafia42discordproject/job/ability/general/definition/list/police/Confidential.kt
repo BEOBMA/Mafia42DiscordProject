@@ -9,6 +9,6 @@ import kotlin.reflect.KClass
 class Confidential : Ability, JobSpecificExtraAbility {
     override val name: String = "기밀"
     override val description: String = "두 번째 밤 시작 시에 다른 플레이어 중 한 명을 조사한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484612718559498350/7207e8c524f40089.png?ex=69bedcd6&is=69bd8b56&hm=16391b630f1f509497351b08cd954bb61b1acc388ea119ff071b30cdbfe77fbe&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(183).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Police::class)
 }

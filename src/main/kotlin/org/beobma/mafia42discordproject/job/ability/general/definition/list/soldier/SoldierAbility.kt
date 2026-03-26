@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 class Bulletproof : JobUniqueAbility, PassiveAbility {
     override val name: String = "방탄"
     override val description: String = "마피아의 공격을 한 차례 버텨낸다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485335348472184942/f434b39e3b8e5883.png?ex=69c17dd7&is=69c02c57&hm=33fa8fb23fbabafb85bbe6a513f337f9c1b39abfbe6be0cd1336adab4f219f48&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(96).webp"
     override val priority: Int = 10
     
     // 상태 변수: 오늘 밤 방탄이 터졌는지 여부
@@ -105,7 +105,7 @@ class NightWatch : JobUniqueAbility, PassiveAbility {
             event.note = "군인의 [불침번]이 발동하여 조사의 부가적인 효과(첩보 성공, 도벽 등)는 모두 무효화됩니다."
             
             // 전용 이미지가 있으면 그걸 쓰고, 없으면 방금 전 쓰던 스파이 기본 폴백 이미지를 씁니다.
-            event.imageUrl = reactionImageUrl ?: "https://media.discordapp.net/attachments/1483977619258212392/1484824345514606703/image.png?ex=69bf9e51&is=69be4cd1&hm=44cb94f8ca8ebbb145b0a3221ea3bfe7ea309ac4c2780e5572e811340ebbf519&=&format=webp&quality=lossless&width=550&height=413"
+            event.imageUrl = reactionImageUrl ?: "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(39).webp"
 
             // 침입자의 정체를 알아내어 군인에게 통보하는 역탐지 이벤트 발생
             game.nightEvents += GameEvent.JobDiscovered(

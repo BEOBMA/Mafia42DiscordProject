@@ -16,6 +16,6 @@ import kotlin.reflect.KClass
 class Cooperation : Ability, JobSpecificExtraAbility {
     override val name: String = "공조"
     override val description: String = "'조회' 능력 대상으로 경찰계열 직업을 선택할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484602546688360659/5bb5fcc7bbe162c1.png?ex=69bed35d&is=69bd81dd&hm=e23a7d1e2d3f522517108e0bfb78aca6b590581a48ba8e41690c2c33170d0388&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(179).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Administrator::class)
 }
