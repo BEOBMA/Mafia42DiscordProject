@@ -10,6 +10,7 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
@@ -150,6 +151,7 @@ object JobPreferenceCommand : DiscordCommand {
         }
 
         JobPreferenceManager.save(userId.value, jobs)
+        BestJobPreferenceManager.clear(userId.value)
         return CommandResult(true, "선호 직업 7개가 저장되었습니다:\n${jobs.joinToString("\n") { "• ${it.name}" }}")
     }
 

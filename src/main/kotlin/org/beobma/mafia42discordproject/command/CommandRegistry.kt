@@ -9,6 +9,7 @@ object CommandRegistry {
         GameStopCommand,
         AbilityUseCommand,
         DayTimeAdjustCommand,
+        BestJobCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         JobInfoImageCommand,
