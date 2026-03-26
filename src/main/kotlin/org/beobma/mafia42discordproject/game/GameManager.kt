@@ -1403,6 +1403,7 @@ object GameManager {
     }
 
     private suspend fun stopGameState(gameToStop: Game) {
+        GameArchiveManager.archive(gameToStop, endReason = "FORCED_STOP", winningTeamName = null)
         currentGame = null
         currentGuild = null
         gameLoopJob?.cancelAndJoin()
