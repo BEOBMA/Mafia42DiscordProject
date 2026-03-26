@@ -95,7 +95,7 @@ object BestJobCommand : DiscordCommand {
         if (!BestJobPreferenceManager.isAllowedJob(userId.value, selectedJob.name)) {
             return CommandResult(
                 false,
-                "해당 직업은 최선호로 설정할 수 없습니다. 선호 직업에 포함된 직업 또는 기본 포함 직업(의사/마피아/경찰계열)만 가능합니다."
+                "해당 직업은 최선호로 설정할 수 없습니다. 선호 직업에 포함된 직업 또는 기본 포함 직업(의사/마피아)만 가능합니다."
             )
         }
 
