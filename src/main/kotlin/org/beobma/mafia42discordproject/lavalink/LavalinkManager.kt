@@ -156,6 +156,30 @@ object LavalinkManager {
         return PlayResult(true, "재생 성공")
     }
 
+    suspend fun stop(kord: Kord, guildId: Snowflake) {
+        if (!initialized) return
+
+        val currentSessionId = sessionId
+        if (currentSessionId != null) {
+            runCatching {
+                sendPatch(
+                    url = "${baseHttpUrl()}/v4/sessions/$currentSessionId/players/${guildId.value}",
+                    body = """{"encodedTrack":null}"""
+                )
+            }.onFailure { error ->
+                println("⚠️ Lavalink 재생 정지 실패(guildId=${guildId.value}): ${error.message}")
+            }
+        }
+
+        runCatching {
+            disconnectBotFromVoiceChannel(kord, guildId)
+        }.onFailure { error ->
+            println("⚠️ 음성 채널 연결 해제 실패(guildId=${guildId.value}): ${error.message}")
+        }
+
+        resetVoiceHandshakeState(guildId.toString())
+    }
+
     private fun ensureInitialized() {
         check(initialized) { "LavalinkManager가 초기화되지 않았습니다." }
 
@@ -169,6 +193,17 @@ object LavalinkManager {
             UpdateVoiceStatus(
                 guildId = guildId,
                 channelId = voiceChannelId,
+                selfMute = false,
+                selfDeaf = true
+            )
+        )
+    }
+
+    private suspend fun disconnectBotFromVoiceChannel(kord: Kord, guildId: Snowflake) {
+        kord.gateway.sendAll(
+            UpdateVoiceStatus(
+                guildId = guildId,
+                channelId = null,
                 selfMute = false,
                 selfDeaf = true
             )
