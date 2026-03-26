@@ -180,7 +180,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
     companion object {
         private const val CONTRACT_TRIGGER_MILLIS = 10_000L
         private const val CONTRACT_KILL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(20).webp"
-        private const val CONTRACT_SUCCESS_SOUND_PATH = "C:/Users/ssdss/Desktop/유틸리티/마피아/청부업자 암살.mp3"
+        private const val CONTRACT_SUCCESS_SOUND_PATH = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/sound/mafia%20(11).mp3"
         private const val SOLDIER_CRITICAL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(23).webp"
         val scope = CoroutineScope(Dispatchers.Default)
     }
