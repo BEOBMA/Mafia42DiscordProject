@@ -11,15 +11,15 @@ import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 
 object PlayCommand : DiscordCommand {
     override val name: String = "play"
-    override val description: String = "URL 또는 키워드로 음악을 재생합니다."
+    override val description: String = "로컬 오디오 파일 경로로 음악을 재생합니다."
     override val koreanName: String = "재생"
 
-    private const val queryOption = "query"
+    private const val pathOption = "path"
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            string(queryOption, "재생할 URL 또는 키워드") {
+            string(pathOption, "재생할 로컬 파일 경로") {
                 required = true
             }
         }
@@ -28,7 +28,7 @@ object PlayCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            string(queryOption, "재생할 URL 또는 키워드") {
+            string(pathOption, "재생할 로컬 파일 경로") {
                 required = true
             }
         }
@@ -45,9 +45,9 @@ object PlayCommand : DiscordCommand {
             return
         }
 
-        val query = event.interaction.command.strings[queryOption]?.trim().orEmpty()
-        if (query.isBlank()) {
-            DiscordMessageManager.respondEphemeral(event, "재생할 URL 또는 검색어를 입력해 주세요.")
+        val filePath = event.interaction.command.strings[pathOption]?.trim().orEmpty()
+        if (filePath.isBlank()) {
+            DiscordMessageManager.respondEphemeral(event, "재생할 로컬 파일 경로를 입력해 주세요.")
             return
         }
 
@@ -56,7 +56,7 @@ object PlayCommand : DiscordCommand {
             kord = event.kord,
             guildId = guild.id,
             voiceChannelId = voiceChannel.id,
-            query = query
+            source = filePath
         )
 
         deferredResponse.respond {
