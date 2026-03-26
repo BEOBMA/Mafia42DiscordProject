@@ -96,23 +96,24 @@ object GameLoopManager {
     private const val SPY_ASSASSIN_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485096641777238167/vx4XGS33RUMMlC6eBroNoxpzuTPzExTknw3z7OcmjiI_i9eAt4ZfgK3mt_5GjjJou7jk_5IikTyiCwPRIpfWM7V5kFpk9fCd037ffupptkkCFjAKtoM8gyNHAfbs8km0y9Jatqj62P5DT-qTxRhW4w.webp?ex=69c09f87&is=69bf4e07&hm=704b998e8a12a5933c9f247db295a8eda1bff4beccad7e9584226cf2dfa7ac95&"
     private const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485094642797248675/1x0UtdbO43yTodQJcWduasjMRBL-CvRJQDc7MLLI04EjgNoGQvl4oTYrEA8_QbWmzROn3EEiTLxJjgTfSa8QOnE5SZ399XilwE2XVLvQwRa2KRR1PgfKXKiHaFUTul-AFzaxnY9pysnoTjd49VVG1A.webp?ex=69c09daa&is=69bf4c2a&hm=43b40604efc7f42f7fb23f2c8990fa865e9352ea8f07a0b22347ecde753921b8&"
 
-    private const val NIGHT_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391134654504/01bd79a79298e120.mp3?ex=69c65309&is=69c50189&hm=7eec32e4cf23e3fc834025581540032ffbb7729121f368df5418b78244475fb0&"
-    private const val DAY_START_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486301391378190477/58bff3cbf7716159.mp3?ex=69c50189&is=69c3b009&hm=ac55958ed89df3d55eb6ecfbc347e602e2d060a5f4a3026b3859538b7bc0ef00&"
-    private const val VOTE_PHASE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486373470236442634/64816f9a106206ef.mp3?ex=69c544aa&is=69c3f32a&hm=85a0c73511801a60601625c9d13c76d765bc56b0562a10084504d01470db86a6&"
+    private const val LOCAL_SOUND_BASE_DIR = "C:/Users/ssdss/Desktop/유틸리티/마피아"
+    private const val NIGHT_START_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/밤 브금 기본.mp3"
+    private const val DAY_START_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/낮 브금 기분.mp3"
+    private const val VOTE_PHASE_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/투표 브금 기본.mp3"
     private const val JUDGE_VERDICT_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486374876926316705/d024a2ac8c2b0b15.png?ex=69c545fa&is=69c3f47a&hm=0d7954afb00f8653203e0b2b840acff84b185b5918cfb60c93f90a0690f4d0d9&"
-    private const val MAFIA_EXECUTION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302536410333254/e95e5e7a2bfbb5b8.mp3?ex=69c5029a&is=69c3b11a&hm=580d69d5f014ed893bc146eaee6637af22248f0d226f113d711050a7120df1cd&"
-    private const val MAD_SCIENTIST_REVIVE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486302988782796840/3584907a7de3d981.mp3?ex=69c50306&is=69c3b186&hm=70be3b306f5cad61dbbaf83457074587a6069b0abe672b23c3aee10063c08609&"
-    private const val SOLDIER_BULLETPROOF_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304472291348580/9afc5bd39d073e7b.mp3?ex=69c50468&is=69c3b2e8&hm=89f4b442817f589c6e91665105596bbcb672408a0d0da63f9605ee4fd9aaf2bf&"
-    private const val PRIEST_RESURRECTION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304472534880337/0db5b7fa007cf22c.mp3?ex=69c50468&is=69c3b2e8&hm=c92396182b5e812e1cb29c5e969d1b4865f05e08fd11a0dcd4b8f6fbadd5836a&"
-    private const val COUPLE_SACRIFICE_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304472782209144/8451354f1cec94f2.mp3?ex=69c50468&is=69c3b2e8&hm=e3198372a674045f1c87e5416c7b0630f666d9a7f70a08cb6888d1b012f4aec8&"
-    private const val DOCTOR_HEAL_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473230868490/8aef28dff96e1583.mp3?ex=69c50468&is=69c3b2e8&hm=1485ce4ed9bb19295bf6278d2b5438984f160bd377a3e2943a2fb7ec2bcdebfc&"
-    private const val POLITICIAN_SURVIVAL_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473499439195/c176cb7d4b93080a.mp3?ex=69c50468&is=69c3b2e8&hm=2a484c7ee861c647d22688aff52d4b7d4f7cc58a5c00851a84df9b62f6e7a960&"
-    private const val TERRORIST_EXPLOSION_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304473834979328/af7f17aeb1cf52dc.mp3?ex=69c50468&is=69c3b2e8&hm=74d3bc27bc48f64f1a49d0ceaa2bdfb1d0a240686d9546b65464e1aed490ab6e&"
+    private const val MAFIA_EXECUTION_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/마피아 처형 효과음.mp3"
+    private const val MAD_SCIENTIST_REVIVE_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/과학자 부활 효과음.mp3"
+    private const val SOLDIER_BULLETPROOF_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/군인 방탄 효과음.mp3"
+    private const val PRIEST_RESURRECTION_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/성직자 소생 효과음.mp3"
+    private const val COUPLE_SACRIFICE_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/연인 희생 효과음.mp3"
+    private const val DOCTOR_HEAL_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/의사 치료 효과음.mp3"
+    private const val POLITICIAN_SURVIVAL_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/정치인 능력 효과음.mp3"
+    private const val TERRORIST_EXPLOSION_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/테러리스트 산화 효과음.mp3"
     private const val TERRORIST_NIGHT_MAFIA_BOMB_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376146680549416/42efd32d67aaaa7e.png?ex=69c54728&is=69c3f5a8&hm=2d9b8b86eeba1020000544342ef61408e5c24b15909e3ea56689f4e999205fea&"
     private const val TERRORIST_NIGHT_EXPLOSION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376146340675755/d454e22abbd494d0.png?ex=69c54728&is=69c3f5a8&hm=38d97dd3438ba02f3b3e9b7bbdc261d7b231db8f95f0c600e508d3a6c01721be&"
     private const val TERRORIST_VOTE_EXPLOSION_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486376147120816169/06c9a2ad4abad628.png?ex=69c54729&is=69c3f5a9&hm=145950034cbee6d3534eadbc5466d128f0abd4ee8512c8326715de9059304f37&"
-    private const val REPORTER_SCOOP_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486304474145493162/675f0fc9f74c2bc8.mp3?ex=69c50468&is=69c3b2e8&hm=c8d8b4f38fc637fccc661911d2c289231c6db4da5e9f0d8fd426ccd5aab15126&"
-    private const val CABAL_SPECIAL_WIN_SOUND_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1486305821058142319/f7f1bbcda4a01966.mp3?ex=69c505a9&is=69c3b429&hm=323088428bff36241aafac7cee4767b7ab1196f8304f6336015827dd0c1f8efe&"
+    private const val REPORTER_SCOOP_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/특종 효과음.mp3"
+    private const val CABAL_SPECIAL_WIN_SOUND_PATH = "$LOCAL_SOUND_BASE_DIR/비밀결사 밀사 효과음.mp3"
 
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
@@ -356,7 +357,7 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483978042673070342/43e6c3860a090af9.png?ex=69be8800&is=69bd3680&hm=1dabf5630544f8f8766c7abbb0793a48e3a11e1364a31d1e4e439fff70539e25&",
             message = "밤이 되었습니다.",
-            soundUrl = NIGHT_START_SOUND_URL
+            soundPath = NIGHT_START_SOUND_PATH
         )
         announceSourceMafiaCountAtNightStart(game)
         resolveHackerHacks(game)
@@ -571,13 +572,13 @@ object GameLoopManager {
         }
 
         if (game.mafiaExecutionSucceededLastNight) {
-            game.playGameSound(MAFIA_EXECUTION_SOUND_URL)
+            game.playGameSound(MAFIA_EXECUTION_SOUND_PATH)
         }
         if (hadSoldierBulletproofTrigger) {
-            game.playGameSound(SOLDIER_BULLETPROOF_SOUND_URL)
+            game.playGameSound(SOLDIER_BULLETPROOF_SOUND_PATH)
         }
         if (game.doctorSavedTargetTonight != null) {
-            game.playGameSound(DOCTOR_HEAL_SOUND_URL)
+            game.playGameSound(DOCTOR_HEAL_SOUND_PATH)
         }
 
         val poisonedVictims = game.playerDatas.filter { player ->
@@ -692,7 +693,7 @@ object GameLoopManager {
             game.sendMainChannelMessageWithImageAndSound(
                 imageLink = SystemImage.PRIEST_RESURRECTION.imageUrl,
                 message = "${target.member.effectiveName}님이 부활했습니다.",
-                soundUrl = PRIEST_RESURRECTION_SOUND_URL
+                soundPath = PRIEST_RESURRECTION_SOUND_PATH
             )
         }
     }
@@ -735,7 +736,7 @@ object GameLoopManager {
             game.sendMainChannelMessageWithImageAndSound(
                 imageLink = imageUrl,
                 message = message,
-                soundUrl = COUPLE_SACRIFICE_SOUND_URL
+                soundPath = COUPLE_SACRIFICE_SOUND_PATH
             )
         }
     }
@@ -769,7 +770,7 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = SystemImage.DAY_START.imageUrl,
             message = "낮이 되었습니다.",
-            soundUrl = DAY_START_SOUND_URL
+            soundPath = DAY_START_SOUND_PATH
         )
         applyHostessSeductionStates(game)
         if (game.pendingDayStartDiscoveries.isNotEmpty()) {
@@ -1005,7 +1006,7 @@ object GameLoopManager {
                     game.sendMainChannelMessageWithImageAndSound(
                         imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
                         message = "${player.member.effectiveName}님이 부활하셨습니다!",
-                        soundUrl = MAD_SCIENTIST_REVIVE_SOUND_URL
+                        soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
                     )
                 }
             }
@@ -1044,7 +1045,7 @@ object GameLoopManager {
                     game.sendMainChannelMessageWithImageAndSound(
                         imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
                         message = "${player.member.effectiveName}님이 부활하셨습니다!",
-                        soundUrl = MAD_SCIENTIST_REVIVE_SOUND_URL
+                        soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
                     )
                 }
             }
@@ -1376,7 +1377,7 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://cdn.discordapp.com/attachments/1483977619258212392/1483981201428709456/bd6d8d833d736bf2.png?ex=69bfdc71&is=69be8af1&hm=ca26cbd8933d3968240055b67202bfec8b35a278559172435a4515ecf3921ddb&",
             message = "투표 시간입니다. 의심되는 사람을 투표하세요.",
-            soundUrl = VOTE_PHASE_SOUND_URL
+            soundPath = VOTE_PHASE_SOUND_PATH
         )
         mainChannel.createMessage {
             actionRow {
@@ -1960,7 +1961,7 @@ object GameLoopManager {
 
             coroutineScope {
                 launch { JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game) }
-                launch { game.playGameSound(POLITICIAN_SURVIVAL_SOUND_URL) }
+                launch { game.playGameSound(POLITICIAN_SURVIVAL_SOUND_PATH) }
             }
             
             game.defenseTargetId = null
@@ -2269,7 +2270,7 @@ object GameLoopManager {
             game.sendMainChannelMessageWithImageAndSound(
                 explosionImageUrl,
                 explosionMessage,
-                TERRORIST_EXPLOSION_SOUND_URL
+                TERRORIST_EXPLOSION_SOUND_PATH
             )
         }
     }
@@ -2289,7 +2290,7 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             TERRORIST_VOTE_EXPLOSION_IMAGE_URL,
             "테러리스트 ${executedTarget.member.effectiveName}님이 ${selectedTarget.member.effectiveName}님과 함께 자폭했습니다!",
-            TERRORIST_EXPLOSION_SOUND_URL
+            TERRORIST_EXPLOSION_SOUND_PATH
         )
         refreshMafiaChannelContactState(game)
     }
@@ -2338,7 +2339,7 @@ object GameLoopManager {
             runPhaseCountdown(game, "새벽", DAWN_DURATION_MS)
             checkWinCondition(game)?.let { winner ->
                 if (winner == Team.CABAL_SPECIAL) {
-                    game.playGameSound(CABAL_SPECIAL_WIN_SOUND_URL)
+                    game.playGameSound(CABAL_SPECIAL_WIN_SOUND_PATH)
                 }
                 endGame(game, winner)
                 break
@@ -2364,7 +2365,7 @@ object GameLoopManager {
 
             checkWinCondition(game)?.let { winner ->
                 if (winner == Team.CABAL_SPECIAL) {
-                    game.playGameSound(CABAL_SPECIAL_WIN_SOUND_URL)
+                    game.playGameSound(CABAL_SPECIAL_WIN_SOUND_PATH)
                 }
                 endGame(game, winner)
                 break
@@ -3209,7 +3210,7 @@ object GameLoopManager {
 
             coroutineScope {
                 launch { JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game) }
-                launch { game.playGameSound(REPORTER_SCOOP_SOUND_URL) }
+                launch { game.playGameSound(REPORTER_SCOOP_SOUND_PATH) }
             }
             reporter.hasPublishedArticle = true
         }

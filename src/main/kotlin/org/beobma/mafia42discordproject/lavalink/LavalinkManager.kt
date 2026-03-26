@@ -7,6 +7,8 @@ import dev.kord.core.event.user.VoiceStateUpdateEvent
 import dev.kord.gateway.UpdateVoiceStatus
 import java.net.URI
 import java.net.URLEncoder
+import java.nio.file.Files
+import java.nio.file.Path
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -91,7 +93,7 @@ object LavalinkManager {
         trySendVoiceUpdate(guildId)
     }
 
-    suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, query: String): PlayResult {
+    suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, source: String): PlayResult {
         ensureInitialized()
 
         val guildIdString = guildId.toString()
@@ -111,13 +113,10 @@ object LavalinkManager {
             }
         }
 
-        val resolvedQuery = if (query.startsWith("http://") || query.startsWith("https://")) {
-            query
-        } else {
-            "ytsearch:$query"
-        }
+        val resolvedIdentifier = resolveTrackIdentifier(source)
+            ?: return PlayResult(false, "로컬 오디오 파일을 찾지 못했습니다: $source")
 
-        val encodedQuery = URLEncoder.encode(resolvedQuery, StandardCharsets.UTF_8)
+        val encodedQuery = URLEncoder.encode(resolvedIdentifier, StandardCharsets.UTF_8)
         val loadResponse = sendGet("${baseHttpUrl()}/v4/loadtracks?identifier=$encodedQuery")
 
         if (loadResponse.statusCode() !in 200..299) {
@@ -272,6 +271,27 @@ object LavalinkManager {
         }
 
         println("✅ Lavalink voiceUpdate 적용 완료(guildId=$guildId, body=${response.body()})")
+    }
+
+
+    private fun resolveTrackIdentifier(source: String): String? {
+        val trimmed = source.trim()
+        if (trimmed.isBlank()) return null
+
+        if (
+            trimmed.startsWith("http://") ||
+            trimmed.startsWith("https://") ||
+            trimmed.startsWith("file:")
+        ) {
+            return trimmed
+        }
+
+        val path = runCatching { Path.of(trimmed).toAbsolutePath().normalize() }.getOrNull() ?: return null
+        if (!Files.exists(path) || !Files.isRegularFile(path)) {
+            return null
+        }
+
+        return path.toUri().toString()
     }
 
     private fun extractTrack(loaded: JsonObject): LavalinkTrack? {
