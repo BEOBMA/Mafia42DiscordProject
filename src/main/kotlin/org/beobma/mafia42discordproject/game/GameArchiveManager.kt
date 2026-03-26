@@ -11,6 +11,8 @@ import kotlinx.serialization.json.put
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.Team
+import org.beobma.mafia42discordproject.job.evil.Evil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
@@ -184,11 +186,18 @@ object GameArchiveManager {
     }
 
     private fun buildPlayerSnapshot(player: PlayerData): JsonObject {
+        val teamDisplayName = when (player.job) {
+            null -> null
+            is Evil -> Team.MAFIA.displayName
+            else -> Team.CITIZEN.displayName
+        }
+
+
         return buildJsonObject {
             put("id", player.member.id.value.toString())
             put("name", player.member.effectiveName)
             putNullable("job", player.job?.name)
-            putNullable("team", player.job?.team?.displayName)
+            putNullable("team", teamDisplayName)
             put("abilities", buildJsonArray {
                 player.allAbilities.forEach { ability ->
                     add(JsonPrimitive(ability.name))
