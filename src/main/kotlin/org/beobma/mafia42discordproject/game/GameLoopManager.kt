@@ -13,6 +13,7 @@ import dev.kord.rest.builder.channel.addMemberOverwrite
 import dev.kord.rest.builder.channel.addRoleOverwrite
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.component.option
+import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.*
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.playGameSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImage
