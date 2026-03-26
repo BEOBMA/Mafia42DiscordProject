@@ -16,7 +16,7 @@ object BestJobPreferenceManager {
     private val storagePath: Path = Path.of("data", "best-job-preferences.json")
     private val json = Json { prettyPrint = true }
 
-    private val fixedCandidateJobNames = setOf("의사", "마피아", "경찰", "요원", "자경단원")
+    private val fixedCandidateJobNames = setOf("의사", "마피아")
 
     fun save(userId: ULong, job: Job) {
         bestJobByUserId[userId] = job
