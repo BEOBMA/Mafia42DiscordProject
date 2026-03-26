@@ -76,6 +76,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Swindler
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Villain
 import org.beobma.mafia42discordproject.job.evil.list.Witch
+import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
@@ -1411,6 +1412,7 @@ object GameManager {
         winningTeamName: String?,
         cancelLoopJob: Boolean = true
     ) {
+        LavalinkManager.stop(kord = gameToStop.guild.kord, guildId = gameToStop.guild.id)
         GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         currentGame = null
         currentGuild = null
