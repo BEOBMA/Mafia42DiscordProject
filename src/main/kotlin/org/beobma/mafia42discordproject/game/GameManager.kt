@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -198,6 +199,7 @@ object GameManager {
             .filter { guildMember ->
                 guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
             }
+            .filterNot { it.isBot }
             .toList()
         if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
             deferredResponse.respond {
