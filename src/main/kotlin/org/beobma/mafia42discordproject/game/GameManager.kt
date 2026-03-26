@@ -413,23 +413,24 @@ object GameManager {
     private fun assignJobs(players: MutableList<AssignmentPlayer>): AssignmentTrace {
         val trace = AssignmentTrace()
         val requiredCounts = resolveRequiredRoleCounts(players.size)
+        val allJobs = JobManager.getAll()
 
-        val mafia = JobManager.findByName("마피아") ?: run {
+        val mafia = allJobs.firstOrNull { it.name == "마피아" } ?: run {
             trace.add("[오류] 마피아 직업 정의를 찾지 못했습니다.")
             return trace
         }
-        val doctor = JobManager.findByName("의사") ?: run {
+        val doctor = allJobs.firstOrNull { it.name == "의사" } ?: run {
             trace.add("[오류] 의사 직업 정의를 찾지 못했습니다.")
             return trace
         }
 
-        val policePool = JobManager.getAll().filter { it.name in policeJobNames }
+        val policePool = allJobs.filter { it.name in policeJobNames }
         if (requiredCounts.policeCount > 0 && policePool.isEmpty()) {
             trace.add("[오류] 경찰 계열 직업 정의를 찾지 못했습니다.")
             return trace
         }
 
-        val assistantPool = JobManager.getAll().filter { it is Evil && it.name != mafia.name }
+        val assistantPool = allJobs.filter { it is Evil && it.name != mafia.name }
         if (requiredCounts.assistantCount > 0 && assistantPool.isEmpty()) {
             trace.add("[오류] 보조 계열 직업 정의를 찾지 못했습니다.")
             return trace
@@ -508,10 +509,12 @@ object GameManager {
         policePool: List<Job>,
         trace: AssignmentTrace
     ): Job {
+        val preferenceCountByName = players
+            .flatMap { player -> player.preferences.map(Job::name) }
+            .groupingBy { it }
+            .eachCount()
         val weightedPoliceJobs = policePool.map { policeJob ->
-            val weight = players.sumOf { player ->
-                player.preferences.count { preferred -> preferred.name == policeJob.name }
-            }
+            val weight = preferenceCountByName[policeJob.name] ?: 0
             policeJob to weight
         }
         val weightSummary = weightedPoliceJobs.joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
@@ -527,10 +530,12 @@ object GameManager {
         assistantPool: List<Job>,
         trace: AssignmentTrace
     ): Job {
+        val preferenceCountByName = players
+            .flatMap { player -> player.preferences.map(Job::name) }
+            .groupingBy { it }
+            .eachCount()
         val weightedAssistantJobs = assistantPool.map { assistantJob ->
-            val weight = players.sumOf { player ->
-                player.preferences.count { preferred -> preferred.name == assistantJob.name }
-            }
+            val weight = preferenceCountByName[assistantJob.name] ?: 0
             assistantJob to weight
         }
         val weightSummary = weightedAssistantJobs.joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
@@ -550,13 +555,12 @@ object GameManager {
         val allCandidates = JobManager.getAll().filter { candidate ->
             candidate !is Evil && candidate.name !in excludedJobNames
         }
-        val preferenceWeightByJob = mutableMapOf<Job, Int>()
-
-        players.flatMap { it.preferences }.forEach { job ->
-            if (job !is Evil && job.name !in excludedJobNames) {
-                preferenceWeightByJob[job] = (preferenceWeightByJob[job] ?: 0) + 1
-            }
-        }
+        val preferenceWeightByName = players
+            .flatMap { it.preferences }
+            .asSequence()
+            .filter { job -> job !is Evil && job.name !in excludedJobNames }
+            .groupingBy(Job::name)
+            .eachCount()
 
         val pickedNames = mutableSetOf<String>()
         var assignedSlots = 0
@@ -577,13 +581,13 @@ object GameManager {
 
         trace.add("[2단계] 고정 직업 제외 슬롯 수: $slotCount")
         trace.add("[2단계] 후보 직업 수: ${allCandidates.size}개")
-        val sortedWeightSummary = preferenceWeightByJob.entries
-            .sortedWith(compareByDescending<Map.Entry<Job, Int>> { it.value }.thenBy { it.key.name })
-            .joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
+        val sortedWeightSummary = preferenceWeightByName.entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .joinToString(", ") { (name, weight) -> "$name($weight)" }
         trace.add("[2단계] 전체 선호 직업 가중치: ${sortedWeightSummary.ifEmpty { "없음" }}")
         players.forEach { player ->
             val playerWeightSummary = player.preferences
-                .joinToString(", ") { job -> "${job.name}(${preferenceWeightByJob[job] ?: 0})" }
+                .joinToString(", ") { job -> "${job.name}(${preferenceWeightByName[job.name] ?: 0})" }
             trace.add("[2단계] ${player.name} 선호 직업 가중치: $playerWeightSummary")
         }
 
@@ -591,10 +595,10 @@ object GameManager {
             val eligibleJobs = allCandidates.filter(::isEligible)
             if (eligibleJobs.isEmpty()) break
 
-            val weightedJobs = eligibleJobs.map { it to (preferenceWeightByJob[it] ?: 0) }
+            val weightedJobs = eligibleJobs.map { it to (preferenceWeightByName[it.name] ?: 0) }
             val picked = pickByWeight(weightedJobs)
                 ?: eligibleJobs.random()
-            val pickedWeight = preferenceWeightByJob[picked] ?: 0
+            val pickedWeight = preferenceWeightByName[picked.name] ?: 0
             val requiredCount = slotsFor(picked)
             val candidates = players
                 .filter { it.assignedJob == null && it.preferences.any { preferred -> preferred.name == picked.name } }

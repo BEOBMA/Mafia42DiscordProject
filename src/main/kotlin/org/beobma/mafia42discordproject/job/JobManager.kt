@@ -41,6 +41,8 @@ import org.beobma.mafia42discordproject.job.evil.list.Witch
 
 object JobManager {
     private val jobs = mutableListOf<Job>()
+    private val jobsByName = mutableMapOf<String, Job>()
+    private var jobsSnapshot: List<Job> = emptyList()
     private val jobFactories = mutableMapOf<String, () -> Job>()
 
     fun register(job: Job) {
@@ -49,14 +51,16 @@ object JobManager {
             "이미 등록된 직업입니다: ${job.name}"
         }
         jobs.add(job)
+        jobsByName[job.name] = job
+        jobsSnapshot = jobs.toList()
         println("[JobManager] register success name=${job.name}")
     }
 
-    fun getAll(): List<Job> = jobs.toList()
+    fun getAll(): List<Job> = jobsSnapshot
 
     fun findByName(name: String): Job? {
         println("[JobManager] findByName start name=$name size=${jobs.size}")
-        val result = jobs.firstOrNull { it.name == name }
+        val result = jobsByName[name]
         println("[JobManager] findByName end name=$name result=${result?.name}")
         return result
     }
