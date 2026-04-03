@@ -425,6 +425,106 @@ object GameManager {
         }
     }
 
+
+
+    data class JobAssignmentSimulationResult(
+        val lines: List<String>,
+        val assignedJobCountByName: Map<String, Int>
+    )
+
+    fun simulateJobAssignmentForVirtualPlayers(repeatCount: Int, playerCount: Int = FULL_GAME_PLAYER_COUNT): JobAssignmentSimulationResult {
+        require(repeatCount > 0) { "repeatCount는 1 이상이어야 합니다." }
+        require(playerCount >= 4) { "playerCount는 4 이상이어야 합니다." }
+
+        val assignedJobCountByName = mutableMapOf<String, Int>()
+        val outputLines = mutableListOf<String>()
+
+        repeat(repeatCount) { runIndex ->
+            val players = buildVirtualAssignmentPlayers(playerCount)
+            val trace = assignJobs(players)
+
+            outputLines += "## ${runIndex + 1}회차"
+            outputLines += "[가상 선호/보석 설정]"
+            players.forEach { player ->
+                val assignedJobName = player.assignedJob?.name
+                val highlightedPreferences = player.preferences.joinToString(", ") { preference ->
+                    if (preference.name == assignedJobName) {
+                        "🟩 **${preference.name}**(적중)"
+                    } else {
+                        preference.name
+                    }
+                }
+                val bestJobName = player.bestJob?.name ?: "없음"
+                val highlightedBestJob = if (bestJobName == assignedJobName) {
+                    "🟪 **${bestJobName}**(적중)"
+                } else {
+                    bestJobName
+                }
+                outputLines += "- ${player.name}: 선호=[$highlightedPreferences], 보석=$highlightedBestJob"
+            }
+
+            outputLines += "[직업 배정 과정]"
+            outputLines += trace.lines
+
+            outputLines += "[직업 배정 결과]"
+            players.forEach { player ->
+                val assignedJobName = player.assignedJob?.name ?: "배정 실패"
+                val preferenceHit = player.preferences.any { it.name == assignedJobName }
+                val bestHit = player.bestJob?.name == assignedJobName
+                val hitStatus = buildList {
+                    if (preferenceHit) add("🟩 선호 적중")
+                    if (bestHit) add("🟪 보석 적중")
+                }.joinToString(" / ")
+                val hitSuffix = if (hitStatus.isBlank()) "" else " [$hitStatus]"
+
+                outputLines += "- ${player.name} -> $assignedJobName$hitSuffix"
+                if (player.assignedJob != null) {
+                    assignedJobCountByName[assignedJobName] = (assignedJobCountByName[assignedJobName] ?: 0) + 1
+                }
+            }
+            outputLines += ""
+        }
+
+        return JobAssignmentSimulationResult(
+            lines = outputLines,
+            assignedJobCountByName = assignedJobCountByName.toSortedMap()
+        )
+    }
+
+    private fun buildVirtualAssignmentPlayers(playerCount: Int): MutableList<AssignmentPlayer> {
+        val allJobs = JobManager.getAll()
+        val assistantPool = allJobs.filter { it is Evil && it.name != "마피아" && it.name != "악인" }
+        val policePool = allJobs.filter { it.name in policeJobNames }
+        val specialPool = allJobs.filter {
+            it !is Evil && it.name != "의사" && it.name != "시민" && it.name !in policeJobNames
+        }
+
+        if (assistantPool.isEmpty() || policePool.isEmpty() || specialPool.size < 5) {
+            throw IllegalStateException("가상 플레이어 선호 직업 풀을 구성할 수 없습니다.")
+        }
+
+        val mafia = JobManager.findByName("마피아")
+        val doctor = JobManager.findByName("의사")
+
+        return MutableList(playerCount) { index ->
+            val assistant = assistantPool.random()
+            val police = policePool.random()
+            val specials = specialPool.shuffled().take(5)
+            val preferences = buildList {
+                add(assistant)
+                add(police)
+                addAll(specials)
+            }
+
+            val bestCandidates = (preferences + listOfNotNull(mafia, doctor)).distinctBy(Job::name)
+            AssignmentPlayer(
+                name = "가상플레이어${index + 1}",
+                preferences = preferences,
+                bestJob = bestCandidates.randomOrNull()
+            )
+        }
+    }
+
     private fun assignJobs(players: MutableList<AssignmentPlayer>): AssignmentTrace {
         val trace = AssignmentTrace()
         val requiredCounts = resolveRequiredRoleCounts(players.size)
@@ -451,57 +551,70 @@ object GameManager {
             return trace
         }
 
-        val selectedPoliceJob = if (requiredCounts.policeCount > 0) {
-            pickPoliceJobByPreference(players, policePool, trace)
-        } else {
-            null
-        }
-
-        val selectedAssistantJob = if (requiredCounts.assistantCount > 0) {
-            pickAssistantJobByPreference(players, assistantPool, trace)
-        } else {
-            null
-        }
-
         trace.add("[1단계] 참여 인원: ${players.size}명")
         trace.add(
             "[1단계] 고정 배정 직업: 마피아 ${requiredCounts.mafiaCount}명, 보조계열 ${requiredCounts.assistantCount}명, 의사 ${requiredCounts.doctorCount}명, 경찰계열 ${requiredCounts.policeCount}명, 시민 ${requiredCounts.citizenCount}명"
         )
 
-        val requiredFixedCount =
-            requiredCounts.mafiaCount +
-                requiredCounts.assistantCount +
-                requiredCounts.doctorCount +
-                requiredCounts.policeCount +
-                requiredCounts.citizenCount
+        val maxAttempts = 40
+        repeat(maxAttempts) { attemptIndex ->
+            players.forEach { it.assignedJob = null }
+            val attempt = attemptIndex + 1
+            trace.add("[시도 $attempt/$maxAttempts] 배정 조합 생성 시작")
 
-        val slotCountForNonFixed = players.size - requiredFixedCount
-        val nonFixedJobs = if (slotCountForNonFixed > 0) {
-            selectNonFixedJobsByPreference(players, slotCountForNonFixed, trace)
-        } else {
-            trace.add("[2단계] 고정 직업만으로 슬롯이 구성됩니다.")
-            emptyList()
+            val selectedPoliceJob = if (requiredCounts.policeCount > 0) {
+                pickPoliceJobByPreference(players, policePool, trace)
+            } else {
+                null
+            }
+
+            val selectedAssistantJob = if (requiredCounts.assistantCount > 0) {
+                pickAssistantJobByPreference(players, assistantPool, trace)
+            } else {
+                null
+            }
+
+            val requiredFixedCount =
+                requiredCounts.mafiaCount +
+                    requiredCounts.assistantCount +
+                    requiredCounts.doctorCount +
+                    requiredCounts.policeCount +
+                    requiredCounts.citizenCount
+            val slotCountForNonFixed = players.size - requiredFixedCount
+            val nonFixedJobs = if (slotCountForNonFixed > 0) {
+                selectNonFixedJobsByPreference(players, slotCountForNonFixed, trace)
+            } else {
+                trace.add("[2단계] 고정 직업만으로 슬롯이 구성됩니다.")
+                emptyList()
+            }
+
+            val citizenJob = JobManager.findByName("시민") ?: doctor
+            val fixedJobs = buildList {
+                repeat(requiredCounts.mafiaCount) { add(mafia) }
+                repeat(requiredCounts.assistantCount) {
+                    add(requireNotNull(selectedAssistantJob) { "보조계열 고정 직업이 필요하지만 선택되지 않았습니다." })
+                }
+                repeat(requiredCounts.doctorCount) { add(doctor) }
+                repeat(requiredCounts.policeCount) {
+                    add(requireNotNull(selectedPoliceJob) { "경찰계열 고정 직업이 필요하지만 선택되지 않았습니다." })
+                }
+                repeat(requiredCounts.citizenCount) { add(citizenJob) }
+            }
+
+            val assigned = assignJobsInRandomPlayerOrder(
+                players = players,
+                fixedJobs = fixedJobs,
+                nonFixedJobs = nonFixedJobs,
+                trace = trace
+            )
+            if (assigned) {
+                trace.add("[시도 $attempt/$maxAttempts] 배정 성공")
+                return trace
+            }
+            trace.add("[시도 $attempt/$maxAttempts] 배정 실패, 재시도합니다.")
         }
 
-        val citizenJob = JobManager.findByName("시민") ?: doctor
-        val fixedJobs = buildList {
-            repeat(requiredCounts.mafiaCount) { add(mafia) }
-            repeat(requiredCounts.assistantCount) {
-                add(requireNotNull(selectedAssistantJob) { "보조계열 고정 직업이 필요하지만 선택되지 않았습니다." })
-            }
-            repeat(requiredCounts.doctorCount) { add(doctor) }
-            repeat(requiredCounts.policeCount) {
-                add(requireNotNull(selectedPoliceJob) { "경찰계열 고정 직업이 필요하지만 선택되지 않았습니다." })
-            }
-            repeat(requiredCounts.citizenCount) { add(citizenJob) }
-        }
-
-        assignJobsInRandomPlayerOrder(
-            players = players,
-            fixedJobs = fixedJobs,
-            nonFixedJobs = nonFixedJobs,
-            trace = trace
-        )
+        trace.add("[오류] 선호 직업 제약을 만족하는 배정을 찾지 못했습니다.")
         return trace
     }
 
@@ -521,7 +634,6 @@ object GameManager {
             .groupingBy(Job::name)
             .eachCount()
 
-        val pickedNames = mutableSetOf<String>()
         val selected = mutableListOf<Job>()
         var assignedSlots = 0
         fun slotsFor(job: Job): Int = if (job.name == "연인" || job.name == "비밀결사") 2 else 1
@@ -535,10 +647,10 @@ object GameManager {
             val remaining = slotCount - assignedSlots
             val weightedEligible = allCandidates
                 .filter { candidate ->
-                    if (candidate.name in pickedNames) return@filter false
                     val requiredSlots = slotsFor(candidate)
                     if (requiredSlots > remaining) return@filter false
                     if (requiredSlots == 2 && (preferredPlayerCountByName[candidate.name] ?: 0) < 2) return@filter false
+                    if ((preferenceWeightByName[candidate.name] ?: 0) <= 0) return@filter false
                     true
                 }
                 .map { it to (preferenceWeightByName[it.name] ?: 0) }
@@ -548,21 +660,12 @@ object GameManager {
             val picked = pickByWeight(weightedEligible) ?: weightedEligible.random().first
             val needed = slotsFor(picked)
             repeat(needed) { selected += picked }
-            pickedNames += picked.name
             assignedSlots += needed
             trace.add("[2단계] 비고정 직업 선택: ${picked.name} (${assignedSlots}/$slotCount)")
         }
 
         if (assignedSlots < slotCount) {
-            trace.add("[2단계] 경고: 비고정 슬롯을 모두 채우지 못해 비시민 직업으로 보완합니다. (${assignedSlots}/$slotCount)")
-            val nonCitizenFallbacks = allCandidates
-                .filter { !isPairAssignmentJob(it.name) && it.name != "시민" }
-            while (assignedSlots < slotCount && nonCitizenFallbacks.isNotEmpty()) {
-                val pickedFallback = nonCitizenFallbacks.random()
-                selected += pickedFallback
-                assignedSlots += 1
-                trace.add("[2단계-보완] ${pickedFallback.name} 추가 (${assignedSlots}/$slotCount)")
-            }
+            trace.add("[2단계] 경고: 선호 기반 비고정 슬롯을 모두 채우지 못했습니다. (${assignedSlots}/$slotCount)")
         }
 
         return selected
@@ -573,127 +676,148 @@ object GameManager {
         fixedJobs: List<Job>,
         nonFixedJobs: List<Job>,
         trace: AssignmentTrace
-    ) {
+    ): Boolean {
         val slotCounter = (fixedJobs + nonFixedJobs)
             .groupingBy(Job::name)
             .eachCount()
             .toMutableMap()
-        val fixedJobNames = fixedJobs.map(Job::name).toSet()
-        val shuffledPlayers = players.shuffled()
-        val remainingPlayers = shuffledPlayers.toMutableList()
+        trace.add("[3단계] 플레이어 랜덤 순회 배정 시작")
 
-        trace.add("[3단계] 플레이어 랜덤 순회 배정 시작: ${shuffledPlayers.joinToString { it.name }}")
-
-        while (remainingPlayers.isNotEmpty()) {
-            if (slotCounter.values.sum() <= 0) break
-            val player = remainingPlayers.removeFirst()
-            if (player.assignedJob != null) continue
-
-            val effectivePreferenceNames = (player.preferences.map(Job::name) + fixedJobNames).distinct()
-            val preferredCandidates = effectivePreferenceNames.filter { isAssignableCandidate(it, slotCounter, remainingPlayers) }
-            val fallbackCandidates = slotCounter.keys.filter { isAssignableCandidate(it, slotCounter, remainingPlayers) }
-
-            val candidateWeights = buildCandidateWeights(
-                preferredCandidates = preferredCandidates,
-                fallbackCandidates = fallbackCandidates,
-                bestJobName = player.bestJob?.name
-            )
-            val pickedName = pickNameByWeight(candidateWeights)
-                ?: preferredCandidates.randomOrNull()
-                ?: fallbackCandidates.randomOrNull()
-                ?: continue
-            val pickedJob = JobManager.findByName(pickedName) ?: continue
-
-            if (isPairAssignmentJob(pickedName)) {
-                val partner = remainingPlayers
-                    .filter { candidate -> candidate.preferences.any { it.name == pickedName } && candidate.assignedJob == null }
-                    .randomOrNull()
-                if (partner == null) {
-                    trace.add("[3단계] ${player.name} -> ${pickedName} 배정 시도 실패: 짝 플레이어 없음")
-                    continue
-                }
-
-                player.assignedJob = pickedJob
-                partner.assignedJob = pickedJob
-                remainingPlayers.remove(partner)
-                slotCounter[pickedName] = (slotCounter[pickedName] ?: 0) - 2
-                trace.add("[3단계] ${player.name}, ${partner.name} -> ${pickedName} (2인 동시 배정)")
-                continue
-            }
-
-            player.assignedJob = pickedJob
-            slotCounter[pickedName] = (slotCounter[pickedName] ?: 0) - 1
-            val reason = when {
-                pickedName == player.bestJob?.name && pickedName in preferredCandidates -> "최선호 가중"
-                pickedName in preferredCandidates -> "선호"
-                else -> "무작위 보완"
-            }
-            trace.add("[3단계] ${player.name} -> ${pickedName} ($reason)")
-        }
-
-        val fallbackJobs = slotCounter.filterValues { it > 0 }.flatMap { (name, count) ->
-            List(count) { name }
-        }.toMutableList()
-        val unresolvedPairJobs = fallbackJobs.filter { isPairAssignmentJob(it) }
-        if (unresolvedPairJobs.isNotEmpty()) {
-            fallbackJobs.removeAll { isPairAssignmentJob(it) }
-            val nonCitizenFallbackPool = JobManager.getAll()
-                .filter { job -> job !is Evil && job.name != "시민" && !isPairAssignmentJob(job.name) }
-            if (nonCitizenFallbackPool.isNotEmpty()) {
-                repeat(unresolvedPairJobs.size) { fallbackJobs += nonCitizenFallbackPool.random().name }
-            }
-            trace.add("[3단계] 2인 직업 잔여 슬롯(${unresolvedPairJobs.size})을 비시민 직업으로 보완")
-        }
-
-        remainingPlayers
-            .filter { it.assignedJob == null }
-            .forEach { player ->
-                val fallbackName = fallbackJobs.firstOrNull { !isPairAssignmentJob(it) } ?: fallbackJobs.firstOrNull()
-                val fallbackJob = fallbackName?.let(JobManager::findByName)
-                if (fallbackName == null || fallbackJob == null) return@forEach
-                player.assignedJob = fallbackJob
-                fallbackJobs.remove(fallbackName)
-                trace.add("[3단계] ${player.name} -> ${fallbackName} (최종 보완)")
-            }
-
-        val emergencyFallback = JobManager.getAll()
-            .firstOrNull { job -> job.name != "시민" && !isPairAssignmentJob(job.name) }
-        if (emergencyFallback != null) {
-            players
-                .filter { it.assignedJob == null }
-                .forEach { player ->
-                    player.assignedJob = emergencyFallback
-                    trace.add("[3단계] ${player.name} -> ${emergencyFallback.name} (긴급 보완)")
-                }
+        players.forEach { it.assignedJob = null }
+        val solved = solveAssignmentsWithBacktracking(players, slotCounter, trace)
+        if (!solved) {
+            players.forEach { it.assignedJob = null }
+            trace.add("[3단계] 선호 제약으로 인해 유효 배정을 찾지 못했습니다.")
+            return false
         }
 
         trace.add("[3단계] 랜덤 순회 배정 완료")
+        return true
+    }
+
+    private fun solveAssignmentsWithBacktracking(
+        players: MutableList<AssignmentPlayer>,
+        slotCounter: MutableMap<String, Int>,
+        trace: AssignmentTrace
+    ): Boolean {
+        fun dfs(): Boolean {
+            val unassigned = players.filter { it.assignedJob == null }
+            if (unassigned.isEmpty()) return true
+
+            val current = unassigned.minByOrNull { player ->
+                getAllowedJobNames(player).count { name -> (slotCounter[name] ?: 0) > 0 }
+            } ?: return true
+
+            val weightedCandidates = getAllowedJobNames(current)
+                .filter { name -> (slotCounter[name] ?: 0) > 0 }
+                .map { name ->
+                    var weight = 3
+                    if (name == current.bestJob?.name) {
+                        weight *= 3
+                    }
+                    name to weight
+                }
+                .shuffled()
+                .sortedByDescending { (_, weight) -> weight }
+
+            for ((jobName, _) in weightedCandidates) {
+                val job = JobManager.findByName(jobName) ?: continue
+
+                if (!isPairAssignmentJob(jobName)) {
+                    current.assignedJob = job
+                    slotCounter[jobName] = (slotCounter[jobName] ?: 0) - 1
+                    if (dfs()) return true
+                    slotCounter[jobName] = (slotCounter[jobName] ?: 0) + 1
+                    current.assignedJob = null
+                    continue
+                }
+
+                if ((slotCounter[jobName] ?: 0) < 2) continue
+                val partnerCandidates = unassigned
+                    .filter { it != current && jobName in getAllowedJobNames(it) }
+                    .shuffled()
+
+                for (partner in partnerCandidates) {
+                    current.assignedJob = job
+                    partner.assignedJob = job
+                    slotCounter[jobName] = (slotCounter[jobName] ?: 0) - 2
+                    if (dfs()) return true
+                    slotCounter[jobName] = (slotCounter[jobName] ?: 0) + 2
+                    current.assignedJob = null
+                    partner.assignedJob = null
+                }
+            }
+            return false
+        }
+
+        val solved = dfs()
+        if (solved) {
+            players.forEach { player ->
+                trace.add("[3단계] ${player.name} -> ${player.assignedJob?.name ?: "배정 실패"} (선호 제약 만족)")
+            }
+        }
+        return solved
+    }
+
+    private fun assignRemainingPlayersFromAllowedSlots(
+        players: MutableList<AssignmentPlayer>,
+        slotCounter: MutableMap<String, Int>,
+        trace: AssignmentTrace
+    ) {
+        val unassignedPlayers = players.filter { it.assignedJob == null }.toMutableList()
+
+        while (unassignedPlayers.isNotEmpty()) {
+            val player = unassignedPlayers.removeFirst()
+            if (player.assignedJob != null) continue
+
+            val allowedNames = getAllowedJobNames(player)
+            val singleCandidate = allowedNames.firstOrNull { name ->
+                !isPairAssignmentJob(name) && (slotCounter[name] ?: 0) > 0
+            }
+            if (singleCandidate != null) {
+                val job = JobManager.findByName(singleCandidate)
+                if (job != null) {
+                    player.assignedJob = job
+                    slotCounter[singleCandidate] = (slotCounter[singleCandidate] ?: 0) - 1
+                    trace.add("[3단계] ${player.name} -> ${singleCandidate} (선호 기반 잔여 슬롯 배정)")
+                    continue
+                }
+            }
+
+            val pairCandidate = allowedNames.firstOrNull { name ->
+                isPairAssignmentJob(name) && (slotCounter[name] ?: 0) >= 2
+            }
+            if (pairCandidate != null) {
+                val partner = unassignedPlayers.firstOrNull { candidate ->
+                    candidate.assignedJob == null && pairCandidate in getAllowedJobNames(candidate)
+                }
+                val pairJob = JobManager.findByName(pairCandidate)
+                if (partner != null && pairJob != null) {
+                    player.assignedJob = pairJob
+                    partner.assignedJob = pairJob
+                    slotCounter[pairCandidate] = (slotCounter[pairCandidate] ?: 0) - 2
+                    unassignedPlayers.remove(partner)
+                    trace.add("[3단계] ${player.name}, ${partner.name} -> ${pairCandidate} (선호 기반 잔여 짝 배정)")
+                    continue
+                }
+            }
+
+            val doctorFallback = JobManager.findByName("의사")
+            if (doctorFallback != null) {
+                player.assignedJob = doctorFallback
+                trace.add("[3단계] ${player.name} -> 의사 (선호 직업만 허용하는 긴급 보완)")
+            }
+        }
     }
 
     private fun isPairAssignmentJob(jobName: String): Boolean {
         return jobName == "연인" || jobName == "비밀결사"
     }
 
-    private fun isAssignableCandidate(
-        jobName: String,
-        slotCounter: Map<String, Int>,
-        remainingPlayers: List<AssignmentPlayer>
-    ): Boolean {
-        val remainCount = slotCounter[jobName] ?: 0
-        if (remainCount <= 0) return false
-        if (!isPairAssignmentJob(jobName)) return true
-        if (remainCount < 2) return false
-        val preferCount = remainingPlayers.count { player ->
-            player.assignedJob == null && player.preferences.any { it.name == jobName }
-        }
-        return preferCount >= 1
-    }
-
-
     private fun resolveRequiredRoleCounts(playerCount: Int): RequiredRoleCounts {
         return if (playerCount >= EXTENDED_ROLE_RULE_START_COUNT) {
             val mafiaCount = 2 + ((playerCount - EXTENDED_ROLE_RULE_START_COUNT) / 2)
-            val citizenCount = if (playerCount % 2 == 0) 1 else 0
+            val citizenCount = 0
             RequiredRoleCounts(
                 mafiaCount = mafiaCount,
                 assistantCount = 1,
@@ -929,6 +1053,10 @@ object GameManager {
                 "[2단계-보완] ${picked.name}: ${finalCandidates.joinToString { it.name }} 배정 (누적 $assignedSlots/$targetSlotCount)"
             )
         }
+    }
+
+    private fun getAllowedJobNames(player: AssignmentPlayer): List<String> {
+        return (player.preferences.map(Job::name) + listOf("마피아", "의사")).distinct()
     }
 
     private fun assignRequiredJobs(

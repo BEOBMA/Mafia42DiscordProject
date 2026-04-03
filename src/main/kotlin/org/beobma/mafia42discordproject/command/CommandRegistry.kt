@@ -12,6 +12,7 @@ object CommandRegistry {
         BestJobCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
+        JobAssignmentSimulationCommand,
         JobInfoImageCommand,
         DebugCommand,
         ShamanRelayCommand,
