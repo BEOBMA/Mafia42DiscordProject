@@ -497,6 +497,7 @@ object GameManager {
         val policePool = allJobs.filter { it.name in policeJobNames }
         val specialPool = allJobs.filter {
             it !is Evil &&
+                it.name != "시민" &&
                 it.name != "의사" &&
                 it.name !in policeJobNames
         }
@@ -516,7 +517,11 @@ object GameManager {
                 add(assistant)
                 add(police)
                 addAll(specials)
-            }
+            }.distinctBy(Job::name)
+
+            require(preferences.size == 7) { "가상 선호 직업은 중복 없이 7개여야 합니다." }
+            require(preferences.none { it.name == "시민" }) { "가상 선호 직업에는 시민을 포함할 수 없습니다." }
+            require(preferences.count { it is Evil } == 1) { "가상 선호 직업에는 보조계열 악인 1개만 포함되어야 합니다." }
 
             val bestCandidates = (preferences + listOfNotNull(mafia, doctor)).distinctBy(Job::name)
             AssignmentPlayer(
