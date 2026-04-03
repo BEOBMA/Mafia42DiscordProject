@@ -759,6 +759,57 @@ object GameManager {
         return solved
     }
 
+    private fun assignRemainingPlayersFromAllowedSlots(
+        players: MutableList<AssignmentPlayer>,
+        slotCounter: MutableMap<String, Int>,
+        trace: AssignmentTrace
+    ) {
+        val unassignedPlayers = players.filter { it.assignedJob == null }.toMutableList()
+
+        while (unassignedPlayers.isNotEmpty()) {
+            val player = unassignedPlayers.removeFirst()
+            if (player.assignedJob != null) continue
+
+            val allowedNames = getAllowedJobNames(player)
+            val singleCandidate = allowedNames.firstOrNull { name ->
+                !isPairAssignmentJob(name) && (slotCounter[name] ?: 0) > 0
+            }
+            if (singleCandidate != null) {
+                val job = JobManager.findByName(singleCandidate)
+                if (job != null) {
+                    player.assignedJob = job
+                    slotCounter[singleCandidate] = (slotCounter[singleCandidate] ?: 0) - 1
+                    trace.add("[3단계] ${player.name} -> ${singleCandidate} (선호 기반 잔여 슬롯 배정)")
+                    continue
+                }
+            }
+
+            val pairCandidate = allowedNames.firstOrNull { name ->
+                isPairAssignmentJob(name) && (slotCounter[name] ?: 0) >= 2
+            }
+            if (pairCandidate != null) {
+                val partner = unassignedPlayers.firstOrNull { candidate ->
+                    candidate.assignedJob == null && pairCandidate in getAllowedJobNames(candidate)
+                }
+                val pairJob = JobManager.findByName(pairCandidate)
+                if (partner != null && pairJob != null) {
+                    player.assignedJob = pairJob
+                    partner.assignedJob = pairJob
+                    slotCounter[pairCandidate] = (slotCounter[pairCandidate] ?: 0) - 2
+                    unassignedPlayers.remove(partner)
+                    trace.add("[3단계] ${player.name}, ${partner.name} -> ${pairCandidate} (선호 기반 잔여 짝 배정)")
+                    continue
+                }
+            }
+
+            val doctorFallback = JobManager.findByName("의사")
+            if (doctorFallback != null) {
+                player.assignedJob = doctorFallback
+                trace.add("[3단계] ${player.name} -> 의사 (선호 직업만 허용하는 긴급 보완)")
+            }
+        }
+    }
+
     private fun isPairAssignmentJob(jobName: String): Boolean {
         return jobName == "연인" || jobName == "비밀결사"
     }
