@@ -493,12 +493,10 @@ object GameManager {
 
     private fun buildVirtualAssignmentPlayers(playerCount: Int): MutableList<AssignmentPlayer> {
         val allJobs = JobManager.getAll()
-        val assistantPool = allJobs.filter { it is Evil && it.name != "마피아" }
+        val assistantPool = allJobs.filter { it is Evil && it.name != "마피아" && it.name != "악인" }
         val policePool = allJobs.filter { it.name in policeJobNames }
         val specialPool = allJobs.filter {
-            it !is Evil &&
-                it.name != "의사" &&
-                it.name !in policeJobNames
+            it !is Evil && it.name != "의사" && it.name != "시민" && it.name !in policeJobNames
         }
 
         if (assistantPool.isEmpty() || policePool.isEmpty() || specialPool.size < 5) {
