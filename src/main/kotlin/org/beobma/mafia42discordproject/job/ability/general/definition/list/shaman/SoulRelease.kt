@@ -17,7 +17,7 @@ import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpiri
 class SoulRelease : ActiveAbility, JobUniqueAbility {
     override val name: String = "성불"
     override val description: String = "죽은 플레이어의 대화를 들을 수 있으며 밤마다 죽은 플레이어 한 명을 성불할 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485335078652608583/ca8709f6b125aff8.png?ex=69c17d96&is=69c02c16&hm=526b7ccffbf9a16506d6847ba851e065c0933101da5c12a500b5c00e8578188b&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(129).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -49,7 +49,7 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     if (isEarthbound) {
-                        "${target.member.effectiveName}님은 지박령이라 성불되지 않았습니다. 직업만 확인했습니다.\n$image"
+                        "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n$image"
                     } else {
                         "${target.member.effectiveName}님을 성불하였습니다.\n$image"
                     }
@@ -64,9 +64,9 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
 
         val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
         return if (isEarthbound) {
-            AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다. (지박령으로 성불되지 않음) 직업: $revealedJobName")
+            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불하는데 실패했습니다.")
         } else {
-            AbilityResult(true, "${target.member.effectiveName}님을 성불했습니다. 직업: $revealedJobName")
+            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불했습니다.")
         }
     }
 }

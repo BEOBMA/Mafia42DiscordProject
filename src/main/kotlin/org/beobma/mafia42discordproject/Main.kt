@@ -5,9 +5,11 @@ import dev.kord.common.entity.ApplicationCommandType
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
+import dev.kord.core.event.guild.VoiceServerUpdateEvent
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.core.event.user.VoiceStateUpdateEvent
 import dev.kord.core.on
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -15,9 +17,11 @@ import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
 import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
+import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
@@ -28,6 +32,8 @@ suspend fun main() {
         ?: error("DISCORD_TOKEN 환경 변수가 설정되지 않았습니다.")
 
     val kord = Kord(token)
+    LavalinkManager.initialize(kord)
+
     val commands = CommandRegistry.all()
 
     syncSlashCommands(kord, commands)
@@ -67,6 +73,14 @@ suspend fun main() {
         command.handleAutoComplete(this)
     }
 
+    kord.on<VoiceStateUpdateEvent> {
+        LavalinkManager.handleVoiceStateUpdate(this, kord)
+    }
+
+    kord.on<VoiceServerUpdateEvent> {
+        LavalinkManager.handleVoiceServerUpdate(this)
+    }
+
     // UI 상호작용 버튼 리스너 일괄등록
     val interactionListeners = listOf(
         MainVoteListener,
@@ -81,6 +95,7 @@ suspend fun main() {
     JobManager.registerAll()
     AbilityManager.registerAll()
     JobPreferenceManager.load()
+    BestJobPreferenceManager.load()
     kord.login()
 }
 

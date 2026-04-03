@@ -19,11 +19,11 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "최면"
     override val description: String = "밤에 플레이어 한 명을 최면 상태로 만든다. 같은 밤에는 대상을 바꿀 수 없다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485330690777153716/cdbffc314b3c49c3.png?ex=69c17980&is=69c02800&hm=65b5dae2d98f3a4a4435820be1a70c53fd04d5c714112aa2fa160c12cc092cce&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(146).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     companion object {
-        private const val HYPNOTIZE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485045831387320331/In-klCVO6bijQqQBJJD-lm6ERnyRMxlUG9vxkwmDqVnSJ8Q-AnpOdCS_sGOCeR36BpXD9WgvMRkEPznM9kNWblpv435IpN45mGyxWOe111yhpkDJHMfB7dJcAOnLYoJURon9oIVQ63tmYOUoy9BXbg.webp?ex=69c07035&is=69bf1eb5&hm=b0d0efacb0e56c00f8179d99da286da0261dfd6f8ec606f1fe25f1e61b5c1fac&"
+        private const val HYPNOTIZE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(9).webp"
     }
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -71,7 +71,7 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
 
     companion object {
         private val notificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        private const val RELEASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485045831068418088/NcHJGKAFQM27wpur63DCKTVFPJeRl0YIq9yTtSPocI1wPy-8RN64_ZEJIjbtNmO2YrNpmXRCMxiKfNcRpxajTwx9gMtlG4jEqEv_5X0SoynqMZoFF5LM60jQ1qV6X7os7ke5jOXL33H0ylCIGDOINA.webp?ex=69c07034&is=69bf1eb4&hm=3c29f60715fcc52a9c33975b7bbaaaead33112fb0e47f47ff38dc02313528d25&"
+        private const val RELEASE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(28).webp"
     }
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

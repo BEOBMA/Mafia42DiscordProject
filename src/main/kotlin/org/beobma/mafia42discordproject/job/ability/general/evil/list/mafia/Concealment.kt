@@ -10,6 +10,6 @@ import kotlin.reflect.KClass
 class Concealment : Ability, JobSpecificExtraAbility {
     override val name: String = "은폐"
     override val description: String = "대상을 처형하는 데에 실패했을 경우, '조용한 밤'으로 진행된다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484618718670491901/30b8e9ca17ffa190.png?ex=69bee26d&is=69bd90ed&hm=8d71e0235b014786e9f5858f74507d23d25bfa846ac342aa620793c41ead695a&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(174).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Mafia::class)
 }

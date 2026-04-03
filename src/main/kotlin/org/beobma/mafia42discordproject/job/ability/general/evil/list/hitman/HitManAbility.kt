@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
@@ -21,7 +22,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
     override val description: String = "두 번째 밤부터 공개적으로 능력이 사용된 대상을 제외한 시민 두 명을 지목하여 직업을 맞출 경우 둘 다 암살한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485287583767593093/683eeae42023178e.png?ex=69c1515b&is=69bfffdb&hm=b56804106cb11e70e684403213a6acef4fe8b650c898da7920ea31eb0daa1b11&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(113).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     fun activateWithJobName(game: Game, caster: PlayerData, target: PlayerData?, guessedJobName: String?): AbilityResult {
@@ -140,19 +141,25 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (!firstCorrect || !secondCorrect) return
         if (firstTarget.job is Evil || secondTarget.job is Evil) return
 
-        killByContract(game, firstTarget)
-        killByContract(game, secondTarget)
+        killByContract(game, listOf(firstTarget, secondTarget))
     }
 
-    private suspend fun killByContract(game: Game, target: PlayerData) {
-        if (target.state.isDead) return
-        game.pendingNightDeathPlayerIds += target.member.id
-        if (target !in game.nightDeathCandidates) {
-            game.nightDeathCandidates += target
+    private suspend fun killByContract(game: Game, targets: List<PlayerData>) {
+        val aliveTargets = targets.filterNot { it.state.isDead }
+        if (aliveTargets.isEmpty()) return
+
+        aliveTargets.forEach { target ->
+            game.pendingNightDeathPlayerIds += target.member.id
+            if (target !in game.nightDeathCandidates) {
+                game.nightDeathCandidates += target
+            }
         }
-        game.mainChannel?.createMessage(
-            "$CONTRACT_KILL_IMAGE_URL\n${target.member.effectiveName}님이 청부업자에게 정체를 들켜 암살 당했습니다."
-        )
+
+        val victims = aliveTargets.joinToString(separator = "\n") {
+            "${it.member.effectiveName}님이 청부업자에게 정체를 들켜 암살 당했습니다."
+        }
+        val message = "$CONTRACT_KILL_IMAGE_URL\n$victims"
+        game.sendMainChannerMessageAndSound(message, CONTRACT_SUCCESS_SOUND_PATH)
     }
 
     private fun sendSoldierCriticalMessages(caster: PlayerData, soldierTarget: PlayerData) {
@@ -172,8 +179,9 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
     companion object {
         private const val CONTRACT_TRIGGER_MILLIS = 10_000L
-        private const val CONTRACT_KILL_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485091092427833406/5z9EhKho2HssoyyRznzH5XjK_7lKYQC3u18N9CAvPlOljQqpD6rnNZqyJgj7PaMLy3qCs327-KWX7XG_8Go_MmWHxZqFI5o8n8UJhJwJP7m4o_5TVKJluxpw9-F9Bp0HyzK2IhOxShVigiYTl_JdeA.webp?ex=69c09a5c&is=69bf48dc&hm=7c25a110ad9ff8df979f7923450772100e1a7bd2d5c32b0d60c25efd94800f81&"
-        private const val SOLDIER_CRITICAL_IMAGE_URL = "https://cdn.discordapp.com/attachments/1483977619258212392/1485090345401454592/OtwXuKPgGL4H1g3iEOvsMx3Yva11Kov5MqnNVWhdJjUiJjsAQ9xy-0g3DTtKXK7ajqUXDd01al63a1KAQGZGDl09lRt5tWeJNZH7Pe3dh8x2f2DwlA82gWa7n0QnqdTbrtVgjcL_S12mfM_vs1siYQ.webp?ex=69c099a9&is=69bf4829&hm=1486b687b5177efc46f0bbe2c0718bb3b9c7d78785d2cf4ff60343cf53ee359c&"
+        private const val CONTRACT_KILL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(20).webp"
+        private const val CONTRACT_SUCCESS_SOUND_PATH = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/sound/mafia%20(11).mp3"
+        private const val SOLDIER_CRITICAL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(23).webp"
         val scope = CoroutineScope(Dispatchers.Default)
     }
 }

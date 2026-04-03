@@ -18,7 +18,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "운세"
     override val description: String = "밤마다 한 명을 선택한다. 선택한 플레이어 및 그와 다른 팀인 플레이어의 직업이 제시된다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485329164134252715/b0fc0b0560bbe854.png?ex=69c17814&is=69c02694&hm=b10dbc61bd0586c903f85b6141ef0de6fcc4b623ee3a45456eadc69b658f4240&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(142).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

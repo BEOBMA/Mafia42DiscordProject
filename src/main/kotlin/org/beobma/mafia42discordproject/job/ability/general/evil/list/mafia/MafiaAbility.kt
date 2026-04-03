@@ -20,7 +20,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Thief
 class MafiaAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "처형"
     override val description: String = "밤마다 한 명의 플레이어를 죽일 수 있으며 마피아끼리 대화가 가능하다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619430263521330/930fdad0076c57b6.png?ex=69bee317&is=69bd9197&hm=a0fb01e23944eb5f0cab3ad595509ef41f6716f9a897e2f1a204de8c083a7d3e&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(162).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     private val attackKey = "MAFIA_TEAM"

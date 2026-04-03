@@ -1,32 +1,30 @@
 package org.beobma.mafia42discordproject.game.system
 
 enum class SystemImage(val imageUrl: String) {
-    // 밤/낮 전환 및 안내 이미지
-    DAY_START("https://cdn.discordapp.com/attachments/1483977619258212392/1483981622096429247/7aace941ae58a6cc.png?ex=69bc9115&is=69bb3f95&hm=fc7255667bb001a0f730a3e42d5d729c8584db33095699bcb02fc4ea4295a613&"),
-    NIGHT_START("https://cdn.discordapp.com/.../43e6c3860a090af9.png..."),
-
-    // 투표 관련 이미지
-    VOTE_START("https://cdn.discordapp.com/.../bd6d8d833d736bf2.png..."),
-    DEFENSE_START("https://cdn.discordapp.com/.../b1bb8f82a19e45e3.png..."),
-    VOTING_FAILURE("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233653465122/K5WjViOFIiajx3YUfctCF-wkTWwg-DnerBQ09EXEd5-Jxz6Yy0vAmAuM5XDOMIWqHpYOXk85dCobA6CkwzPxOILsPNTbKJgtpYa1DtnVqhceybFNoLK5kdEtPJr6x7rCpn5F3Au_wTeTK0zWtRNArQ.webp?ex=69becb9f&is=69bd7a1f&hm=95cc33354d29bf53d2a74db6ca5ac622b88ef11bfe5b9e419f6e7b38a6f2a8b4&"),
-    VOTE_EXECUTION("https://cdn.discordapp.com/attachments/1483977619258212392/1484594233288691895/22SIfKIG4sgmfsgKpScS00MYCCNg70dZoYW9wB3zjuIlnN7d56sqkmFViOFPYrPnPJixJ-BEj5f_mVUp2wcYAzYpHKjyZDuoQyzfp3efnGqc1UYKkMLrk0w5QxCV5tlorhBipi2-c69B7eSYhppyIA.webp?ex=69becb9f&is=69bd7a1f&hm=0b3d5473bbaebb91f2335ef3d07cf315043fde1889930328ea4211c486e792df&"),
-
-    // 사망 및 결과 이미지
-    QUIET_NIGHT("https://cdn.discordapp.com/attachments/1483977619258212392/1483980003015397446/d8692f78c3528f76.png?ex=69bc8f93&is=69bb3e13&hm=1378e1b6daba26baddf0cc5d042087b7c5151860d709a3140414b97f774b77a4&"),
-    DEATH_BY_MAFIA("https://cdn.discordapp.com/attachments/1483977619258212392/1483980246448603146/99cb963d1b44dc2e.png?ex=69bc8fcd&is=69bb3e4d&hm=51de46f9128d899572989dc0deb0717d66fd93097e5feac91386e9db0901461d&"),
-    DEATH_BY_POISON("https://cdn.discordapp.com/attachments/1483977619258212392/1485066207357964429/2026-03-22_090248.png?ex=69c0832f&is=69bf31af&hm=cdd8250029c3f47de4464253c063215f460b73338e182fbf028c4918db41c28d&"),
-    DEATH_MALE_COUPLE("https://cdn.discordapp.com/attachments/1483977619258212392/1484991316755480667/GND1rUq6_E1w0EvzDPnVmBn2OlQ81KeacX5vP_yTBfXgKfndQ1hTHJ8ntkkL7scPQww3lJng2uh2v9-dgi2tGlpz80zrz6_mHxbZQtkdlLYycoMzVQhUc7Ve3AeYfThvwle1dVshpX0EabMpV-JNrA.png?ex=69c03d6f&is=69beebef&hm=405199818d86776d7ad6ad22f90c64e2aee2993903359faf1af36a5994aee16a&"),
-    DEATH_WOMAN_COUPLE("https://cdn.discordapp.com/attachments/1483977619258212392/1484991486377464000/ufIo3ISluSJdrz3V2mWwIvYB37jHye-2-I4PYAaQaMwKorwfbwEZwaxYwSJ2-_PF2t0edGjL90GCPsfyp57XSYMBwcSBc_F5jvepYIE0tQxULt_FG5__TLdbfXe0FKrqDhTM5F7C6xSODLo9suH0YA.png?ex=69c03d98&is=69beec18&hm=dbc8ade33d25050bb2663252d9895a8cbdcffd0818cb2e3cddaecd55b277263d&"),
-    SOLDIER_DEFENDED("https://cdn.discordapp.com/attachments/1483977619258212392/1485027800875274331/w5qRDzw_CMsPgoeHjFu0opUSRBsYWy5k59-hMLfrcIK0pL45dDDbtVVlCp8H6MBbIrcmG98m8brdSE2NSNI_q6G-baQ227xE7sjM3Xr6rABhU49aUxqOOAkyP7mzL0JBmkscBjWx9epzkRQ7my-HOA.png?ex=69c05f6a&is=69bf0dea&hm=f2c25a93c2362874d686236926f19be50f9ff422a8a897d4c9dab81cbe28ca6e&"),
-    DOCTOR_HEAL("https://cdn.discordapp.com/attachments/1483977619258212392/1485044262478286868/gfb9G7slbzLL_CUhWiKmZ12qttFdPnBdSnxMQnMVow4EqnVmvxkLeIrgwKGwYZl-J2Msu3fP7QXkmZc4eD4DEh11FVV6lXFvMRHZEh3OYV6RwxY4VPIZTgzJvObPIr8QwgJvYSONPv-Dq6Qp35AZcA.png?ex=69c06ebe&is=69bf1d3e&hm=257b6eca88dfd248a808c0ddfe96b2043de7c81e2e2060bb2e971faf331add78&"),
-    // 직업별 고유 이미지
-    ADMINISTRATOR_NOTICE("https://cdn.discordapp.com/attachments/1483977619258212392/1484984191216128010/pew0EnsJXxCS4Gg7sVmstxjgA7dv6awCfaJ9EzpOP5WaXArfaf_W93sT3xMyPZViyAn0_O239q8f32OMEaz6WHosUFdZ_15FE4t4Tbg4y2xuATS9ImLgSFW_m-MNaUGv058sHVTZWNOLZCfsg_tX-Q.png?ex=69c036cc&is=69bee54c&hm=5a4816e7f50aac2060a0c31662fc74c1f373bd93166d3449e0453d90f1040b40&"),
-    AGENT_NOTICE("https://cdn.discordapp.com/attachments/1483977619258212392/1484982478405107772/TahoojMxZDnPtGHuzQD2oRzusHNYIzQON3rP9P4VcDr5mxMYrxfki4P_YTwi-TQJ_O-HmO_68Bonu15zztvUpIpX1rIp9u-eE8VDZSdZ5jiwYNopNPEQ6BxsAcxtER3XVegmukOrVaCUe6g4TFdw4w.png?ex=69c03534&is=69bee3b4&hm=3d73b13e5ed879f775d06730767a69684cae6f5a53a6b99164f880ff8d4af5ac&"),
-    FORTUNETELLER_NOTICE("https://cdn.discordapp.com/attachments/1483977619258212392/1485037051173933328/DoBxbDbpCF0UHEQImHkXa1E3QX5d4jwn1f8TJbOW7LWuxGZKVJnSgu69421VZBM_KbOVJABFtZEIZblhkSBWLZt5h9Mt830cg7JJwY8lWrn0ShF9Ce96ahKwimciYyIW5Yo4atRIz9LBC-37RZrt6w.webp?ex=69c06807&is=69bf1687&hm=84d95d5ee29a12b5d14ece4af166f5dacd0060ff8ecc0dc2daf8561a81e6a855&"),
-    POLITICIAN_DICTATORSHIP("https://cdn.discordapp.com/attachments/1483977619258212392/1485054667816964278/fl3e_b8NHssQWlIfoRN0jQDFJdoXs-wwWGPD0fb1FmrD0yzn4vc7Woiq7PC-_ovOaTcirpMDEkTsxXCFxJgM6LWQR5MwCqCaPf-CgIV59q_lYEc2fZeNnGieEDsEHyab03qhDSY1BQ6pvzC8wkSThA.png?ex=69c0786f&is=69bf26ef&hm=eda77a2615350777e58f4fae14b500b924dcf96febf830d329e8be31c6b8fb82&"),
-    SHAMAN_EXORCISM("https://cdn.discordapp.com/attachments/1483977619258212392/1485056586832543754/KVlLnF0_X9rDIonOz-IisIVxYnRQIJKeZy3f4oht5sX4bDNqy7McMMIoWFEX4dWBc85zYddGPv8d64x2ul4Y4gDGueiQB0rCNubVOsTB2POcVDQ0JuUXwWukZB6Mbtf7nhqpwZHbYJMeIj-7BfJHvQ.webp?ex=69c07a39&is=69bf28b9&hm=84359f787f4d7181a0c4f4b427cb8dcaadfa768ec5590633d194691ebf70169c&"),
-
-    POLICE_FOUND_MAFIA("https://cdn.discordapp.com/attachments/1483977619258212392/1484978388853592247/u1M24O_9busz-5AmW0_GUxg-VwMUdSmBOfktt-2Rqs2RtGLWrE_5HEWC5r5u2WyykvWDQzjUPKBYAn2zJB-GkM6PjfYOBSwYzM8kp5x1IQvWm1why0ejS3nLuKdZUH5nhziJlrEHMgddJtOIkKssWA.png?ex=69c03165&is=69bedfe5&hm=d8244b5eb10364bf7bad6776665015dcd26b8b057c879e80f0afa7d402c16b9d&"),
-    POLICE_FOUND_FAIL("https://cdn.discordapp.com/attachments/1483977619258212392/1484980099328512161/MGkYY0Va3F-uVLVP0thLfmgCJ5uM0B7QcSpoXsSc4FfB0HwD6Ldb1s38_uWiQG5XWWKnOZcOJkgtV0bv3g3KTL5lA0JotMQgI8bGBOUuPAuqqq672QQMmeKR5olkUfKLcmzPlbHRkrnHBkFKaZV-EQ.png?ex=69c032fd&is=69bee17d&hm=0517c28ac018370364dc71f1fdb6d67777ad9c77b5c3b38170a58a4626a3d309&"),
-    POLICE_USE_WARRANT("https://cdn.discordapp.com/attachments/1483977619258212392/1484981077960298556/T64zs-ot__mIaWJgC0Qs62oqT-Cl0c9p1I15mXIKkp3z2TkN0H-PMENqB6afwgITvLWbT7vKqLHA_1ygwudn5Y0ks08JoFWESJibv2ei4mumOswrwdta3CcUb0f8R5KdtOTI569is5pBptzBGNyMkQ.png?ex=69c033e6&is=69bee266&hm=b7fb5d80dbeb3da26fa410c3e6cd3e93863000667b3d95c646e2b475f2459640&")
+    DAY_START("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"),
+    NIGHT_START("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"),
+    VOTE_START("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"),
+    DEFENSE_START("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"),
+    VOTING_FAILURE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp"),
+    VOTE_EXECUTION("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(44).webp"),
+    QUIET_NIGHT("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(19).webp"),
+    DEATH_BY_MAFIA("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(36).webp"),
+    DEATH_BY_POISON("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(73).webp"),
+    DEATH_MALE_COUPLE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(64).webp"),
+    DEATH_WOMAN_COUPLE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(61).webp"),
+    SOLDIER_DEFENDED("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(3).png"),
+    DOCTOR_HEAL("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).png"),
+    ADMINISTRATOR_NOTICE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(17).png"),
+    AGENT_NOTICE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(8).png"),
+    FORTUNETELLER_NOTICE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(212).webp"),
+    POLITICIAN_DICTATORSHIP("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(72).webp"),
+    POLITICIAN_SURVIVE_VOTE("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(32).webp"),
+    SHAMAN_EXORCISM("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(41).webp"),
+    PRIEST_RESURRECTION("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(43).webp"),
+    GHOUL_GRAVE_ROBBING_SUCCESS("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(37).webp"),
+    MERCENARY_CLIENT_DEATH("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(18).webp"),
+    MERCENARY_EXECUTION("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(11).webp"),
+    POLICE_FOUND_MAFIA("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(40).webp"),
+    POLICE_FOUND_FAIL("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(2).png"),
+    POLICE_USE_WARRANT("https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(4).png")
 }

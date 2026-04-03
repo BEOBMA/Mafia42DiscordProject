@@ -3,13 +3,16 @@ package org.beobma.mafia42discordproject.command
 object CommandRegistry {
     private val registeredCommands: List<DiscordCommand> = listOf(
         PingCommand,
+        PlayCommand,
         HelloCommand,
         GameStartCommand,
         GameStopCommand,
         AbilityUseCommand,
         DayTimeAdjustCommand,
+        BestJobCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
+        JobInfoImageCommand,
         DebugCommand,
         ShamanRelayCommand,
         ShamanedRelayCommand,

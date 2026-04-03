@@ -22,7 +22,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Thief
 class ThiefAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "도벽"
     override val description: String = "투표시간마다 원하는 플레이어의 고유 능력을 훔쳐 밤까지 사용할 수 있다."
-    override val image: String = ""
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(133).webp"
     override val usablePhase: GamePhase = GamePhase.VOTE
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -92,11 +92,11 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         private const val THIEF_STEAL_IMAGE_URL =
-            "https://cdn.discordapp.com/attachments/1483977619258212392/1485097535507922945/KnjMRtA236JcYLn1omtaAvUWp6OqvBZs9kB5LAps-9m3oyvlo6Wxtkj1fNaV3ZC-QWLINjraEM0-e-UWN4sRI70lhrJ-Z7zWAvmQUedyNbwj_Zi9O4JJy8ykxK5StZ4J9u1R4yIhCYhAVxOvlPvWMw.webp?ex=69c0a05c&is=69bf4edc&hm=8dc191a532df97d2d40e68c7fe23022106d3e7a9c92d0f2ec013bfb8929ae359&"
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).webp"
         private const val THIEF_CONTACT_IMAGE_URL =
-            "https://cdn.discordapp.com/attachments/1483977619258212392/1485097745164275963/6KbWZ5FCTcmZQ99obSXQ0HXU2Sq1UOPBlNdTs96-gHlcNTTgv6jyGZdBuaNfu7n2LQqDuYhhrnBTwAJ04Axd8tunc1CO6pGiBJSygpp7-h9HxZVuA0nr7ZUofIdZTsUEFZRwbPXWMq9rDkBJEQ_Qlw.webp?ex=69c0a08e&is=69bf4f0e&hm=7c03af3e798db7ce5e6019206a535c24db4d5ca1a1007d2c5111353d21d59de0&"
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(26).webp"
         private const val THIEF_SOLDIER_FAIL_IMAGE_URL =
-            "https://cdn.discordapp.com/attachments/1483977619258212392/1485097965898043493/gp0Lmzqyb15dXa_P4wIBjvI91xGRFW1GACNUbtohRlU8aEjecTHphDW5D5vZIGFYZbB67P37n7mvjEjEf8elQk8Sv5VFSyPTNtjyMsSk3fWDnT5a_osvMRvr9uMHZW_6bcn11UOOCyte02Ogl2sCUg.webp?ex=69c0a0c2&is=69bf4f42&hm=ccff2b4848cc1ef73361f4961236a6f9df202c142c9ca2eed16663b83c164229&"
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(39).webp"
 
         private fun notifyStealSuccess(caster: PlayerData, target: PlayerData, targetJobName: String) {
             scope.launch {
@@ -126,7 +126,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
                 runCatching {
                     if (!thiefPlayer.state.hasAnnouncedThiefContact) {
                         thiefPlayer.state.hasAnnouncedThiefContact = true
-                        game.mafiaChannel?.createMessage("$THIEF_CONTACT_IMAGE_URL\n**접선했습니다.**")
+                        GameLoopManager.announceMafiaSupportContact(game, thiefPlayer, THIEF_CONTACT_IMAGE_URL)
                     }
                     GameLoopManager.refreshMafiaChannelContactState(game)
                 }

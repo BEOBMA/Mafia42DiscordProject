@@ -14,5 +14,5 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 class GodfatherAbilityTwo : PassiveAbility, JobUniqueAbility {
     override val name: String = "배후"
     override val description: String = "세번째 밤이 될 때 마피아와 접선한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485287199011377353/76068088065d201a.png?ex=69c150ff&is=69bfff7f&hm=5b15390502ce491217b8cb2023690afaf7ebdff976d17634f2115a34edcfbf3f&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(206).webp"
 }

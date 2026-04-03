@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Martyr
 class MartyrNightBombAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "자폭"
     override val description: String = "게임당 한 번, 마피아를 지목하고 있는 상태에서 마피아에게 처형당하거나 투표로 인해 처형될 때 적 팀을 지목했다면 대상과 함께 사망한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485331562651324536/270b34e4e328a25f.png?ex=69c17a50&is=69c028d0&hm=e3b5c99285275043802cbe3a7cf1fb2c2ad972047bd8ab03eccf325e4e753a58&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(101).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

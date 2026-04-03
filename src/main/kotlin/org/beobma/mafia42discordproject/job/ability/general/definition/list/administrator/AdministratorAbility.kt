@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Administrator
 class AdministratorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "조회"
     override val description: String = "경찰 계열을 제외한 시민팀 직업 중 하나를 지목하여 그 직업을 가진 사람을 알아낸다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485261103666823330/9c4fbe5024a13a29.png?ex=69c138b1&is=69bfe731&hm=7c023ccac924adeac69cf08034999ccc6cfc02b3392fe7313ae8dae1b576fab0&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(140).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

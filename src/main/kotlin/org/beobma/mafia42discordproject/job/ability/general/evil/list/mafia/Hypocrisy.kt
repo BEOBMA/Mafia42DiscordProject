@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 class Hypocrisy : PassiveAbility, JobSpecificExtraAbility {
     override val name: String = "위선"
     override val description: String = "첫번째 밤에 시민팀에 의해 직업을 조사받을 경우, 의사 직업으로 판정된다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1484619163698860113/d8e4dda05a4ee88a.png?ex=69bee2d7&is=69bd9157&hm=4168923b5a3fc683c9dc587a04b7486c1c6557ca252650b9d57198cc6dc9d83e&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(158).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Mafia::class)
 
     override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {

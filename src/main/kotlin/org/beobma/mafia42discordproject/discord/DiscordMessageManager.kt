@@ -4,9 +4,12 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 
 object DiscordMessageManager {
     fun mention(user: User): String = user.mention
@@ -38,6 +41,34 @@ object DiscordMessageManager {
 
     suspend fun Game.sendMainChannelMessageWithImage(imageLink: String, message: String) {
         sendMainChannerCombinedMessage(imageLink, message)
+    }
+
+    suspend fun Game.playGameSound(soundPath: String) {
+        val voiceChannelId = this.voiceChannelId ?: return
+        runCatching {
+            LavalinkManager.play(
+                kord = this.guild.kord,
+                guildId = this.guild.id,
+                voiceChannelId = voiceChannelId,
+                source = soundPath
+            )
+        }.onFailure { error ->
+            println("⚠️ 사운드 재생 실패: ${error.message}")
+        }
+    }
+
+    suspend fun Game.sendMainChannerMessageAndSound(msg: String, soundPath: String) {
+        coroutineScope {
+            launch { sendMainChannerCombinedMessage(msg) }
+            launch { playGameSound(soundPath) }
+        }
+    }
+
+    suspend fun Game.sendMainChannelMessageWithImageAndSound(imageLink: String, message: String, soundPath: String) {
+        coroutineScope {
+            launch { sendMainChannelMessageWithImage(imageLink, message) }
+            launch { playGameSound(soundPath) }
+        }
     }
 
     suspend fun respondPublic(event: GuildChatInputCommandInteractionCreateEvent, content: String) {

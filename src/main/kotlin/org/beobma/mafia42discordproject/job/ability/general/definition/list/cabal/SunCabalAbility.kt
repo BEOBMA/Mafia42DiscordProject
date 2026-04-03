@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 class SunCabalAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "밀사"
     override val description: String = "낮마다 플레이어 한 명을 지목해 밤이 될 때 달 비밀결사 여부를 확인한다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485327465978138684/304cea36b08d2425.png?ex=69c1767f&is=69c024ff&hm=f3590d2d669bc77d97b216811609a612aae383cd54aebbbc8f68da5cdd321849&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(94).webp"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {

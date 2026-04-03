@@ -17,7 +17,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Detective
 class DetectiveAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "추리"
     override val description: String = "밤마다 플레이어 한 명을 선택하여 그 플레이어가 누구에게 능력을 사용하였는지 알아낼 수 있다."
-    override val image: String = "https://cdn.discordapp.com/attachments/1483977619258212392/1485328762202624070/33a899c97edaa848.png?ex=69c177b4&is=69c02634&hm=675ca4c2fda4553f8c860161029e23a0130659bc0bcd1e315caca477c7b55e04&"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(137).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -73,7 +73,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
                 sendDm(
                     detectivePlayer,
-                    "추리를 시작합니다. ${usedAbility.name} 대상을 ${selectedTarget.member.effectiveName}님으로 ${action}했습니다."
+                    "${caster.member.effectiveName}님이 스킬의 대상을 ${selectedTarget.member.effectiveName}님으로 ${action}했습니다."
                 )
 
                 val hasTrap = detectivePlayer.allAbilities.any { it is Trap }
@@ -84,7 +84,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
                 val casterJobName = caster.job?.name ?: "알 수 없음"
                 sendDm(
                     detectivePlayer,
-                    "함정을 통해 직업을 알아내었습니다! 직업: $casterJobName"
+                    "함정을 통해 ${caster.member.effectiveName}님의 직업이 ${casterJobName}라는 것을 알아내었습니다."
                 )
             }
         }
