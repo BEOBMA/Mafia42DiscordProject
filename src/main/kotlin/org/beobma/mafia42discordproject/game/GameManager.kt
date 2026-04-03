@@ -446,9 +446,21 @@ object GameManager {
             outputLines += "## ${runIndex + 1}회차"
             outputLines += "[가상 선호/보석 설정]"
             players.forEach { player ->
-                val preferenceNames = player.preferences.joinToString(", ") { it.name }
+                val assignedJobName = player.assignedJob?.name
+                val highlightedPreferences = player.preferences.joinToString(", ") { preference ->
+                    if (preference.name == assignedJobName) {
+                        "🟩 **${preference.name}**(적중)"
+                    } else {
+                        preference.name
+                    }
+                }
                 val bestJobName = player.bestJob?.name ?: "없음"
-                outputLines += "- ${player.name}: 선호=[$preferenceNames], 보석=$bestJobName"
+                val highlightedBestJob = if (bestJobName == assignedJobName) {
+                    "🟪 **${bestJobName}**(적중)"
+                } else {
+                    bestJobName
+                }
+                outputLines += "- ${player.name}: 선호=[$highlightedPreferences], 보석=$highlightedBestJob"
             }
 
             outputLines += "[직업 배정 과정]"
@@ -457,7 +469,15 @@ object GameManager {
             outputLines += "[직업 배정 결과]"
             players.forEach { player ->
                 val assignedJobName = player.assignedJob?.name ?: "배정 실패"
-                outputLines += "- ${player.name} -> $assignedJobName"
+                val preferenceHit = player.preferences.any { it.name == assignedJobName }
+                val bestHit = player.bestJob?.name == assignedJobName
+                val hitStatus = buildList {
+                    if (preferenceHit) add("🟩 선호 적중")
+                    if (bestHit) add("🟪 보석 적중")
+                }.joinToString(" / ")
+                val hitSuffix = if (hitStatus.isBlank()) "" else " [$hitStatus]"
+
+                outputLines += "- ${player.name} -> $assignedJobName$hitSuffix"
                 if (player.assignedJob != null) {
                     assignedJobCountByName[assignedJobName] = (assignedJobCountByName[assignedJobName] ?: 0) + 1
                 }
