@@ -425,6 +425,88 @@ object GameManager {
         }
     }
 
+
+
+    data class JobAssignmentSimulationResult(
+        val lines: List<String>,
+        val assignedJobCountByName: Map<String, Int>
+    )
+
+    fun simulateJobAssignmentForVirtualPlayers(repeatCount: Int, playerCount: Int = FULL_GAME_PLAYER_COUNT): JobAssignmentSimulationResult {
+        require(repeatCount > 0) { "repeatCount는 1 이상이어야 합니다." }
+        require(playerCount >= 4) { "playerCount는 4 이상이어야 합니다." }
+
+        val assignedJobCountByName = mutableMapOf<String, Int>()
+        val outputLines = mutableListOf<String>()
+
+        repeat(repeatCount) { runIndex ->
+            val players = buildVirtualAssignmentPlayers(playerCount)
+            val trace = assignJobs(players)
+
+            outputLines += "## ${runIndex + 1}회차"
+            outputLines += "[가상 선호/보석 설정]"
+            players.forEach { player ->
+                val preferenceNames = player.preferences.joinToString(", ") { it.name }
+                val bestJobName = player.bestJob?.name ?: "없음"
+                outputLines += "- ${player.name}: 선호=[$preferenceNames], 보석=$bestJobName"
+            }
+
+            outputLines += "[직업 배정 과정]"
+            outputLines += trace.lines
+
+            outputLines += "[직업 배정 결과]"
+            players.forEach { player ->
+                val assignedJobName = player.assignedJob?.name ?: "배정 실패"
+                outputLines += "- ${player.name} -> $assignedJobName"
+                if (player.assignedJob != null) {
+                    assignedJobCountByName[assignedJobName] = (assignedJobCountByName[assignedJobName] ?: 0) + 1
+                }
+            }
+            outputLines += ""
+        }
+
+        return JobAssignmentSimulationResult(
+            lines = outputLines,
+            assignedJobCountByName = assignedJobCountByName.toSortedMap()
+        )
+    }
+
+    private fun buildVirtualAssignmentPlayers(playerCount: Int): MutableList<AssignmentPlayer> {
+        val allJobs = JobManager.getAll()
+        val assistantPool = allJobs.filter { it is Evil && it.name != "마피아" }
+        val policePool = allJobs.filter { it.name in policeJobNames }
+        val specialPool = allJobs.filter {
+            it !is Evil &&
+                it.name != "의사" &&
+                it.name !in policeJobNames
+        }
+
+        if (assistantPool.isEmpty() || policePool.isEmpty() || specialPool.size < 5) {
+            throw IllegalStateException("가상 플레이어 선호 직업 풀을 구성할 수 없습니다.")
+        }
+
+        val mafia = JobManager.findByName("마피아")
+        val doctor = JobManager.findByName("의사")
+
+        return MutableList(playerCount) { index ->
+            val assistant = assistantPool.random()
+            val police = policePool.random()
+            val specials = specialPool.shuffled().take(5)
+            val preferences = buildList {
+                add(assistant)
+                add(police)
+                addAll(specials)
+            }
+
+            val bestCandidates = (preferences + listOfNotNull(mafia, doctor)).distinctBy(Job::name)
+            AssignmentPlayer(
+                name = "가상플레이어${index + 1}",
+                preferences = preferences,
+                bestJob = bestCandidates.randomOrNull()
+            )
+        }
+    }
+
     private fun assignJobs(players: MutableList<AssignmentPlayer>): AssignmentTrace {
         val trace = AssignmentTrace()
         val requiredCounts = resolveRequiredRoleCounts(players.size)
