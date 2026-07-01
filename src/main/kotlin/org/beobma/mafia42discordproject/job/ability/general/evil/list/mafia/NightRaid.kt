@@ -22,6 +22,7 @@ class NightRaid : JobUniqueAbility, PassiveAbility {
         val mafiaAttack = event.attacks.firstOrNull { it.attacker == owner } ?: return
         if (mafiaAttack.target.job !is Doctor) return
         mafiaAttack.target.state.isJobPubliclyRevealed = true
+        game.publiclyRevealedJobNames += Doctor().name
 
         event.presentation = DawnPresentation(
             imageUrl = nightRaidImageUrl,

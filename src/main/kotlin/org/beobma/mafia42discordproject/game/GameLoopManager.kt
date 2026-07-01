@@ -354,6 +354,7 @@ object GameLoopManager {
             (player.job as? Hypnotist)?.selectedTargetIdTonight = null
             (player.job as? HitMan)?.let { hitMan ->
                 hitMan.firstContractTargetId = null
+                hitMan.firstContractSelectedTargetId = null
                 hitMan.firstContractGuessedJobName = null
             }
             (player.job as? Spy)?.remainingIntelUsesTonight = 1
@@ -530,7 +531,7 @@ object GameLoopManager {
         if (deferredProcessedEvents.isNotEmpty()) {
             game.pendingDayStartDiscoveries += deferredProcessedEvents
         }
-        JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents.filterNot(::shouldNotifyAtDayStart))
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(processedEvents.filterNot(::shouldNotifyAtDayStart), game)
         val deaths = playersToDie.toList()
         val dawnPresentation = buildDawnPresentation(game, deaths)
 
@@ -542,7 +543,7 @@ object GameLoopManager {
         if (additionalDeferredEvents.isNotEmpty()) {
             game.pendingDayStartDiscoveries += additionalDeferredEvents
         }
-        JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents.filterNot(::shouldNotifyAtDayStart))
+        JobDiscoveryNotificationManager.notifyDiscoveredTargets(additionalProcessedEvents.filterNot(::shouldNotifyAtDayStart), game)
         applyProbationCitizenConversion(game)
 
         val summary = NightResolutionSummary(
@@ -699,6 +700,7 @@ object GameLoopManager {
                 target.state.hasUsedMadScientistAnalysis = false
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
+            game.publiclyRevealedJobNames += priestJob.name
 
             game.sendMainChannelMessageWithImageAndSound(
                 imageLink = SystemImage.PRIEST_RESURRECTION.imageUrl,
@@ -726,6 +728,8 @@ object GameLoopManager {
 
             deadPlayer.state.isJobPubliclyRevealed = true
             originalTarget.state.isJobPubliclyRevealed = true
+            deadPlayer.job?.name?.let(game.publiclyRevealedJobNames::add)
+            originalTarget.job?.name?.let(game.publiclyRevealedJobNames::add)
 
             val deadRole = (deadPlayer.job as? Couple)?.role
             val originalRole = (originalTarget.job as? Couple)?.role.toDisplayName()
@@ -1012,6 +1016,7 @@ object GameLoopManager {
             if (revealNight != null && revealNight <= game.dayCount) {
                 player.state.pendingMadScientistPublicRevealNight = null
                 player.state.isMadScientistDistortionHidden = false
+                game.publiclyRevealedJobNames += MadScientist().name
                 if (mainChannel != null) {
                     game.sendMainChannelMessageWithImageAndSound(
                         imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
@@ -1051,6 +1056,7 @@ object GameLoopManager {
             } else {
                 player.state.isMadScientistDistortionHidden = false
                 player.state.pendingMadScientistPublicRevealNight = null
+                game.publiclyRevealedJobNames += MadScientist().name
                 if (mainChannel != null) {
                     game.sendMainChannelMessageWithImageAndSound(
                         imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
@@ -1885,6 +1891,7 @@ object GameLoopManager {
         if (shouldRevealJudge) {
             judgeJob.hasRevealedAuthority = true
             judgePlayer.state.isJobPubliclyRevealed = true
+            game.publiclyRevealedJobNames += judgeJob.name
             if (judgePlayer.allAbilities.any { it is UnwrittenRule }) {
                 game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
             }
@@ -1953,6 +1960,7 @@ object GameLoopManager {
 
         if (target.job is Politician) {
             val politicianJob = target.job ?: return
+            game.publiclyRevealedJobNames += politicianJob.name
             if (!target.state.isJobPubliclyRevealed) {
                 target.state.isJobPubliclyRevealed = true
                 if (target.allAbilities.any { it is UnwrittenRule }) {
@@ -2275,6 +2283,8 @@ object GameLoopManager {
 
             player.state.isJobPubliclyRevealed = true
             selectedTarget.state.isJobPubliclyRevealed = true
+            player.job?.name?.let(game.publiclyRevealedJobNames::add)
+            selectedTarget.job?.name?.let(game.publiclyRevealedJobNames::add)
 
             val (explosionImageUrl, explosionMessage) = if (isNightBombTriggered) {
                 TERRORIST_NIGHT_MAFIA_BOMB_IMAGE_URL to
@@ -2303,6 +2313,8 @@ object GameLoopManager {
 
         executedTarget.state.isJobPubliclyRevealed = true
         selectedTarget.state.isJobPubliclyRevealed = true
+        executedTarget.job?.name?.let(game.publiclyRevealedJobNames::add)
+        selectedTarget.job?.name?.let(game.publiclyRevealedJobNames::add)
 
         game.sendMainChannelMessageWithImageAndSound(
             TERRORIST_VOTE_EXPLOSION_IMAGE_URL,
@@ -2574,6 +2586,7 @@ object GameLoopManager {
             .forEach { victim ->
                 victim.state.isJobPubliclyRevealed = true
                 val revealedJob = victim.job
+                revealedJob?.name?.let(game.publiclyRevealedJobNames::add)
                 messageLines += "${victim.member.effectiveName}가 살해당하였습니다." +
                     if (revealedJob != null) "\n${victim.member.effectiveName}님의 직업은 ${revealedJob.name}입니다." else ""
                 pickImage(VIGILANTE_EXECUTION_IMAGE_URL)
@@ -2623,6 +2636,7 @@ object GameLoopManager {
 
         if (doctorSavedTarget != null) {
             game.publiclyRevealedAbilityTargetIds += doctorSavedTarget.member.id
+            game.publiclyRevealedJobNames += Doctor().name
             messageLines += "${doctorSavedTarget.member.effectiveName}님이 의사의 치료를 받고 살아났습니다!"
             pickImage(SystemImage.DOCTOR_HEAL.imageUrl)
         }
@@ -2771,6 +2785,7 @@ object GameLoopManager {
 
         val revealedJob = victim.job ?: return
         victim.state.isJobPubliclyRevealed = true
+        game.publiclyRevealedJobNames += revealedJob.name
         game.sendMainChannelMessageWithImage(
             imageLink = BELONGINGS_REVEAL_IMAGE_URL,
             message = "${victim.member.effectiveName}님의 유품을 통해 직업이 ${revealedJob.name}(이)라고 밝혀졌습니다!"
@@ -3229,6 +3244,7 @@ object GameLoopManager {
                 launch { JobDiscoveryNotificationManager.notifyDiscoveredTargets(listOf(event), game) }
                 launch { game.playGameSound(REPORTER_SCOOP_SOUND_PATH) }
             }
+            game.publiclyRevealedJobNames += reporter.name
             reporter.hasPublishedArticle = true
         }
     }

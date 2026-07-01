@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -128,6 +129,9 @@ object GameArchiveManager {
                 put("pendingEscapedPlayerIds", toSortedIdArray(game.pendingEscapedPlayerIds))
                 put("pendingNightDeathPlayerIds", toSortedIdArray(game.pendingNightDeathPlayerIds))
                 put("publiclyRevealedAbilityTargetIds", toSortedIdArray(game.publiclyRevealedAbilityTargetIds))
+                put("publiclyRevealedJobNames", buildJsonArray {
+                    game.publiclyRevealedJobNames.sorted().forEach(::add)
+                })
                 put("usedMegaphonePlayerIds", toSortedIdArray(game.usedMegaphonePlayerIds))
                 put("usedSecretLetterPlayerIds", toSortedIdArray(game.usedSecretLetterPlayerIds))
                 put("ghostTriggeredGhouls", toSortedIdArray(game.ghostTriggeredGhouls))

@@ -14,6 +14,7 @@ class HitMan : Job(), Evil {
     override val abilities: MutableList<JobUniqueAbility> = mutableListOf(HitManAbilityTwo(), HitManAbility())
 
     var firstContractTargetId: Snowflake? = null
+    var firstContractSelectedTargetId: Snowflake? = null
     var firstContractGuessedJobName: String? = null
     var hasContactedMafia: Boolean = false
 }

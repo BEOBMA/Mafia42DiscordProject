@@ -21,8 +21,8 @@ import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
-    override val description: String = "두 번째 밤부터 공개적으로 능력이 사용된 대상을 제외한 시민 두 명을 지목하여 직업을 맞출 경우 둘 다 암살한다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(113).webp"
+    override val description: String = "두 번째 밤부터 시민 두 명을 지목하여 직업을 맞출 경우 둘 다 암살한다. 존재가 드러난 직업은 지정할 수 없다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/hitman_hit.webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     fun activateWithJobName(game: Game, caster: PlayerData, target: PlayerData?, guessedJobName: String?): AbilityResult {
@@ -35,23 +35,28 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "자기 자신은 청부할 수 없습니다.")
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        if (effectiveTarget.member.id in game.publiclyRevealedAbilityTargetIds || effectiveTarget.member.id in game.pendingEscapedPlayerIds) {
-            return AbilityResult(false, "공개적으로 능력이 사용된 대상은 청부 대상으로 지정할 수 없습니다.")
+        if (effectiveTarget.member.id in game.pendingEscapedPlayerIds) {
+            return AbilityResult(false, "도주 예정 대상은 청부 대상으로 지정할 수 없습니다.")
         }
 
         val guessedJob = guessedJobName?.takeIf { it.isNotBlank() }?.let(JobManager::findByName)
             ?: return AbilityResult(false, "직업을 정확히 선택해야 합니다.")
+        if (guessedJob.name in game.publiclyRevealedJobNames) {
+            return AbilityResult(false, "이미 존재가 공개된 직업은 청부 직업으로 지정할 수 없습니다.")
+        }
 
         val hitManJob = caster.job as? HitMan ?: return AbilityResult(false, "청부업자만 사용할 수 있습니다.")
         val firstTargetId = hitManJob.firstContractTargetId
+        val firstSelectedTargetId = hitManJob.firstContractSelectedTargetId
 
-        if (firstTargetId == null) {
+        if (firstTargetId == null || firstSelectedTargetId == null) {
             hitManJob.firstContractTargetId = effectiveTarget.member.id
+            hitManJob.firstContractSelectedTargetId = target.member.id
             hitManJob.firstContractGuessedJobName = guessedJob.name
             return AbilityResult(true, contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name))
         }
 
-        if (firstTargetId == effectiveTarget.member.id) {
+        if (firstSelectedTargetId == target.member.id) {
             return AbilityResult(false, "서로 다른 두 명을 지목해야 합니다.")
         }
 
@@ -63,6 +68,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         val secondIntuition = contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name)
 
         hitManJob.firstContractTargetId = null
+        hitManJob.firstContractSelectedTargetId = null
         hitManJob.firstContractGuessedJobName = null
 
         scheduleResolution(game, caster, firstTarget, firstJobName, effectiveTarget, guessedJob.name)
@@ -145,7 +151,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private suspend fun killByContract(game: Game, targets: List<PlayerData>) {
-        val aliveTargets = targets.filterNot { it.state.isDead }
+        val aliveTargets = targets.distinctBy { it.member.id }.filterNot { it.state.isDead }
         if (aliveTargets.isEmpty()) return
 
         aliveTargets.forEach { target ->

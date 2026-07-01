@@ -84,7 +84,9 @@ object AbilityUseCommand : DiscordCommand {
                             .filter { AdministratorInvestigationPolicy.isJobSelectable(it, hasCooperation, hasIdentification) }
                             .map { it.name }
                     }
-                    is HitManAbility -> JobManager.getAll().map { it.name }
+                    is HitManAbility -> JobManager.getAll()
+                        .map { it.name }
+                        .filterNot { it in game.publiclyRevealedJobNames }
                     else -> return
                 }
                     .distinct()
