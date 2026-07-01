@@ -100,10 +100,10 @@ object GameManager {
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
-    private const val GAME_MAIN_CHANNEL_ID = 1485008595727679690L
-    private const val GAME_MAFIA_CHANNEL_ID = 1485008648886423622L
-    private const val GAME_COUPLE_CHANNEL_ID = 1485008669279125745L
-    private const val GAME_DEAD_CHANNEL_ID = 1485008691961790484L
+    private const val GAME_MAIN_CHANNEL_ID = 1521943257884528671L
+    private const val GAME_MAFIA_CHANNEL_ID = 1521943318790144021L
+    private const val GAME_COUPLE_CHANNEL_ID = 1521943398540378275L
+    private const val GAME_DEAD_CHANNEL_ID = 1521943426893877359L
     private const val SHAMAN_RELAY_COMMAND = "접신"
     private const val SHAMANED_RELAY_COMMAND = "강령"
     private const val MEGAPHONE_COMMAND = "확성기"
@@ -234,11 +234,11 @@ object GameManager {
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
+        setupGameChannels(this)
+        GameLoopManager.prepareGameChannels(this)
+        sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
-
-        setupGameChannels(this)
-        sendGameChannelSpacer(this)
 
         deferredResponse.respond {
             content = buildString {
@@ -304,11 +304,11 @@ object GameManager {
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
         this.applyAssignedJobs(assignmentPlayers)
+        setupGameChannels(this)
+        GameLoopManager.prepareGameChannels(this)
+        sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted(guild)
-
-        setupGameChannels(this)
-        sendGameChannelSpacer(this)
 
         event.message.channel.createMessage(
             buildString {
@@ -635,6 +635,7 @@ object GameManager {
             .eachCount()
 
         val selected = mutableListOf<Job>()
+        val selectedJobNames = mutableSetOf<String>()
         var assignedSlots = 0
         fun slotsFor(job: Job): Int = if (job.name == "연인" || job.name == "비밀결사") 2 else 1
         val preferredPlayerCountByName = players
@@ -648,6 +649,7 @@ object GameManager {
             val weightedEligible = allCandidates
                 .filter { candidate ->
                     val requiredSlots = slotsFor(candidate)
+                    if (candidate.name in selectedJobNames) return@filter false
                     if (requiredSlots > remaining) return@filter false
                     if (requiredSlots == 2 && (preferredPlayerCountByName[candidate.name] ?: 0) < 2) return@filter false
                     if ((preferenceWeightByName[candidate.name] ?: 0) <= 0) return@filter false
@@ -660,6 +662,7 @@ object GameManager {
             val picked = pickByWeight(weightedEligible) ?: weightedEligible.random().first
             val needed = slotsFor(picked)
             repeat(needed) { selected += picked }
+            selectedJobNames += picked.name
             assignedSlots += needed
             trace.add("[2단계] 비고정 직업 선택: ${picked.name} (${assignedSlots}/$slotCount)")
         }

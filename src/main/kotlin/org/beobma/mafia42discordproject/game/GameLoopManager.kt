@@ -140,6 +140,16 @@ object GameLoopManager {
         timeStatusMessage = null
     }
 
+    suspend fun prepareGameChannels(game: Game) {
+        val mafiaChannel = game.mafiaChannel ?: return
+        val coupleChannel = game.coupleChannel ?: return
+        val deadChannel = game.deadChannel ?: return
+
+        updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
+        updateCoupleChannelPermissions(game, coupleChannel, isNight = false)
+        updateDeadChannelPermissions(game, deadChannel)
+    }
+
     suspend fun clearTimeThread() {
         runCatching {
             timeThreadChannel?.delete("게임 종료로 인한 시간 스레드 정리")
@@ -577,7 +587,7 @@ object GameLoopManager {
         if (hadSoldierBulletproofTrigger) {
             game.playGameSound(SOLDIER_BULLETPROOF_SOUND_PATH)
         }
-        if (game.doctorSavedTargetTonight != null) {
+        if (game.doctorSavedTargetTonight != null && !game.concealmentForcedQuietNight) {
             game.playGameSound(DOCTOR_HEAL_SOUND_PATH)
         }
 
@@ -1302,7 +1312,14 @@ object GameLoopManager {
                 if (player.job is Couple) {
                     val canAccess = isNight && !shouldRestrictCommunication(player)
                     addMemberOverwrite(player.member.id) {
-                        allowed = Permissions(Permission.ViewChannel)
+                        allowed = if (canAccess) {
+                            Permissions(
+                                Permission.ViewChannel,
+                                Permission.SendMessages
+                            )
+                        } else {
+                            Permissions(Permission.ViewChannel)
+                        }
                         denied = if (canAccess) {
                             Permissions(Permission.ReadMessageHistory)
                         } else {

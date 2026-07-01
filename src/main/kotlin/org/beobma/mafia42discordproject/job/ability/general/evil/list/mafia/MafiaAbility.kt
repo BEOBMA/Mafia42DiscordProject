@@ -64,9 +64,13 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.ABSOLUTE
         }
 
-        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val redirectedTarget = resolveCoupleRedirectTarget(game, effectiveTarget)
-        if (redirectedTarget != target) {
+        val coupleRedirectedTarget = resolveCoupleRedirectTarget(game, target)
+        val redirectedTarget = if (coupleRedirectedTarget != target) {
+            coupleRedirectedTarget
+        } else {
+            HackerRedirectManager.resolveTarget(game, target) ?: target
+        }
+        if (coupleRedirectedTarget != target) {
             game.coupleSacrificeMap[redirectedTarget.member.id] = target.member.id
         }
 
