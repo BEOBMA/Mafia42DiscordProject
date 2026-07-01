@@ -5,10 +5,14 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.AttackTier
+import org.beobma.mafia42discordproject.game.system.DiscoveryStep
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -44,11 +48,19 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        val searchEvent = GameEvent.PoliceSearchResolved(
+            police = caster,
+            target = effectiveTarget,
+            isMafia = effectiveTarget.job is Mafia
+        )
+        dispatchPassiveEvent(game, searchEvent)
+
         vigilante.fixedPurgeTargetId = effectiveTarget.member.id
-        vigilante.hasDiscoveredMafiaTarget = effectiveTarget.job is Mafia
+        vigilante.hasDiscoveredMafiaTarget = searchEvent.isMafia
         vigilante.discoveredMafiaDayCount = if (vigilante.hasDiscoveredMafiaTarget) game.dayCount else null
 
         return if (vigilante.hasDiscoveredMafiaTarget) {
+            dispatchMafiaDiscoveryEvent(game, caster, effectiveTarget)
             AbilityResult(
                 true,
                 "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(4).webp\n${target.member.effectiveName}님은 마피아 입니다."
@@ -56,6 +68,35 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         } else {
             AbilityResult(true, "${target.member.effectiveName}님은 마피아가 아닙니다.")
         }
+    }
+
+    private fun dispatchMafiaDiscoveryEvent(game: Game, caster: PlayerData, target: PlayerData) {
+        val targetJob = target.job as? Mafia ?: return
+        val discoveryEvent = GameEvent.JobDiscovered(
+            discoverer = caster,
+            target = target,
+            actualJob = targetJob,
+            revealedJob = FrogCurseManager.displayedJob(target) ?: targetJob,
+            sourceAbilityName = name,
+            resolvedAt = DiscoveryStep.DAY,
+            notifyTarget = false,
+            imageUrl = image
+        )
+        dispatchPassiveEvent(game, discoveryEvent)
+    }
+
+    private fun dispatchPassiveEvent(game: Game, event: GameEvent) {
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { player ->
+                player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onEventObserved(game, player, event)
+                    }
+            }
     }
 }
 
