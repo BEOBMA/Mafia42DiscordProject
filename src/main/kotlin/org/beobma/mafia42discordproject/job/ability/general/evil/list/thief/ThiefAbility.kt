@@ -16,6 +16,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Mafi
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 
@@ -72,7 +73,10 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
 
         val targetAbility = targetJob.abilities
             .filterIsInstance<ActiveAbility>()
-            .firstOrNull { it.name != name } as? JobUniqueAbility
+            .firstOrNull { ability ->
+                ability.name != name &&
+                    (targetJob !is Vigilante || ability.usablePhase == GamePhase.NIGHT)
+            } as? JobUniqueAbility
             ?: return AbilityResult(false, "훔칠 수 있는 고유 능력이 없습니다.")
         val stolenAbility = instantiateAbility(targetAbility)
 

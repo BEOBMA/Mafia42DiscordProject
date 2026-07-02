@@ -17,6 +17,7 @@ object JobDiscoveryNotificationManager {
                 SwindlerManager.notifyFooledByDiscovery(event)
 
                 if (event.isPublicReveal) {
+                    event.target.state.isJobPubliclyRevealed = true
                     game?.publiclyRevealedJobNames?.add(event.revealedJob.name)
                     runCatching {
                         val message = if (event.sourceAbilityName == "특종") {

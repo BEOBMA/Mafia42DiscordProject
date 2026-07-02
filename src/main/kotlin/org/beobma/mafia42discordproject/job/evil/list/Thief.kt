@@ -16,6 +16,7 @@ class Thief : Job(), Evil {
     var hasContactedMafia: Boolean = false
     var hasStolenPoliticianAbility: Boolean = false
     var hasStolenJudgeAbility: Boolean = false
+    var hasUsedStolenVigilanteNightPurge: Boolean = false
     private var stolenAbility: JobUniqueAbility? = null
 
     fun setStolenAbility(ability: JobUniqueAbility?) {

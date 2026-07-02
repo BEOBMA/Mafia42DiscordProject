@@ -2556,9 +2556,11 @@ object GameLoopManager {
             }
         }
 
-        attacks
-            .filter { it.attacker.job is Vigilante && it.target in deathsSet && it.target.job is Evil }
-            .map { it.target }
+        attacksByKey
+            .filter { (attackKey, attack) ->
+                attackKey.startsWith("VIGILANTE_") && attack.target in deathsSet
+            }
+            .map { (_, attack) -> attack.target }
             .distinctBy { it.member.id }
             .forEach { victim ->
                 victim.state.isJobPubliclyRevealed = true
