@@ -10,6 +10,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -55,7 +56,7 @@ object JobPreferenceManager {
                         println("[JobPreferenceManager] 알 수 없는 직업을 건너뜁니다: $name")
                     }
                 }
-            }
+            }.filter { job -> job.name != MentalPatient.JOB_NAME }
 
             if (jobs.isNotEmpty()) {
                 loaded[userId] = jobs

@@ -54,6 +54,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Shaman
@@ -121,7 +122,27 @@ object GameManager {
     private const val AGENT_JOB_NAME = "요원"
     private const val NURSE_JOB_NAME = "간호사"
     private const val CITIZEN_JOB_NAME = "시민"
+    private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
+
+    enum class GameStartMode(
+        val optionValue: String,
+        val displayName: String
+    ) {
+        NORMAL("일반", "일반"),
+        MADNESS("미치광이", "미치광이");
+
+        companion object {
+            fun parse(raw: String?): GameStartMode? {
+                val normalized = raw?.trim()?.lowercase() ?: return NORMAL
+                return when (normalized) {
+                    "", "일반", "normal" -> NORMAL
+                    "미치광이", "madness", "crazy", "mad" -> MADNESS
+                    else -> null
+                }
+            }
+        }
+    }
 
     data class SpiritRelayResult(
         val isSuccess: Boolean,
@@ -158,7 +179,10 @@ object GameManager {
         var completedRounds: Int = 0
     )
 
-    suspend fun start(event: GuildChatInputCommandInteractionCreateEvent) {
+    suspend fun start(
+        event: GuildChatInputCommandInteractionCreateEvent,
+        mode: GameStartMode = GameStartMode.NORMAL
+    ) {
         val interaction = event.interaction
         val guild = interaction.getGuild()
 
@@ -166,23 +190,31 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
+        game.isCrazyMode = mode == GameStartMode.MADNESS
 
-        game.start(event)
+        game.start(event, mode)
     }
 
-    suspend fun start(event: MessageCreateEvent) {
+    suspend fun start(
+        event: MessageCreateEvent,
+        mode: GameStartMode = GameStartMode.NORMAL
+    ) {
         val guild = event.getGuildOrNull() ?: return
 
         val game = Game(
             playerDatas = mutableListOf(),
             guild = guild,
         )
+        game.isCrazyMode = mode == GameStartMode.MADNESS
 
         // 기존 로직 실행
-        game.start(event)
+        game.start(event, mode)
     }
 
-    private suspend fun Game.start(event: GuildChatInputCommandInteractionCreateEvent) {
+    private suspend fun Game.start(
+        event: GuildChatInputCommandInteractionCreateEvent,
+        mode: GameStartMode
+    ) {
         val interaction = event.interaction
         if (currentGame != null) {
             DiscordMessageManager.respondEphemeral(event, "이미 게임이 진행 중입니다.")
@@ -244,7 +276,9 @@ object GameManager {
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
+        applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
+        this.assignMentalPatientDisplayedJobs(assignmentPlayers)
         setupGameChannels(this)
         GameLoopManager.prepareGameChannels(this)
         sendGameChannelSpacer(this)
@@ -255,13 +289,14 @@ object GameManager {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
                 appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("모드: ${mode.displayName}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
         }
     }
 
-    private suspend fun Game.start(event: MessageCreateEvent) {
+    private suspend fun Game.start(event: MessageCreateEvent, mode: GameStartMode) {
         if (currentGame != null) {
             event.message.channel.createMessage("이미 게임이 진행 중입니다.")
             return
@@ -315,7 +350,9 @@ object GameManager {
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
+        applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
+        this.assignMentalPatientDisplayedJobs(assignmentPlayers)
         setupGameChannels(this)
         GameLoopManager.prepareGameChannels(this)
         sendGameChannelSpacer(this)
@@ -325,6 +362,7 @@ object GameManager {
         event.message.channel.createMessage(
             buildString {
                 appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("모드: ${mode.displayName}")
                 appendLine()
                 append(DiscordMessageManager.mentions(membersInSameVoice))
             }
@@ -451,7 +489,7 @@ object GameManager {
     }
 
     private fun buildNonFixedExcludedJobNames(playerCount: Int): Set<String> {
-        val excluded = mutableSetOf(MAFIA_JOB_NAME, DOCTOR_JOB_NAME)
+        val excluded = mutableSetOf(MAFIA_JOB_NAME, DOCTOR_JOB_NAME, MENTAL_PATIENT_JOB_NAME)
         excluded += policeJobNames
         if (playerCount == SEVEN_PLAYER_COUNT) {
             excluded += NURSE_JOB_NAME
@@ -464,6 +502,80 @@ object GameManager {
         return JobManager.getAll().filter { candidate ->
             candidate !is Evil &&
                 candidate.name !in excludedJobNames
+        }
+    }
+
+    private fun applyMadnessModeMentalPatientReplacements(
+        players: MutableList<AssignmentPlayer>,
+        mode: GameStartMode
+    ) {
+        if (mode != GameStartMode.MADNESS) return
+
+        val mentalPatientJob = JobManager.findByName(MENTAL_PATIENT_JOB_NAME) ?: return
+        val replacementCount = mentalPatientCountFor(players.size)
+        if (replacementCount <= 0) return
+
+        val candidates = players
+            .filter { player ->
+                val assignedJob = player.assignedJob ?: return@filter false
+                isMentalPatientReplacementCandidate(assignedJob, players.size)
+            }
+            .shuffled()
+            .take(replacementCount)
+
+        candidates.forEach { player ->
+            player.assignedJob = mentalPatientJob
+        }
+    }
+
+    private fun Game.assignMentalPatientDisplayedJobs(players: List<AssignmentPlayer>) {
+        val assignmentByMemberId = players
+            .mapNotNull { assignment -> assignment.memberId?.let { it to assignment } }
+            .toMap()
+
+        playerDatas.forEach { player ->
+            val mentalPatient = player.job as? MentalPatient ?: return@forEach
+            val assignment = assignmentByMemberId[player.member.id]
+            mentalPatient.displayedJob = pickMentalPatientDisplayedJob(assignment, playerDatas.size)
+        }
+    }
+
+    private fun pickMentalPatientDisplayedJob(
+        assignment: AssignmentPlayer?,
+        playerCount: Int
+    ): Job? {
+        val candidates = getMentalPatientDisplayJobCandidates(playerCount)
+        if (candidates.isEmpty()) return null
+
+        val preferredCandidates = assignment
+            ?.preferences
+            .orEmpty()
+            .filter { preference -> candidates.any { candidate -> candidate.name == preference.name } }
+            .distinctBy(Job::name)
+
+        val picked = preferredCandidates.randomOrNull() ?: candidates.random()
+        return JobManager.createByName(picked.name) ?: picked
+    }
+
+    private fun getMentalPatientDisplayJobCandidates(playerCount: Int): List<Job> {
+        return getNonFixedJobCandidates(playerCount)
+            .filter { candidate -> candidate.name != CITIZEN_JOB_NAME }
+            .filterNot { candidate -> isPairAssignmentJob(candidate.name) }
+    }
+
+    private fun isMentalPatientReplacementCandidate(job: Job, playerCount: Int): Boolean {
+        return job !is Evil &&
+            job.name != CITIZEN_JOB_NAME &&
+            job.name !in buildNonFixedExcludedJobNames(playerCount) &&
+            !isPairAssignmentJob(job.name)
+    }
+
+    private fun mentalPatientCountFor(playerCount: Int): Int {
+        return when {
+            playerCount <= 6 -> 0
+            playerCount in 7..9 -> 1
+            playerCount >= 10 -> 2
+            else -> 0
         }
     }
 
@@ -1243,7 +1355,8 @@ object GameManager {
 
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
-            val pool = AbilityManager.getAvailableExtraAbilitiesFor(job)
+            val selectionJob = getAbilitySelectionDisplayJob(player) ?: job
+            val pool = AbilityManager.getAvailableExtraAbilitiesFor(selectionJob)
                 .distinctBy(Ability::name)
                 .shuffled()
                 .toMutableList()
@@ -1269,14 +1382,15 @@ object GameManager {
             playerDatas.forEach { player ->
                 launch {
                     val job = player.job ?: return@launch
+                    val displayJob = getAbilitySelectionDisplayJob(player) ?: job
                     val session = preparedSessions[player.member.id]
                     runCatching {
                         val dmChannel = player.member.getDmChannel()
                         val ownedAbilityMessage = buildString {
-                            job.jobImage
+                            displayJob.jobImage
                                 ?.takeIf { it.isNotBlank() }
                                 ?.let { appendLine(it) }
-                            appendAbilityImages(this, job.abilities)
+                            appendAbilityImages(this, displayJob.abilities)
                         }.trim()
                         if (ownedAbilityMessage.isNotBlank()) {
                             dmChannel.createMessage(ownedAbilityMessage)
@@ -1316,6 +1430,10 @@ object GameManager {
         }
 
         assignVirtualPlayerExtraAbilities(players)
+    }
+
+    private fun getAbilitySelectionDisplayJob(player: PlayerData): Job? {
+        return (player.job as? MentalPatient)?.displayedJob
     }
 
     private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
@@ -1408,7 +1526,11 @@ object GameManager {
 
             val pickedAbility = session.currentOptions[pickNumber - 1]
             val selectedUniqueAbility = pickedAbility as? JobUniqueAbility
-            if (selectedUniqueAbility != null && playerJob.abilities.none { it.name == selectedUniqueAbility.name }) {
+            if (
+                playerJob !is MentalPatient &&
+                selectedUniqueAbility != null &&
+                playerJob.abilities.none { it.name == selectedUniqueAbility.name }
+            ) {
                 playerJob.abilities.add(selectedUniqueAbility)
             }
             if (playerJob.extraAbilities.none { it.name == pickedAbility.name }) {
@@ -1462,11 +1584,12 @@ object GameManager {
 
         val player = game.getPlayer(userId) ?: return null
         val playerJob = player.job ?: return null
+        val selectionJob = getAbilitySelectionDisplayJob(player) ?: playerJob
         val alreadySelectedNames = playerJob.extraAbilities.map(Ability::name).toSet()
         val completedRounds = minOf(playerJob.extraAbilities.size, EXTRA_ABILITY_SELECTION_REPEAT_COUNT)
         if (completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) return null
 
-        val availablePool = AbilityManager.getAvailableExtraAbilitiesFor(playerJob)
+        val availablePool = AbilityManager.getAvailableExtraAbilitiesFor(selectionJob)
             .distinctBy(Ability::name)
             .filterNot { ability -> ability.name in alreadySelectedNames }
             .toMutableList()

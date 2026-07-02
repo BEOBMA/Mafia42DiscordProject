@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -56,6 +57,7 @@ object GameArchiveManager {
             put("guildName", game.guild.name)
             put("dayCount", game.dayCount)
             put("initialPlayerCount", game.initialPlayerCount)
+            put("isCrazyMode", game.isCrazyMode)
             put("currentPhase", game.currentPhase.name)
             put("isRunning", game.isRunning)
             putNullable("voiceChannelId", game.voiceChannelId?.value?.toString())
@@ -207,6 +209,7 @@ object GameArchiveManager {
             put("id", player.member.id.value.toString())
             put("name", player.member.effectiveName)
             putNullable("job", snapshotJob?.name)
+            putNullable("displayedJob", (player.job as? MentalPatient)?.displayedJob?.name)
             putNullable("team", teamDisplayName)
             put("abilities", buildJsonArray {
                 player.allAbilities.forEach { ability ->

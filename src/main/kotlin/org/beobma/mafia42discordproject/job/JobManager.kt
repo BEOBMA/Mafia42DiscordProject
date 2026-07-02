@@ -16,6 +16,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Magician
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.definition.list.Paparazzi
@@ -113,6 +114,7 @@ object JobManager {
             "Gangster" to { Gangster() },
             "Cabal" to { Cabal() },
             "Mentalist" to { Mentalist() },
+            "MentalPatient" to { MentalPatient() },
             "Hypnotist" to { Hypnotist() },
             "Paparazzi" to { Paparazzi() },
             "Administrator" to { Administrator() }

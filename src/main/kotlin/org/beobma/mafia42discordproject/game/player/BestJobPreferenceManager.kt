@@ -8,6 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -72,11 +73,13 @@ object BestJobPreferenceManager {
         val preferredJobNames = JobPreferenceManager.get(userId)
             .orEmpty()
             .map(Job::name)
+            .filter { it != MentalPatient.JOB_NAME }
             .toSet()
         return preferredJobNames + fixedCandidateJobNames
     }
 
     fun isAllowedJob(userId: ULong, jobName: String): Boolean {
+        if (jobName == MentalPatient.JOB_NAME) return false
         return jobName in buildAllowedJobNames(userId)
     }
 

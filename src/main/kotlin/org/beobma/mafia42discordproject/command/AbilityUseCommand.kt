@@ -35,8 +35,13 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.Hit
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -162,6 +167,17 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
             return
         }
+        if (caster.job is MentalPatient) {
+            val selectedJobName = interaction.command.strings[jobOptionName]
+            val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
+            val message = if (result.isSuccess) {
+                result.message?.takeIf { it.isNotBlank() } ?: "Your ability was used successfully."
+            } else {
+                result.message?.takeIf { it.isNotBlank() } ?: "Failed to use your ability."
+            }
+            DiscordMessageManager.respondEphemeral(event, message)
+            return
+        }
         val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
@@ -233,8 +249,102 @@ object AbilityUseCommand : DiscordCommand {
         )
     }
 
+    private fun activateMentalPatientFakeAbility(
+        game: Game,
+        caster: PlayerData,
+        selectedAbility: ActiveAbility,
+        target: PlayerData?,
+        selectedJobName: String?
+    ): AbilityResult {
+        if (caster.state.isDead) {
+            return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
+        }
+
+        return when (selectedAbility) {
+            is FortunetellerAbility -> buildMentalPatientFortuneResult(game, target)
+            is MentalistAbility -> buildMentalPatientMentalistResult(game, caster, target)
+            is AdministratorAbility -> {
+                val jobName = selectedJobName?.takeIf { it.isNotBlank() }
+                    ?: return AbilityResult(true, "이번 밤의 조회 대상을 해제했습니다.")
+                AbilityResult(true, "${jobName} 직업을 조회 대상으로 선택했습니다.")
+            }
+            else -> {
+                val targetName = target?.member?.effectiveName
+                val message = if (targetName == null) {
+                    "${selectedAbility.name} 능력을 사용했습니다."
+                } else {
+                    "${targetName}님에게 ${selectedAbility.name} 능력을 사용했습니다."
+                }
+                AbilityResult(true, message)
+            }
+        }
+    }
+
+    private fun buildMentalPatientFortuneResult(game: Game, target: PlayerData?): AbilityResult {
+        if (target == null) {
+            return AbilityResult(false, "운세 대상을 지정해야 합니다.")
+        }
+        if (target.state.isDead) {
+            return AbilityResult(false, "사망한 플레이어는 운세 대상으로 지정할 수 없습니다.")
+        }
+
+        val firstJob = randomFortuneCandidateJobName() ?: "시민"
+        val firstIsEvil = JobManager.findByName(firstJob) is Evil
+        val secondJob = JobManager.getAll()
+            .filter { it.name != MentalPatient.JOB_NAME }
+            .filter { (it is Evil) != firstIsEvil }
+            .map { it.name }
+            .distinct()
+            .randomOrNull()
+            ?: firstJob
+        val shownJobs = listOf(firstJob, secondJob).shuffled()
+
+        return AbilityResult(
+            true,
+            "${target.member.effectiveName}의 직업은 ${shownJobs[0]} 또는 ${shownJobs[1]}"
+        )
+    }
+
+    private fun randomFortuneCandidateJobName(): String? {
+        return JobManager.getAll()
+            .filter { it.name != MentalPatient.JOB_NAME }
+            .map { it.name }
+            .distinct()
+            .randomOrNull()
+    }
+
+    private fun buildMentalPatientMentalistResult(
+        game: Game,
+        caster: PlayerData,
+        target: PlayerData?
+    ): AbilityResult {
+        if (target == null) {
+            return AbilityResult(false, "관찰할 대상을 지정해야 합니다.")
+        }
+        if (target.state.isDead) {
+            return AbilityResult(false, "사망한 플레이어는 관찰 대상으로 지정할 수 없습니다.")
+        }
+        if (target.member.id == caster.member.id) {
+            return AbilityResult(false, "자기 자신은 관찰 대상으로 지정할 수 없습니다.")
+        }
+
+        val comparisonTarget = game.playerDatas
+            .filter { !it.state.isDead }
+            .filter { it.member.id != caster.member.id && it.member.id != target.member.id }
+            .randomOrNull()
+        val comparisonName = comparisonTarget?.member?.effectiveName ?: "이전 관찰 대상"
+        val relation = if (kotlin.random.Random.nextBoolean()) "같은 팀" else "다른 팀"
+
+        return AbilityResult(
+            true,
+            "관찰 결과: ${comparisonName}님과 ${target.member.effectiveName}님은 서로 **${relation}**입니다."
+        )
+    }
+
     private fun getUsableActiveAbilities(game: Game, caster: PlayerData): List<ActiveAbility> {
-        return caster.allAbilities
+        val abilitySource = (caster.job as? MentalPatient)?.activeAbilitySourceAbilities()
+            ?: caster.allAbilities
+        return abilitySource
             .filterIsInstance<ActiveAbility>()
             .filter { it.usablePhase == game.currentPhase }
             .filter { ability ->

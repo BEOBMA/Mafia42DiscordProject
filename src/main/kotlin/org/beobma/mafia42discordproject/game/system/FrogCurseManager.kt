@@ -6,6 +6,7 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.definition.list.Frog
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 object FrogCurseManager {
@@ -29,7 +30,7 @@ object FrogCurseManager {
     fun displayedJob(target: PlayerData): Job? {
         val actualJob = target.job ?: return null
         if (isCursed(target)) return Frog()
-        return SwindlerManager.disguisedJobOf(target) ?: actualJob
+        return SwindlerManager.disguisedJobOf(target) ?: (actualJob as? MentalPatient)?.displayedJob ?: actualJob
     }
 
     fun canUseActiveAbility(caster: PlayerData, ability: ActiveAbility): Boolean {

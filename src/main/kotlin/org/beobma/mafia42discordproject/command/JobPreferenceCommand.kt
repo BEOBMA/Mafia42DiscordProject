@@ -14,6 +14,7 @@ import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 object JobPreferenceCommand : DiscordCommand {
@@ -159,7 +160,12 @@ object JobPreferenceCommand : DiscordCommand {
         assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
         policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" || it.name == "자경단원" }
         in specialOptions -> JobManager.getAll().filter {
-            it.name != "경찰" && it.name != "요원" && it.name != "자경단원" && it.name != "의사" && it !is Evil
+            it.name != "경찰" &&
+                it.name != "요원" &&
+                it.name != "자경단원" &&
+                it.name != "의사" &&
+                it.name != MentalPatient.JOB_NAME &&
+                it !is Evil
         }
         else -> JobManager.getAll()
     }
