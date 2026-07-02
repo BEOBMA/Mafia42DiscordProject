@@ -11,8 +11,15 @@ import org.beobma.mafia42discordproject.job.Job
 
 data class DawnPresentation(
     val imageUrl: String,
-    val message: String
-)
+    val message: String,
+    val extraImageUrls: List<String> = emptyList()
+) {
+    val imageUrls: List<String>
+        get() = (listOf(imageUrl) + extraImageUrls)
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+}
 
 data class NightResolutionSummary(
     val processedEvents: List<GameEvent> = emptyList(),

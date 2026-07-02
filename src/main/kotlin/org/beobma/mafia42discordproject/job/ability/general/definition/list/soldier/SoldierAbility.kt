@@ -51,7 +51,8 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
                     // 아침 결과 일러스트 및 텍스트 교체 (copy 활용)
                     event.presentation = event.presentation.copy(
                         imageUrl = org.beobma.mafia42discordproject.game.system.SystemImage.SOLDIER_DEFENDED.imageUrl,
-                        message = "군인 ${owner.member.effectiveName}님이 공격을 버텨냈습니다."
+                        message = "군인 ${owner.member.effectiveName}님이 공격을 버텨냈습니다.",
+                        extraImageUrls = emptyList()
                     )
                     
                     // 군인임을 모두에게 알리는 직업 공개 이벤트 발생

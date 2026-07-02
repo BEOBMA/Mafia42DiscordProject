@@ -18,6 +18,7 @@ import kotlinx.coroutines.*
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.playGameSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImageAndSound
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerCombinedMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -628,18 +629,17 @@ object GameLoopManager {
             message = "조용하게 밤이 넘어갔습니다."
         )
         val hasPoisonedVictims = poisonedVictims.isNotEmpty()
+        val dawnPresentationImageUrls = dawnPresentation.imageUrls
         val isQuietNightPresentation =
-            dawnPresentation.imageUrl == SystemImage.QUIET_NIGHT.imageUrl &&
+            dawnPresentationImageUrls == listOf(SystemImage.QUIET_NIGHT.imageUrl) &&
                 dawnPresentation.message.contains("조용하게 밤이 넘어갔습니다.")
         val shouldSendBasePresentation =
-            (dawnPresentation.message.isNotBlank() || dawnPresentation.imageUrl.isNotBlank()) &&
+            (dawnPresentation.message.isNotBlank() || dawnPresentationImageUrls.isNotEmpty()) &&
                 (!hasPoisonedVictims || !isQuietNightPresentation)
 
         if (shouldSendBasePresentation) {
-            game.sendMainChannelMessageWithImage(
-                imageLink = dawnPresentation.imageUrl,
-                message = dawnPresentation.message
-            )
+            val presentationParts = dawnPresentationImageUrls + dawnPresentation.message
+            game.sendMainChannerCombinedMessage(*presentationParts.toTypedArray())
         }
         if (hasPoisonedVictims) {
             val poisonMessage = poisonedVictims
@@ -2551,10 +2551,10 @@ object GameLoopManager {
         val deathsSet = deaths.toSet()
         val messageLines = mutableListOf<String>()
 
-        var imageUrl = ""
+        val imageUrls = mutableListOf<String>()
         fun pickImage(candidate: String) {
-            if (imageUrl.isBlank()) {
-                imageUrl = candidate
+            if (candidate.isNotBlank() && candidate !in imageUrls) {
+                imageUrls += candidate
             }
         }
 
@@ -2630,8 +2630,9 @@ object GameLoopManager {
         }
 
         return DawnPresentation(
-            imageUrl = imageUrl,
-            message = messageLines.joinToString("\n")
+            imageUrl = imageUrls.firstOrNull().orEmpty(),
+            message = messageLines.joinToString("\n"),
+            extraImageUrls = imageUrls.drop(1)
         )
     }
 

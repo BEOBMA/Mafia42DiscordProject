@@ -101,6 +101,9 @@ object GameArchiveManager {
                 })
                 put("dawnPresentation", buildJsonObject {
                     putNullable("imageUrl", game.lastNightSummary.dawnPresentation?.imageUrl)
+                    put("imageUrls", buildJsonArray {
+                        game.lastNightSummary.dawnPresentation?.imageUrls?.forEach { add(it) }
+                    })
                     putNullable("message", game.lastNightSummary.dawnPresentation?.message)
                 })
             })
