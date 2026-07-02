@@ -353,6 +353,7 @@ object GameLoopManager {
                 administratorJob.investigationResultPlayerId = null
             }
             (player.job as? Gangster)?.prepareNightThreatSelection()
+            (player.job as? Fortuneteller)?.fixedFortuneTargetId = null
             (player.job as? Hypnotist)?.selectedTargetIdTonight = null
             (player.job as? HitMan)?.let { hitMan ->
                 hitMan.firstContractTargetId = null
