@@ -1401,7 +1401,8 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png",
             message = "투표 시간입니다. 의심되는 사람을 투표하세요.",
-            soundPath = VOTE_PHASE_SOUND_PATH
+            soundPath = VOTE_PHASE_SOUND_PATH,
+            soundVolume = 50
         )
         mainChannel.createMessage {
             actionRow {

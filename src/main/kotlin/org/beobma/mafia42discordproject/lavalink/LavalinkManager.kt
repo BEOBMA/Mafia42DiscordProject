@@ -27,6 +27,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 object LavalinkManager {
+    private const val DEFAULT_VOLUME = 100
+    private const val MAX_VOLUME = 1000
+
     private val json = Json { ignoreUnknownKeys = true }
     private val httpClient: HttpClient = HttpClient.newHttpClient()
 
@@ -93,7 +96,13 @@ object LavalinkManager {
         trySendVoiceUpdate(guildId)
     }
 
-    suspend fun play(kord: Kord, guildId: Snowflake, voiceChannelId: Snowflake, source: String): PlayResult {
+    suspend fun play(
+        kord: Kord,
+        guildId: Snowflake,
+        voiceChannelId: Snowflake,
+        source: String,
+        volume: Int = DEFAULT_VOLUME
+    ): PlayResult {
         ensureInitialized()
 
         val guildIdString = guildId.toString()
@@ -141,6 +150,7 @@ object LavalinkManager {
 
         val playerPayload = buildJsonObject {
             put("encodedTrack", selectedTrack.encoded)
+            put("volume", volume.coerceIn(0, MAX_VOLUME))
         }
 
         val playResponse = sendPatch(

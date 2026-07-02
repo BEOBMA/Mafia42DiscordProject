@@ -43,31 +43,37 @@ object DiscordMessageManager {
         sendMainChannerCombinedMessage(imageLink, message)
     }
 
-    suspend fun Game.playGameSound(soundPath: String) {
+    suspend fun Game.playGameSound(soundPath: String, volume: Int = 100) {
         val voiceChannelId = this.voiceChannelId ?: return
         runCatching {
             LavalinkManager.play(
                 kord = this.guild.kord,
                 guildId = this.guild.id,
                 voiceChannelId = voiceChannelId,
-                source = soundPath
+                source = soundPath,
+                volume = volume
             )
         }.onFailure { error ->
             println("⚠️ 사운드 재생 실패: ${error.message}")
         }
     }
 
-    suspend fun Game.sendMainChannerMessageAndSound(msg: String, soundPath: String) {
+    suspend fun Game.sendMainChannerMessageAndSound(msg: String, soundPath: String, soundVolume: Int = 100) {
         coroutineScope {
             launch { sendMainChannerCombinedMessage(msg) }
-            launch { playGameSound(soundPath) }
+            launch { playGameSound(soundPath, soundVolume) }
         }
     }
 
-    suspend fun Game.sendMainChannelMessageWithImageAndSound(imageLink: String, message: String, soundPath: String) {
+    suspend fun Game.sendMainChannelMessageWithImageAndSound(
+        imageLink: String,
+        message: String,
+        soundPath: String,
+        soundVolume: Int = 100
+    ) {
         coroutineScope {
             launch { sendMainChannelMessageWithImage(imageLink, message) }
-            launch { playGameSound(soundPath) }
+            launch { playGameSound(soundPath, soundVolume) }
         }
     }
 
