@@ -45,6 +45,7 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         }
         caster.state.hasUsedDailyAbility = true
         val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
+        val shamanedImage = SystemImage.SHAMAN_EXORCISM.imageUrl
 
         CoroutineScope(Dispatchers.Default).launch {
             runCatching {
@@ -58,7 +59,7 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             }
             runCatching {
                 if (!isEarthbound) {
-                    target.member.getDmChannel().createMessage("성불되었습니다.\n$image")
+                    target.member.getDmChannel().createMessage("${caster.member.effectiveName}님에게 성불당했습니다.\n$shamanedImage")
                 }
             }
         }

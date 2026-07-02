@@ -89,6 +89,7 @@ object GameLoopManager {
     private const val VIGILANTE_EXECUTION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(21).webp"
     private const val GODFATHER_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(17).webp"
     private const val GODFATHER_EXECUTION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(13).webp"
+    private const val HITMAN_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(27).webp"
     private const val HOSTESS_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(45).webp"
     private const val MAD_SCIENTIST_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).webp"
     private const val SPY_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(30).webp"
@@ -1129,7 +1130,7 @@ object GameLoopManager {
         announceMafiaSupportContact(
             game = game,
             contactPlayer = hitmanPlayer,
-            contactImageUrl = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(17).webp"
+            contactImageUrl = HITMAN_CONTACT_IMAGE_URL
         )
         refreshMafiaChannelContactState(game)
     }
