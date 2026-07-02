@@ -1813,6 +1813,12 @@ object GameManager {
         }
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증을 사용할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
+        if (sender.member.id in game.permanentlyDisenfranchisedVoters) {
+            return SpiritRelayResult(false, "투표권이 없어 위증을 사용할 수 없습니다.")
+        }
+        if (game.activeThreatenedVoters.containsKey(sender.member.id)) {
+            return SpiritRelayResult(false, "투표권이 없어 위증을 사용할 수 없습니다.")
+        }
         if (sender.allAbilities.none { it is Perjury }) return SpiritRelayResult(false, "위증 능력이 없습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
         game.currentFakeVotes[sender.member.id] = target.member.id
@@ -2007,45 +2013,51 @@ object GameManager {
     fun receiveMainVote(voterId: Snowflake, targetIdString: String): Boolean {
         val game = currentGame ?: return false
 
-        // 현재 페이즈가 투표(VOTE 단계일 때만 표를 받습니다.
-        if (game.currentPhase != GamePhase.VOTE) return false
-        val voter = game.getPlayer(voterId) ?: return false
-        if (voter.state.isDead) return false
-        if (voterId in game.permanentlyDisenfranchisedVoters) return false
-        if (game.activeThreatenedVoters.containsKey(voterId)) return false
-        val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
-        val target = game.getPlayer(targetId) ?: return false
-        if (target.state.isDead) return false
-        if (
-            GameLoopManager.isMadScientistDistortionHidden(voter) &&
-            voter.member.id == target.member.id
-        ) return false
-        val dictatorshipPolitician = game.playerDatas
-            .filter { !it.state.isDead && it.job !is Evil }
-            .singleOrNull()
-            ?.takeIf { it.job is Politician }
-        if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return false
+        return synchronized(game) {
+            // 현재 페이즈가 본투표 시간일 때만 표를 받습니다.
+            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return@synchronized false
+            val voter = game.getPlayer(voterId) ?: return@synchronized false
+            if (voter.state.isDead) return@synchronized false
+            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
+            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
+            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized false
+            val target = game.getPlayer(targetId) ?: return@synchronized false
+            if (target.state.isDead) return@synchronized false
+            if (
+                GameLoopManager.isMadScientistDistortionHidden(voter) &&
+                voter.member.id == target.member.id
+            ) return@synchronized false
+            val dictatorshipPolitician = game.playerDatas
+                .filter { !it.state.isDead && it.job !is Evil }
+                .singleOrNull()
+                ?.takeIf { it.job is Politician }
+            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized false
 
-        game.currentMainVotes[voterId] = target.member.id.toString()
-        if (game.dayCount == 1 && voter.job is Hostess && !game.hostessFirstVoteTargetByDay.containsKey(voterId)) {
-            game.hostessFirstVoteTargetByDay[voterId] = target.member.id
+            game.currentMainVotes[voterId] = target.member.id.toString()
+            if (game.dayCount == 1 && voter.job is Hostess && !game.hostessFirstVoteTargetByDay.containsKey(voterId)) {
+                game.hostessFirstVoteTargetByDay[voterId] = target.member.id
+            }
+            true
         }
-        return true
     }
 
     fun receivePerjuryVote(voterId: Snowflake, targetIdString: String): Boolean {
         val game = currentGame ?: return false
-        if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return false
-        val voter = game.getPlayer(voterId) ?: return false
-        if (voter.state.isDead) return false
-        if (voter.state.isSilenced) return false
-        if (voter.allAbilities.none { it is Perjury }) return false
-        val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return false
-        val target = game.getPlayer(targetId) ?: return false
-        if (target.state.isDead) return false
+        return synchronized(game) {
+            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return@synchronized false
+            val voter = game.getPlayer(voterId) ?: return@synchronized false
+            if (voter.state.isDead) return@synchronized false
+            if (voter.state.isSilenced) return@synchronized false
+            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
+            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
+            if (voter.allAbilities.none { it is Perjury }) return@synchronized false
+            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized false
+            val target = game.getPlayer(targetId) ?: return@synchronized false
+            if (target.state.isDead) return@synchronized false
 
-        game.currentFakeVotes[voterId] = target.member.id
-        return true
+            game.currentFakeVotes[voterId] = target.member.id
+            true
+        }
     }
 
     // 찬반 투표 데이터 저장
@@ -2053,7 +2065,7 @@ object GameManager {
         val game = currentGame ?: return false
 
         return synchronized(game) {
-            if (game.currentPhase != GamePhase.VOTE) return@synchronized false
+            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId == null) return@synchronized false
             val voter = game.getPlayer(voterId) ?: return@synchronized false
             if (voter.state.isDead) return@synchronized false
             if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false

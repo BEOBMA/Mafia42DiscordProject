@@ -1394,6 +1394,7 @@ object GameLoopManager {
         game.currentPhase = GamePhase.VOTE
         game.currentMainVotes.clear()
         game.currentFakeVotes.clear()
+        game.currentProsConsVotes.clear()
         game.hostessFirstVoteTargetByDay.clear()
         game.defenseTargetId = null
 
@@ -1445,6 +1446,9 @@ object GameLoopManager {
 
     suspend fun resolveVotePhase(game: Game): PlayerData? {
         val mainChannel = game.mainChannel ?: return null
+        synchronized(game) {
+            game.currentPhase = GamePhase.DAY
+        }
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
         applyHostessSeductionFromVote(game)
         val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
@@ -1489,14 +1493,7 @@ object GameLoopManager {
         val fakeVoteCounts = mutableMapOf<PlayerData, Int>()
         var invalidVoteCount = 0
         val weightedVoteTargets = mutableListOf<PlayerData>()
-        val gangsterTransferredVoteWeights = mutableMapOf<Snowflake, Int>()
-        game.activeThreatenedVoters.forEach { (threatenedId, gangsterId) ->
-            val threatened = game.getPlayer(threatenedId) ?: return@forEach
-            val gangster = game.getPlayer(gangsterId) ?: return@forEach
-            if (threatened.state.isDead || gangster.state.isDead) return@forEach
-            gangsterTransferredVoteWeights[gangsterId] =
-                (gangsterTransferredVoteWeights[gangsterId] ?: 0) + 1
-        }
+        val gangsterTransferredVoteWeights = calculateTransferredVoteWeights(game)
 
         alivePlayers.forEach { voter ->
             if (voter.member.id in game.permanentlyDisenfranchisedVoters) {
@@ -1555,7 +1552,10 @@ object GameLoopManager {
             val voter = game.getPlayer(voterId) ?: return@forEach
             val target = game.getPlayer(targetId) ?: return@forEach
             if (voter.state.isDead || target.state.isDead) return@forEach
+            if (voter.member.id in game.permanentlyDisenfranchisedVoters) return@forEach
+            if (game.activeThreatenedVoters.containsKey(voter.member.id)) return@forEach
             fakeVoteCounts[target] = (fakeVoteCounts[target] ?: 0) + 1
+            voteCounts[target] = (voteCounts[target] ?: 0) + 1
             weightedVoteTargets += target
         }
 
@@ -1632,12 +1632,15 @@ object GameLoopManager {
         isHidden: Boolean
     ): String {
         val currentVoteCounts = mutableMapOf<PlayerData, Int>()
-        game.currentMainVotes.values.forEach { targetId ->
+        val mainVoteTargetIds = synchronized(game) { game.currentMainVotes.values.toList() }
+        val fakeVoteTargetIds = synchronized(game) { game.currentFakeVotes.values.toList() }
+
+        mainVoteTargetIds.forEach { targetId ->
             val target = game.getPlayer(Snowflake(targetId)) ?: return@forEach
             if (target.state.isDead) return@forEach
             currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
         }
-        game.currentFakeVotes.values.forEach { targetId ->
+        fakeVoteTargetIds.forEach { targetId ->
             val target = game.getPlayer(targetId) ?: return@forEach
             if (target.state.isDead) return@forEach
             currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
@@ -1791,6 +1794,7 @@ object GameLoopManager {
 
     suspend fun startDefensePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
+        game.currentPhase = GamePhase.VOTE
         game.defenseTargetId = target.member.id
         (target.job as? Martyr)?.defenseBombTargetId = null
         game.sendMainChannelMessageWithImage(
@@ -1853,34 +1857,19 @@ object GameLoopManager {
     suspend fun resolveExecutionPhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
         val deadChannel = game.deadChannel
+        synchronized(game) {
+            game.currentPhase = GamePhase.DAY
+        }
         val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
+        val gangsterTransferredVoteWeights = calculateTransferredVoteWeights(game)
         val prosCount = game.currentProsConsVotes
             .filterValues { it }
             .keys
-            .sumOf { voterId ->
-                val voter = game.getPlayer(voterId)
-                when {
-                    voter == null || voter.state.isDead -> 0
-                    voter.job is Politician -> 2
-                    else -> 1
-                }
-            }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
         val consCount = game.currentProsConsVotes
             .filterValues { !it }
             .keys
-            .sumOf { voterId ->
-                val voter = game.getPlayer(voterId)
-                when {
-                    voter == null || voter.state.isDead -> 0
-                    voter.job is Politician -> 2
-                    else -> 1
-                }
-            } +
-            game.playerDatas.count { player ->
-                !player.state.isDead &&
-                    (player.member.id in game.permanentlyDisenfranchisedVoters ||
-                        game.activeThreatenedVoters.containsKey(player.member.id))
-            }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
         val judgePlayer = findAliveJudge(game)
         val judgeVote = judgePlayer?.let { game.currentProsConsVotes[it.member.id] }
         val aggregateDecision = prosCount > consCount
@@ -2080,6 +2069,31 @@ object GameLoopManager {
         val aliveCitizens = game.playerDatas.filter { !it.state.isDead && it.job !is Evil }
         if (aliveCitizens.size != 1) return null
         return aliveCitizens.firstOrNull { it.job is Politician }
+    }
+
+    private fun calculateTransferredVoteWeights(game: Game): Map<Snowflake, Int> {
+        val transferredVoteWeights = mutableMapOf<Snowflake, Int>()
+        game.activeThreatenedVoters.forEach { (threatenedId, gangsterId) ->
+            val threatened = game.getPlayer(threatenedId) ?: return@forEach
+            val gangster = game.getPlayer(gangsterId) ?: return@forEach
+            if (threatened.state.isDead || gangster.state.isDead) return@forEach
+            transferredVoteWeights[gangsterId] = (transferredVoteWeights[gangsterId] ?: 0) + 1
+        }
+        return transferredVoteWeights
+    }
+
+    private fun calculateProsConsVoteWeight(
+        game: Game,
+        voterId: Snowflake,
+        transferredVoteWeights: Map<Snowflake, Int>
+    ): Int {
+        val voter = game.getPlayer(voterId) ?: return 0
+        if (voter.state.isDead) return 0
+        if (voter.member.id in game.permanentlyDisenfranchisedVoters) return 0
+        if (game.activeThreatenedVoters.containsKey(voter.member.id)) return 0
+
+        val baseWeight = if (voter.job is Politician) 2 else 1
+        return baseWeight + (transferredVoteWeights[voter.member.id] ?: 0)
     }
 
     private fun findAliveJudge(game: Game): PlayerData? {
