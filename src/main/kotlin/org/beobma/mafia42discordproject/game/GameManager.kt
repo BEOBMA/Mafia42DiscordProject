@@ -114,6 +114,13 @@ object GameManager {
     private const val PERJURY_COMMAND = "위증"
     private const val PASSWORD_COMMAND = "암구호"
     private const val GAME_CHANNEL_SPACER_LINES = 180
+    private const val SEVEN_PLAYER_COUNT = 7
+    private const val MAFIA_JOB_NAME = "마피아"
+    private const val DOCTOR_JOB_NAME = "의사"
+    private const val POLICE_JOB_NAME = "경찰"
+    private const val AGENT_JOB_NAME = "요원"
+    private const val NURSE_JOB_NAME = "간호사"
+    private const val CITIZEN_JOB_NAME = "시민"
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
     data class SpiritRelayResult(
@@ -366,6 +373,100 @@ object GameManager {
             ?.takeIf { targetId -> playerDatas.any { player -> player.member.id == targetId } }
     }
 
+    private fun normalizeSevenPlayerPreferences(players: MutableList<AssignmentPlayer>, trace: AssignmentTrace) {
+        if (players.size != SEVEN_PLAYER_COUNT) return
+
+        val police = JobManager.findByName(POLICE_JOB_NAME) ?: run {
+            trace.add("[7인 규칙] 경찰 직업 정의를 찾지 못해 요원 선호 변환을 건너뜁니다.")
+            return
+        }
+        val nurseReplacementCandidates = getNonFixedJobCandidates(SEVEN_PLAYER_COUNT)
+            .filter { candidate -> candidate.name != CITIZEN_JOB_NAME }
+            .filterNot { candidate -> isPairAssignmentJob(candidate.name) }
+        val usedNurseReplacementJobNames = mutableSetOf<String>()
+
+        fun addDistinct(target: MutableList<Job>, job: Job) {
+            if (target.none { it.name == job.name }) {
+                target += job
+            }
+        }
+
+        fun pickNurseReplacement(existingNames: Set<String>): Job? {
+            val unusedCandidates = nurseReplacementCandidates.filter { candidate ->
+                candidate.name !in usedNurseReplacementJobNames && candidate.name !in existingNames
+            }
+            val fallbackCandidates = nurseReplacementCandidates.filter { candidate ->
+                candidate.name !in existingNames
+            }
+            val picked = unusedCandidates.randomOrNull()
+                ?: fallbackCandidates.randomOrNull()
+                ?: nurseReplacementCandidates.randomOrNull()
+            if (picked != null) {
+                usedNurseReplacementJobNames += picked.name
+            }
+            return picked
+        }
+
+        trace.add("[7인 규칙] 의사는 배정하지 않고, 요원 선호는 경찰로, 간호사 선호는 중복 없는 특수 직업으로 변환합니다.")
+
+        players.indices.forEach { index ->
+            val player = players[index]
+            val normalizedPreferences = mutableListOf<Job>()
+            var nurseReplacementForPlayer: Job? = null
+
+            player.preferences.forEach { preference ->
+                when (preference.name) {
+                    AGENT_JOB_NAME -> {
+                        addDistinct(normalizedPreferences, police)
+                        trace.add("[7인 규칙] ${player.name}: 요원 선호 -> 경찰")
+                    }
+
+                    NURSE_JOB_NAME -> {
+                        val replacement = nurseReplacementForPlayer
+                            ?: pickNurseReplacement(normalizedPreferences.map { it.name }.toSet())
+                        if (replacement != null) {
+                            nurseReplacementForPlayer = replacement
+                            addDistinct(normalizedPreferences, replacement)
+                            trace.add("[7인 규칙] ${player.name}: 간호사 선호 -> ${replacement.name}")
+                        }
+                    }
+
+                    else -> addDistinct(normalizedPreferences, preference)
+                }
+            }
+
+            val normalizedBestJob = when (player.bestJob?.name) {
+                AGENT_JOB_NAME -> police
+                NURSE_JOB_NAME -> nurseReplacementForPlayer
+                    ?: pickNurseReplacement(normalizedPreferences.map { it.name }.toSet())
+                    ?: player.bestJob
+                else -> player.bestJob
+            }
+
+            players[index] = player.copy(
+                preferences = normalizedPreferences,
+                bestJob = normalizedBestJob
+            )
+        }
+    }
+
+    private fun buildNonFixedExcludedJobNames(playerCount: Int): Set<String> {
+        val excluded = mutableSetOf(MAFIA_JOB_NAME, DOCTOR_JOB_NAME)
+        excluded += policeJobNames
+        if (playerCount == SEVEN_PLAYER_COUNT) {
+            excluded += NURSE_JOB_NAME
+        }
+        return excluded
+    }
+
+    private fun getNonFixedJobCandidates(playerCount: Int): List<Job> {
+        val excludedJobNames = buildNonFixedExcludedJobNames(playerCount)
+        return JobManager.getAll().filter { candidate ->
+            candidate !is Evil &&
+                candidate.name !in excludedJobNames
+        }
+    }
+
     private fun Game.assignCabalSunMoonRoles() {
         val cabalPlayers = playerDatas
             .filter { it.job is Cabal }
@@ -541,16 +642,19 @@ object GameManager {
         val requiredCounts = resolveRequiredRoleCounts(players.size)
         val allJobs = JobManager.getAll()
 
-        val mafia = allJobs.firstOrNull { it.name == "마피아" } ?: run {
+        val mafia = allJobs.firstOrNull { it.name == MAFIA_JOB_NAME } ?: run {
             trace.add("[오류] 마피아 직업 정의를 찾지 못했습니다.")
             return trace
         }
-        val doctor = allJobs.firstOrNull { it.name == "의사" } ?: run {
+        val doctor = allJobs.firstOrNull { it.name == DOCTOR_JOB_NAME } ?: run {
             trace.add("[오류] 의사 직업 정의를 찾지 못했습니다.")
             return trace
         }
+        normalizeSevenPlayerPreferences(players, trace)
 
-        val policePool = allJobs.filter { it.name in policeJobNames }
+        val policePool = allJobs.filter { job ->
+            job.name in policeJobNames && !(players.size == SEVEN_PLAYER_COUNT && job.name == AGENT_JOB_NAME)
+        }
         if (requiredCounts.policeCount > 0 && policePool.isEmpty()) {
             trace.add("[오류] 경찰 계열 직업 정의를 찾지 못했습니다.")
             return trace
@@ -599,7 +703,7 @@ object GameManager {
                 emptyList()
             }
 
-            val citizenJob = JobManager.findByName("시민") ?: doctor
+            val citizenJob = JobManager.findByName(CITIZEN_JOB_NAME) ?: doctor
             val fixedJobs = buildList {
                 repeat(requiredCounts.mafiaCount) { add(mafia) }
                 repeat(requiredCounts.assistantCount) {
@@ -634,10 +738,8 @@ object GameManager {
         slotCount: Int,
         trace: AssignmentTrace
     ): List<Job> {
-        val excludedJobNames = setOf("마피아", "의사") + policeJobNames
-        val allCandidates = JobManager.getAll().filter { candidate ->
-            candidate !is Evil && candidate.name !in excludedJobNames
-        }
+        val excludedJobNames = buildNonFixedExcludedJobNames(players.size)
+        val allCandidates = getNonFixedJobCandidates(players.size)
         val preferenceWeightByName = players
             .flatMap { it.preferences }
             .asSequence()
@@ -843,7 +945,8 @@ object GameManager {
             RequiredRoleCounts(mafiaCount = 2, assistantCount = 1, doctorCount = 1, policeCount = 1)
         } else {
             when (playerCount) {
-                7, 6 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 1, doctorCount = 1, policeCount = 1)
+                7 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 1, doctorCount = 0, policeCount = 1)
+                6 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 1, doctorCount = 1, policeCount = 1)
                 5, 4 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 0, doctorCount = 1, policeCount = 1)
                 else -> {
                     val mafia = if (playerCount >= 2) 1 else 0
@@ -902,10 +1005,8 @@ object GameManager {
         slotCount: Int,
         trace: AssignmentTrace
     ) {
-        val excludedJobNames = setOf("마피아", "의사") + policeJobNames
-        val allCandidates = JobManager.getAll().filter { candidate ->
-            candidate !is Evil && candidate.name !in excludedJobNames
-        }
+        val excludedJobNames = buildNonFixedExcludedJobNames(players.size)
+        val allCandidates = getNonFixedJobCandidates(players.size)
         val preferenceWeightByName = players
             .flatMap { it.preferences }
             .asSequence()

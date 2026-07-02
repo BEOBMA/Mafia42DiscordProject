@@ -68,14 +68,14 @@ import org.beobma.mafia42discordproject.job.evil.list.*
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
-    private const val NIGHT_DURATION_MS = 40_000L
-    private const val DAWN_DURATION_MS = 10_000L
-    private const val VOTE_DURATION_MS = 15_000L
+    private const val NIGHT_DURATION_MS = 60_000L
+    private const val DAWN_DURATION_MS = 5_000L
+    private const val VOTE_DURATION_MS = 30_000L
     private const val INITIAL_VOTE_REVEAL_DURATION_MS = 5_000L
     private const val FINAL_VOTE_TALLY_STEP_MS = 500L
     private const val DEFENSE_DURATION_MS = 15_000L
     private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
-    private const val DAY_TIME_ADJUSTMENT_MS = 15_000L
+    private const val DAY_TIME_ADJUSTMENT_MS = 20_000L
     private const val TIME_THREAD_NAME = "시간"
     private const val PROBATION_DISCOVERY_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(22).webp"
     private const val NURSE_DOCTOR_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(35).webp"
