@@ -12,16 +12,16 @@ import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationMana
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
+import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.definition.list.Paparazzi
 import kotlin.reflect.KClass
 
-class Issue : Ability, JobSpecificExtraAbility, PassiveAbility {
+class Issue : Ability, JobUniqueAbility, PassiveAbility {
     override val name: String = "이슈"
     override val description: String = "하루에 한 번 시민 팀이 다른 사람의 직업을 알아낼 경우, 그 정보를 공유받는다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(144).webp"
-    override val targetJob: List<KClass<out Job>> = listOf(Paparazzi::class)
 
     companion object {
         private val issueNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
