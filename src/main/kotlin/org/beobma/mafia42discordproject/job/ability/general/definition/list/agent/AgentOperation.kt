@@ -7,8 +7,10 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.system.SystemImage
+import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.game.system.SwindlerManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
@@ -52,12 +54,41 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
         agentJob.discoveredCitizenTargetIds += selectedTarget.member.id
         agentJob.discoveredCitizenTargetDayById[selectedTarget.member.id] = game.dayCount
         val operationImageUrl = SystemImage.AGENT_NOTICE.imageUrl
+        val actualJob = selectedTarget.job ?: return
 
         sendDm(owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
+        dispatchDiscoveryEvent(
+            game,
+            GameEvent.JobDiscovered(
+                discoverer = owner,
+                target = selectedTarget,
+                actualJob = actualJob,
+                revealedJob = discoveredJob,
+                sourceAbilityName = name,
+                resolvedAt = DiscoveryStep.DAY,
+                notifyTarget = false,
+                imageUrl = operationImageUrl
+            )
+        )
         if (selectedTarget.job is Swindler && discoveredJob.name != "사기꾼") {
             SwindlerManager.notifyFooled(selectedTarget, owner)
         }
     }
+
+    private fun dispatchDiscoveryEvent(game: Game, event: GameEvent.JobDiscovered) {
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { player ->
+                player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onEventObserved(game, player, event)
+                    }
+            }
+    }
+
     private fun sendDm(owner: PlayerData, message: String) {
         agentDmScope.launch {
             runCatching {
