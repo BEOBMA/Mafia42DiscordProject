@@ -14,6 +14,7 @@ import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
@@ -62,6 +63,8 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
         val firstTarget = game.getPlayer(firstTargetId)
             ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
+        val firstSelectedTarget = game.getPlayer(firstSelectedTargetId)
+            ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
         val firstJobName = hitManJob.firstContractGuessedJobName
             ?: return AbilityResult(false, "첫 번째 직업 정보가 유실되었습니다. 다시 시도해 주세요.")
 
@@ -71,7 +74,12 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         hitManJob.firstContractSelectedTargetId = null
         hitManJob.firstContractGuessedJobName = null
 
-        scheduleResolution(game, caster, firstTarget, firstJobName, effectiveTarget, guessedJob.name)
+        scheduleResolution(
+            game = game,
+            caster = caster,
+            firstContract = ContractTarget(firstSelectedTarget, firstTarget, firstJobName),
+            secondContract = ContractTarget(target, effectiveTarget, guessedJob.name)
+        )
         return AbilityResult(true, secondIntuition)
     }
 
@@ -97,10 +105,8 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
     private fun scheduleResolution(
         game: Game,
         caster: PlayerData,
-        firstTarget: PlayerData,
-        firstGuessedJobName: String,
-        secondTarget: PlayerData,
-        secondGuessedJobName: String
+        firstContract: ContractTarget,
+        secondContract: ContractTarget
     ) {
         val elapsed = (System.currentTimeMillis() - game.nightPhaseStartedAtMillis).coerceAtLeast(0L)
         val delayMillis = if (elapsed < CONTRACT_TRIGGER_MILLIS) CONTRACT_TRIGGER_MILLIS - elapsed else 0L
@@ -109,20 +115,20 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             if (delayMillis > 0L) {
                 delay(delayMillis)
             }
-            resolveContract(game, caster, firstTarget, firstGuessedJobName, secondTarget, secondGuessedJobName)
+            resolveContract(game, caster, firstContract, secondContract)
         }
     }
 
     private suspend fun resolveContract(
         game: Game,
         caster: PlayerData,
-        firstTarget: PlayerData,
-        firstGuessedJobName: String,
-        secondTarget: PlayerData,
-        secondGuessedJobName: String
+        firstContract: ContractTarget,
+        secondContract: ContractTarget
     ) {
         if (!game.isRunning || game.currentPhase != GamePhase.NIGHT || caster.state.isDead) return
 
+        val firstTarget = firstContract.resolvedTarget
+        val secondTarget = secondContract.resolvedTarget
         if (firstTarget.state.isDead || secondTarget.state.isDead) return
         if (firstTarget.member.id in game.pendingNightDeathPlayerIds || secondTarget.member.id in game.pendingNightDeathPlayerIds) return
 
@@ -132,22 +138,46 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             return
         }
 
-        val hasMafiaGuess = (firstTarget.job is Mafia && firstGuessedJobName == firstTarget.job?.name) ||
-            (secondTarget.job is Mafia && secondGuessedJobName == secondTarget.job?.name)
-
-        if (hasMafiaGuess) {
+        if (listOf(firstContract, secondContract).any { it.isDirectMafiaGuess() }) {
             val hitManJob = caster.job as? HitMan ?: return
             hitManJob.hasContactedMafia = true
             GameLoopManager.notifyHitmanContact(game, caster)
             return
         }
 
-        val firstCorrect = firstTarget.job?.name == firstGuessedJobName
-        val secondCorrect = secondTarget.job?.name == secondGuessedJobName
+        val firstCorrect = firstContract.isCorrectGuess()
+        val secondCorrect = secondContract.isCorrectGuess()
         if (!firstCorrect || !secondCorrect) return
-        if (firstTarget.job is Evil || secondTarget.job is Evil) return
+        if (listOf(firstContract, secondContract).any { it.isUnkillableEvilGuess() }) return
 
         killByContract(game, listOf(firstTarget, secondTarget))
+    }
+
+    private data class ContractTarget(
+        val selectedTarget: PlayerData,
+        val resolvedTarget: PlayerData,
+        val guessedJobName: String
+    ) {
+        fun isCorrectGuess(): Boolean {
+            return resolvedTarget.job?.name == guessedJobName
+        }
+
+        fun isDirectMafiaGuess(): Boolean {
+            return selectedTarget.member.id == resolvedTarget.member.id &&
+                resolvedTarget.job is Mafia &&
+                isCorrectGuess()
+        }
+
+        fun isIndirectHackerMafiaGuess(): Boolean {
+            return selectedTarget.member.id != resolvedTarget.member.id &&
+                selectedTarget.job is Hacker &&
+                resolvedTarget.job is Mafia &&
+                isCorrectGuess()
+        }
+
+        fun isUnkillableEvilGuess(): Boolean {
+            return resolvedTarget.job is Evil && !isIndirectHackerMafiaGuess()
+        }
     }
 
     private suspend fun killByContract(game: Game, targets: List<PlayerData>) {
