@@ -8,6 +8,8 @@ import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Wanted
 import org.beobma.mafia42discordproject.job.definition.list.Citizen
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Villain
@@ -46,11 +48,13 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
         // [계승]이 있으면 도굴 대상이 보유한 부가 능력까지 함께 계승
         val hasSuccession = ownerExtras.any { it is Succession }
         val inheritedExtraAbilityNames = mutableListOf<String>()
+        val inheritedExtraAbilities = mutableListOf<Ability>()
         if (hasSuccession) {
             originalVictimJob.extraAbilities.forEach { ability ->
                 val clonedAbility = cloneAbility(ability)
                 if (mergedExtras.putIfAbsent(clonedAbility::class.qualifiedName ?: clonedAbility.name, clonedAbility) == null) {
                     inheritedExtraAbilityNames += clonedAbility.name
+                    inheritedExtraAbilities += clonedAbility
                 }
             }
         }
@@ -60,6 +64,7 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
         owner.job = newJob
         owner.state.isJobPubliclyRevealed = false
         game.graveRobTargetsByGhoul[owner.member.id] = victim.member.id
+        triggerInheritedFirstDayAbilities(game, owner, inheritedExtraAbilities)
 
         // 4. 이벤트 큐를 통한 공식 직업 확인(JobDiscovered) 발생 & 피장자 일방 알림
         game.nightEvents += GameEvent.JobDiscovered(
@@ -90,6 +95,20 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             constructor.newInstance()
         }.getOrElse {
             ability
+        }
+    }
+
+    private fun triggerInheritedFirstDayAbilities(
+        game: Game,
+        owner: PlayerData,
+        inheritedExtraAbilities: List<Ability>
+    ) {
+        if (game.dayCount != 1) return
+        if (inheritedExtraAbilities.any { it is Instructions }) {
+            Instructions.notifyAtFirstDay(game, owner)
+        }
+        if (inheritedExtraAbilities.any { it is Wanted }) {
+            Wanted.notifyAtFirstDay(game, owner)
         }
     }
 }

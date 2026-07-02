@@ -26,30 +26,40 @@ class Wanted : Ability, JobSpecificExtraAbility, PassiveAbility {
 
     override fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {
         if (newPhase != GamePhase.DAY || game.dayCount != 1) return
-
-        val unknownMafiaTeam = game.playerDatas.filter { candidate ->
-            candidate != owner && candidate.job is Evil && candidate.job !is Mafia
-        }
-
-        val message = if (unknownMafiaTeam.isEmpty()) {
-            "수배 결과: 접선하지 않은 마피아팀이 없습니다."
-        } else {
-            buildString {
-                appendLine("수배 결과: 접선하지 않은 마피아팀 정보")
-                unknownMafiaTeam.forEach { candidate ->
-                    appendLine("${candidate.member.effectiveName}의 직업은 ${FrogCurseManager.displayedJob(candidate)?.name ?: "알 수 없음"}")
-                }
-            }
-        }
-
-        notificationScope.launch {
-            runCatching {
-                owner.member.getDmChannel().createMessage(message)
-            }
-        }
+        notifyAtFirstDay(game, owner)
     }
 
     companion object {
         private val notificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        fun notifyAtFirstDay(game: Game, owner: PlayerData) {
+            if (game.dayCount != 1) return
+            if (owner.state.isDead) return
+            if (owner.state.hasReceivedWantedNoticeFirstDay) return
+            if (owner.allAbilities.none { it is Wanted }) return
+
+            owner.state.hasReceivedWantedNoticeFirstDay = true
+
+            val unknownMafiaTeam = game.playerDatas.filter { candidate ->
+                candidate != owner && candidate.job is Evil && candidate.job !is Mafia
+            }
+
+            val message = if (unknownMafiaTeam.isEmpty()) {
+                "수배 결과: 접선하지 않은 마피아팀이 없습니다."
+            } else {
+                buildString {
+                    appendLine("수배 결과: 접선하지 않은 마피아팀 정보")
+                    unknownMafiaTeam.forEach { candidate ->
+                        appendLine("${candidate.member.effectiveName}의 직업은 ${FrogCurseManager.displayedJob(candidate)?.name ?: "알 수 없음"}")
+                    }
+                }
+            }
+
+            notificationScope.launch {
+                runCatching {
+                    owner.member.getDmChannel().createMessage(message)
+                }
+            }
+        }
     }
 }

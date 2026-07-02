@@ -24,6 +24,8 @@ class PlayerState {
     var madScientistAnalysisEligibleDay: Int? = null // 분석 가중치가 유효한 낮 일차
     var hasUsedMadScientistAnalysis: Boolean = false // 분석 가중치 사용 여부
     var lastPaparazziIssueDay: Int? = null // 파파라치 이슈 발동 일차(밤/낮 합산 1회 제한)
+    var hasReceivedInstructionsNoticeFirstDay: Boolean = false
+    var hasReceivedWantedNoticeFirstDay: Boolean = false
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어

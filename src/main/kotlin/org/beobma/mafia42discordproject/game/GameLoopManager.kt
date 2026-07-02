@@ -22,6 +22,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.*
+import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Belongings
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Source
@@ -2113,32 +2114,8 @@ object GameLoopManager {
 
     private fun notifyInstructionsAtFirstDay(game: Game) {
         if (game.dayCount != 1) return
-
-        val policePlayers = game.playerDatas.filter { target ->
-            !target.state.isDead && (target.job is Police || target.job is org.beobma.mafia42discordproject.job.definition.list.Agent || target.job is Vigilante)
-        }
-
-        val instructionOwners = game.playerDatas.filter { player ->
-            !player.state.isDead &&
-                player.job !is Villain &&
-                player.allAbilities.any { it is Instructions }
-        }
-
-        instructionOwners.forEach { owner ->
-            votePresentationScope.launch {
-                runCatching {
-                    val dm = owner.member.getDmChannel()
-                    if (policePlayers.isEmpty()) {
-                        dm.createMessage("경찰 계열 직업이 없습니다.")
-                        return@runCatching
-                    }
-
-                    val lines = policePlayers.joinToString("\n") { target ->
-                        "${target.member.effectiveName}은 경찰 계열 직업."
-                    }
-                    dm.createMessage(lines)
-                }
-            }
+        game.playerDatas.forEach { player ->
+            Instructions.notifyAtFirstDay(game, player)
         }
     }
 
@@ -2730,7 +2707,7 @@ object GameLoopManager {
     }
 
     private fun applyPoliceConfidentialInvestigation(game: Game) {
-        if (game.dayCount != 2) return
+        if (game.dayCount != 1) return
 
         game.playerDatas.forEach { policePlayer ->
             if (policePlayer.state.isDead) return@forEach
@@ -2745,16 +2722,36 @@ object GameLoopManager {
             val selectedTarget = candidates.randomOrNull() ?: return@forEach
 
             policeJob.hasUsedConfidential = true
+            val searchEvent = GameEvent.PoliceSearchResolved(
+                police = policePlayer,
+                target = selectedTarget,
+                isMafia = selectedTarget.job is Mafia,
+                isRepeatedSearch = selectedTarget.member.id in policeJob.searchedTargets
+            )
+            dispatchPoliceSearchEvent(game, searchEvent)
+            policeJob.eavesdroppingTargetId = selectedTarget.member.id
             policeJob.searchedTargets += selectedTarget.member.id
 
             votePresentationScope.launch {
                 runCatching {
-                    policePlayer.member.getDmChannel().createMessage(
-                        "${selectedTarget.member.effectiveName}님은 ${if (selectedTarget.job is Mafia) "마피아입니다" else "마피아가 아닙니다."}"
-                    )
+                    PoliceNotificationManager.notifySearchResult(policePlayer, searchEvent)
                 }
             }
         }
+    }
+
+    private fun dispatchPoliceSearchEvent(game: Game, event: GameEvent.PoliceSearchResolved) {
+        game.playerDatas
+            .filter { !it.state.isDead }
+            .forEach { player ->
+                player.allAbilities
+                    .filterIsInstance<PassiveAbility>()
+                    .filterNot { FrogCurseManager.shouldSuppressPassive(player) }
+                    .sortedByDescending(PassiveAbility::priority)
+                    .forEach { passive ->
+                        passive.onEventObserved(game, player, event)
+                    }
+            }
     }
 
     private suspend fun announceSourceMafiaCountAtNightStart(game: Game) {

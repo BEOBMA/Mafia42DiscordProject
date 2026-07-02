@@ -227,6 +227,8 @@ object GameArchiveManager {
                 putNullable("madScientistAnalysisEligibleDay", player.state.madScientistAnalysisEligibleDay)
                 put("hasUsedMadScientistAnalysis", player.state.hasUsedMadScientistAnalysis)
                 putNullable("lastPaparazziIssueDay", player.state.lastPaparazziIssueDay)
+                put("hasReceivedInstructionsNoticeFirstDay", player.state.hasReceivedInstructionsNoticeFirstDay)
+                put("hasReceivedWantedNoticeFirstDay", player.state.hasReceivedWantedNoticeFirstDay)
                 put("healTier", player.state.healTier.name)
                 put("isSilenced", player.state.isSilenced)
                 put("isThreatened", player.state.isThreatened)
