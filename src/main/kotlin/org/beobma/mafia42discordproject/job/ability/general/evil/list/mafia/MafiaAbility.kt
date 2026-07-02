@@ -38,9 +38,15 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (target.state.isDead) {
             return AbilityResult(false, "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다.")
         }
+        if (game.mafiaExecutionProtectedTargetId == target.member.id) {
+            return AbilityResult(false, "연속 퍼블 제한으로 이번 판에는 해당 플레이어를 마피아 처형 대상으로 지정할 수 없습니다.")
+        }
 
         val casterJob = caster.job
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
+        if (game.firstMafiaTargetId == null) {
+            game.firstMafiaTargetId = target.member.id
+        }
         var attackTier = AttackTier.NORMAL
 
         if (caster.allAbilities.any { it is Outlaw } && isPoliceLine(target)) {

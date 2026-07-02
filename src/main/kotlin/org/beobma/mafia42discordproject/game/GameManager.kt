@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.coroutineScope
@@ -85,6 +86,7 @@ object GameManager {
     private var currentGuild: GuildBehavior? = null
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
+    private val nextGameMafiaExecutionProtectedTargets: MutableMap<Snowflake, Snowflake> = ConcurrentHashMap()
 
     private const val FULL_GAME_PLAYER_COUNT = 8
     private const val EXTENDED_ROLE_RULE_START_COUNT = 9
@@ -112,6 +114,7 @@ object GameManager {
     private const val PERJURY_COMMAND = "위증"
     private const val PASSWORD_COMMAND = "암구호"
     private const val GAME_CHANNEL_SPACER_LINES = 180
+    private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
     data class SpiritRelayResult(
         val isSuccess: Boolean,
@@ -230,6 +233,7 @@ object GameManager {
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
+        this.applyNextGameMafiaExecutionProtection()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -300,6 +304,7 @@ object GameManager {
         this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
+        this.applyNextGameMafiaExecutionProtection()
 
         val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
         assignJobs(assignmentPlayers)
@@ -353,6 +358,12 @@ object GameManager {
         assignCabalSunMoonRoles()
         assignCoupleRoles()
         assignMercenaryClient()
+    }
+
+    private fun Game.applyNextGameMafiaExecutionProtection() {
+        val protectedTargetId = nextGameMafiaExecutionProtectedTargets.remove(guild.id)
+        mafiaExecutionProtectedTargetId = protectedTargetId
+            ?.takeIf { targetId -> playerDatas.any { player -> player.member.id == targetId } }
     }
 
     private fun Game.assignCabalSunMoonRoles() {
@@ -1543,7 +1554,8 @@ object GameManager {
         winningTeamName: String?,
         cancelLoopJob: Boolean = true
     ) {
-        LavalinkManager.stop(kord = gameToStop.guild.kord, guildId = gameToStop.guild.id)
+        registerNextGameMafiaExecutionProtection(gameToStop)
+        scheduleDelayedVoiceDisconnect(gameToStop)
         GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         currentGame = null
         currentGuild = null
@@ -1561,6 +1573,22 @@ object GameManager {
         gameToStop.mafiaChannel = null
         gameToStop.coupleChannel = null
         gameToStop.deadChannel = null
+    }
+
+    private fun registerNextGameMafiaExecutionProtection(game: Game) {
+        val firstMafiaTargetId = game.firstMafiaTargetId ?: return
+        nextGameMafiaExecutionProtectedTargets[game.guild.id] = firstMafiaTargetId
+    }
+
+    private fun scheduleDelayedVoiceDisconnect(game: Game) {
+        val kord = game.guild.kord
+        val guildId = game.guild.id
+
+        gameLoopScope.launch {
+            delay(GAME_END_VOICE_DISCONNECT_DELAY_MS)
+            if (currentGame?.guild?.id == guildId) return@launch
+            LavalinkManager.stop(kord = kord, guildId = guildId)
+        }
     }
 
     suspend fun releaseAllPlayerMutes(game: Game) {

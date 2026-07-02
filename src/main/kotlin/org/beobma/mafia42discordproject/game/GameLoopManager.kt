@@ -417,6 +417,7 @@ object GameLoopManager {
 
     suspend fun resolveNightPhase(game: Game): NightResolutionSummary {
         val blockedAttacks = mutableListOf<AttackEvent>()
+        val protectedMafiaExecutionBlockedAttacks = mutableSetOf<AttackEvent>()
         val playersToDie = linkedSetOf<PlayerData>().apply {
             addAll(game.nightDeathCandidates)
         }
@@ -432,9 +433,16 @@ object GameLoopManager {
             .map { it.target }
             .toMutableSet()
 
-        game.nightAttacks.values.forEach { attackEvent ->
+        game.nightAttacks.forEach { (attackKey, attackEvent) ->
             val target = attackEvent.target
             if (target.state.isDead) return@forEach
+
+            if (attackKey == "MAFIA_TEAM" && game.mafiaExecutionProtectedTargetId == target.member.id) {
+                blockedAttacks += attackEvent
+                protectedMafiaExecutionBlockedAttacks += attackEvent
+                playersToDie.remove(target)
+                return@forEach
+            }
 
             if (isExecutionImmuneBeastmanTarget(game, attackEvent)) {
                 blockedAttacks += attackEvent
@@ -508,6 +516,7 @@ object GameLoopManager {
             // 마피아 팀 중 적어도 한 명이라도 처형에 성공했다면 은폐가 발동하지 않도록 함
             if (!atLeastOneMafiaExecutionSucceeded) {
                 failedAttacks.forEach { attack ->
+                    if (attack in protectedMafiaExecutionBlockedAttacks) return@forEach
                     if (!swindlerNegotiationBlockedExecution) {
                         applyMafiaExecutionFailureEffects(game, attack)
                     }

@@ -59,6 +59,8 @@ object GameArchiveManager {
             put("currentPhase", game.currentPhase.name)
             put("isRunning", game.isRunning)
             putNullable("voiceChannelId", game.voiceChannelId?.value?.toString())
+            putNullable("firstMafiaTargetId", game.firstMafiaTargetId?.value?.toString())
+            putNullable("mafiaExecutionProtectedTargetId", game.mafiaExecutionProtectedTargetId?.value?.toString())
             put("nightPhaseStartedAtMillis", game.nightPhaseStartedAtMillis)
             putNullable("prophetSpecialWinScheduledTeam", game.prophetSpecialWinScheduledTeam?.name)
 

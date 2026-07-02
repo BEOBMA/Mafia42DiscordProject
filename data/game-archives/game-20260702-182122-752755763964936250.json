@@ -1,0 +1,409 @@
+{
+    "archivedAt": "2026-07-02T18:21:22.732909600Z",
+    "endReason": "FORCED_STOP",
+    "guildId": "752755763964936250",
+    "guildName": "좀비고 귀인 클랜 디코방",
+    "dayCount": 3,
+    "initialPlayerCount": 7,
+    "currentPhase": "NIGHT",
+    "isRunning": true,
+    "voiceChannelId": "1521943463728513155",
+    "nightPhaseStartedAtMillis": 1783016460959,
+    "prophetSpecialWinScheduledTeam": null,
+    "channels": {
+        "main": "1521943257884528671",
+        "mafia": "1521943318790144021",
+        "couple": "1521943398540378275",
+        "dead": "1521943426893877359"
+    },
+    "players": [
+        {
+            "id": "680400658108907530",
+            "name": "! 익사중",
+            "job": "요원",
+            "team": "시민 팀",
+            "abilities": [
+                "공작",
+                "휴민트",
+                "유품",
+                "밀서"
+            ],
+            "state": {
+                "isDead": true,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": true,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "777116116379500554",
+            "name": "이수",
+            "job": "해커",
+            "team": "시민 팀",
+            "abilities": [],
+            "state": {
+                "isDead": true,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "job": "점쟁이",
+            "team": "시민 팀",
+            "abilities": [
+                "운세",
+                "확성기",
+                "아르카나",
+                "유언"
+            ],
+            "state": {
+                "isDead": true,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "job": "청부업자",
+            "team": "마피아 팀",
+            "abilities": [
+                "동업",
+                "청부",
+                "도주",
+                "지령",
+                "직감"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": true,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "926806575765659648",
+            "name": "if:]",
+            "job": "군인",
+            "team": "시민 팀",
+            "abilities": [
+                "방탄",
+                "불침번",
+                "도주",
+                "확성기",
+                "정신력"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "1406571254156234762",
+            "name": "창탱이",
+            "job": "마피아",
+            "team": "마피아 팀",
+            "abilities": [
+                "처형",
+                "지령",
+                "수습",
+                "시한부"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": true,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "1036233917218426952",
+            "name": "부계정임",
+            "job": "의사",
+            "team": "시민 팀",
+            "abilities": [],
+            "state": {
+                "isDead": true,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        }
+    ],
+    "nightAttacks": {
+        "MAFIA_TEAM": {
+            "attacker": {
+                "id": "1406571254156234762",
+                "name": "창탱이",
+                "job": "마피아"
+            },
+            "target": {
+                "id": "926806575765659648",
+                "name": "if:]",
+                "job": "군인"
+            },
+            "attackTier": "NORMAL"
+        }
+    },
+    "nightDeathCandidates": [
+        {
+            "id": "926806575765659648",
+            "name": "if:]",
+            "job": "군인"
+        }
+    ],
+    "nightEvents": [],
+    "lastNightSummary": {
+        "processedEvents": [],
+        "deaths": [],
+        "blockedAttacks": [],
+        "dawnPresentation": {
+            "imageUrl": null,
+            "imageUrls": [],
+            "message": null
+        }
+    },
+    "votes": {
+        "main": {
+            "534697552201777162": "926806575765659648",
+            "926806575765659648": "534697552201777162",
+            "1406571254156234762": "926806575765659648"
+        },
+        "fake": {},
+        "prosCons": {
+            "534697552201777162": true,
+            "926806575765659648": false,
+            "1406571254156234762": true
+        },
+        "defenseTargetId": null,
+        "unwrittenRuleBlockedTargetIdTonight": null
+    },
+    "sets": {
+        "pendingEscapedPlayerIds": [
+            "926806575765659648"
+        ],
+        "pendingNightDeathPlayerIds": [],
+        "publiclyRevealedAbilityTargetIds": [
+            "926806575765659648"
+        ],
+        "publiclyRevealedJobNames": [
+            "요원"
+        ],
+        "usedMegaphonePlayerIds": [
+            "597040055474978816"
+        ],
+        "usedSecretLetterPlayerIds": [],
+        "ghostTriggeredGhouls": [],
+        "pendingBeastmanTameIds": [],
+        "abilityUsersThisPhase": [
+            "1406571254156234762"
+        ],
+        "dayTimeAdjustmentUsedPlayers": [
+            "926806575765659648"
+        ],
+        "permanentlyDisenfranchisedVoters": []
+    },
+    "flags": {
+        "mafiaAttackFailedPreviousNight": false,
+        "concealmentForcedQuietNight": false,
+        "mafiaExecutionSucceededLastNight": false,
+        "megaphoneUsedTonight": false
+    },
+    "maps": {
+        "coupleSacrificeMap": {},
+        "willByPlayerId": {},
+        "activeThreatenedVoters": {},
+        "graveRobTargetsByGhoul": {},
+        "pendingPoisonNotifications": {},
+        "pendingWitchCurseByCaster": {},
+        "pendingOblivionCurseByCaster": {},
+        "abilityTargetByUserThisPhase": {
+            "1406571254156234762": "926806575765659648"
+        },
+        "hostessFirstVoteTargetByDay": {}
+    },
+    "pendingLettersByRecipient": {},
+    "dayStartDiscoveries": [],
+    "seductionStatusByTarget": {}
+}

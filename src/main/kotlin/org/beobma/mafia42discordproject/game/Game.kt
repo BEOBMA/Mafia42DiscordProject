@@ -71,6 +71,8 @@ data class Game(
     var concealmentForcedQuietNight: Boolean = false
     var doctorSavedTargetTonight: PlayerData? = null
     var mafiaExecutionSucceededLastNight: Boolean = false
+    var firstMafiaTargetId: Snowflake? = null
+    var mafiaExecutionProtectedTargetId: Snowflake? = null
     val coupleSacrificeMap: MutableMap<Snowflake, Snowflake> = mutableMapOf()
 
     // 투표
