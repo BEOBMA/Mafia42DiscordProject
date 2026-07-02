@@ -330,7 +330,6 @@ object GameLoopManager {
         game.willByPlayerId.clear()
         game.coupleSacrificeMap.clear()
         game.activeThreatenedVoters.clear()
-        game.probationOriginalJobsByPlayer.clear()
         game.lastNightSummary = NightResolutionSummary()
         game.mafiaExecutionSucceededLastNight = false
         game.playerDatas.forEach { player ->
@@ -424,7 +423,6 @@ object GameLoopManager {
         resolveNursePrescriptions(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
-        resolveReporterScoops(game)
         applyBeastmanExecutionOverride(game)
         val healedTargetsTonight = game.nightEvents
             .filterIsInstance<GameEvent.PlayerHealed>()
@@ -461,6 +459,7 @@ object GameLoopManager {
             }
         }
 
+        resolveReporterScoops(game)
         resolveMercenaryAttackOrder(game, blockedAttacks, playersToDie)
         resolveVigilanteAttackOrder(game, blockedAttacks, playersToDie)
         resolveMercenaryContractDeaths(game, blockedAttacks, playersToDie)
@@ -2310,7 +2309,9 @@ object GameLoopManager {
             appendLine("## 플레이어 직업 공개")
             game.playerDatas.forEachIndexed { index, playerData ->
                 val deathStatus = if (playerData.state.isDead) "사망" else "생존"
-                val jobName = playerData.job?.name ?: "알 수 없음"
+                val jobName = game.probationOriginalJobsByPlayer[playerData.member.id]?.name
+                    ?: playerData.job?.name
+                    ?: "알 수 없음"
                 appendLine("${index + 1}. ${playerData.member.effectiveName} - $jobName ($deathStatus)")
             }
         }.trim()

@@ -13,7 +13,9 @@ import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
+import org.beobma.mafia42discordproject.job.evil.Evil
 
 class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "운세"
@@ -50,12 +52,24 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private fun sendFortuneResultImmediately(game: Game, fortuneteller: PlayerData, target: PlayerData) {
-        val targetJobName = FrogCurseManager.displayedJob(target)?.name ?: return
-        val gameJobNames = game.playerDatas.mapNotNull { FrogCurseManager.displayedJob(it)?.name }.distinct()
-        if (gameJobNames.isEmpty()) return
+        val targetShownJob = FrogCurseManager.displayedJob(target) ?: return
+        val targetJobName = targetShownJob.name
+        val targetTeam = fortuneTeamOf(targetShownJob)
+        val gameShownJobs = game.playerDatas.mapNotNull { FrogCurseManager.displayedJob(it) }
+        if (gameShownJobs.isEmpty()) return
 
-        val decoyPool = gameJobNames.filter { it != targetJobName }
-        val decoyJobName = (decoyPool.ifEmpty { gameJobNames }).randomOrNull() ?: return
+        val differentTeamJobNames = gameShownJobs
+            .filter { fortuneTeamOf(it) != targetTeam }
+            .map { it.name }
+            .filter { it != targetJobName }
+            .distinct()
+        val fallbackJobNames = gameShownJobs
+            .map { it.name }
+            .filter { it != targetJobName }
+            .distinct()
+        val decoyJobName = differentTeamJobNames.randomOrNull()
+            ?: fallbackJobNames.randomOrNull()
+            ?: targetJobName
         val shownJobs = listOf(targetJobName, decoyJobName).shuffled()
 
         val arcanaTargets = if (fortuneteller.allAbilities.any { it is Arcana }) {
@@ -117,6 +131,15 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
         }
 
         return selected.take(2)
+    }
+
+    private fun fortuneTeamOf(job: Job): FortuneTeam {
+        return if (job is Evil) FortuneTeam.MAFIA else FortuneTeam.CITIZEN
+    }
+
+    private enum class FortuneTeam {
+        CITIZEN,
+        MAFIA
     }
 
     companion object {

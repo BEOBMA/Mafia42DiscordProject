@@ -44,14 +44,15 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             target.state.isShamaned = true
         }
         caster.state.hasUsedDailyAbility = true
+        val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
 
         CoroutineScope(Dispatchers.Default).launch {
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     if (isEarthbound) {
-                        "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n$image"
+                        "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
                     } else {
-                        "${target.member.effectiveName}님을 성불하였습니다.\n$image"
+                        "${target.member.effectiveName}님을 성불하였습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
                     }
                 )
             }
@@ -62,7 +63,6 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
         return if (isEarthbound) {
             AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불하는데 실패했습니다.")
         } else {

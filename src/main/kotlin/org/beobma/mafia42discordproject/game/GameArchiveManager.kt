@@ -71,18 +71,18 @@ object GameArchiveManager {
 
             put("players", buildJsonArray {
                 game.playerDatas.forEach { player ->
-                    add(buildPlayerSnapshot(player))
+                    add(buildPlayerSnapshot(game, player))
                 }
             })
 
             put("nightAttacks", buildJsonObject {
                 game.nightAttacks.toSortedMap().forEach { (attackGroup, attackEvent) ->
-                    put(attackGroup, buildAttackEventSnapshot(attackEvent))
+                    put(attackGroup, buildAttackEventSnapshot(game, attackEvent))
                 }
             })
 
             put("nightDeathCandidates", buildJsonArray {
-                game.nightDeathCandidates.forEach { add(playerRef(it)) }
+                game.nightDeathCandidates.forEach { add(playerRef(game, it)) }
             })
 
             put("nightEvents", buildJsonArray {
@@ -94,10 +94,10 @@ object GameArchiveManager {
                     game.lastNightSummary.processedEvents.forEach { add(eventSummary(it)) }
                 })
                 put("deaths", buildJsonArray {
-                    game.lastNightSummary.deaths.forEach { add(playerRef(it)) }
+                    game.lastNightSummary.deaths.forEach { add(playerRef(game, it)) }
                 })
                 put("blockedAttacks", buildJsonArray {
-                    game.lastNightSummary.blockedAttacks.forEach { add(buildAttackEventSnapshot(it)) }
+                    game.lastNightSummary.blockedAttacks.forEach { add(buildAttackEventSnapshot(game, it)) }
                 })
                 put("dawnPresentation", buildJsonObject {
                     putNullable("imageUrl", game.lastNightSummary.dawnPresentation?.imageUrl)
@@ -189,8 +189,9 @@ object GameArchiveManager {
         }
     }
 
-    private fun buildPlayerSnapshot(player: PlayerData): JsonObject {
-        val teamDisplayName = when (player.job) {
+    private fun buildPlayerSnapshot(game: Game, player: PlayerData): JsonObject {
+        val snapshotJob = snapshotJob(game, player)
+        val teamDisplayName = when (snapshotJob) {
             null -> null
             is Evil -> Team.MAFIA.displayName
             else -> Team.CITIZEN.displayName
@@ -200,7 +201,7 @@ object GameArchiveManager {
         return buildJsonObject {
             put("id", player.member.id.value.toString())
             put("name", player.member.effectiveName)
-            putNullable("job", player.job?.name)
+            putNullable("job", snapshotJob?.name)
             putNullable("team", teamDisplayName)
             put("abilities", buildJsonArray {
                 player.allAbilities.forEach { ability ->
@@ -241,21 +242,24 @@ object GameArchiveManager {
         }
     }
 
-    private fun playerRef(player: PlayerData): JsonObject {
+    private fun playerRef(game: Game, player: PlayerData): JsonObject {
         return buildJsonObject {
             put("id", player.member.id.value.toString())
             put("name", player.member.effectiveName)
-            putNullable("job", player.job?.name)
+            putNullable("job", snapshotJob(game, player)?.name)
         }
     }
 
-    private fun buildAttackEventSnapshot(event: AttackEvent): JsonObject {
+    private fun buildAttackEventSnapshot(game: Game, event: AttackEvent): JsonObject {
         return buildJsonObject {
-            put("attacker", playerRef(event.attacker))
-            put("target", playerRef(event.target))
+            put("attacker", playerRef(game, event.attacker))
+            put("target", playerRef(game, event.target))
             put("attackTier", event.attackTier.name)
         }
     }
+
+    private fun snapshotJob(game: Game, player: PlayerData) =
+        game.probationOriginalJobsByPlayer[player.member.id] ?: player.job
 
     private fun eventSummary(event: GameEvent): JsonObject {
         return buildJsonObject {

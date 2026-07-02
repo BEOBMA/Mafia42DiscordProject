@@ -19,6 +19,9 @@ object JobDiscoveryNotificationManager {
                 if (event.isPublicReveal) {
                     event.target.state.isJobPubliclyRevealed = true
                     game?.publiclyRevealedJobNames?.add(event.revealedJob.name)
+                    if (event.sourceAbilityName == "처세") {
+                        return@forEach
+                    }
                     runCatching {
                         val message = if (event.sourceAbilityName == "특종") {
                             "특종입니다! ${event.target.member.effectiveName}님이 ${event.revealedJob.name}(이)라는 소식입니다!\n$REPORTER_DAY_IMAGE_URL"
