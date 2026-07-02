@@ -19,7 +19,7 @@ object JobDiscoveryNotificationManager {
                 if (event.isPublicReveal) {
                     event.target.state.isJobPubliclyRevealed = true
                     game?.publiclyRevealedJobNames?.add(event.revealedJob.name)
-                    if (event.sourceAbilityName == "처세") {
+                    if (event.sourceAbilityName == "처세" || event.sourceAbilityName == "방탄") {
                         return@forEach
                     }
                     runCatching {
