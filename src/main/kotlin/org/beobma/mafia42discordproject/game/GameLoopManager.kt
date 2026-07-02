@@ -2497,13 +2497,6 @@ object GameLoopManager {
         deaths: List<PlayerData>,
         poisonedDeaths: List<PlayerData> = emptyList()
     ): DawnPresentation {
-        if (game.concealmentForcedQuietNight) {
-            return DawnPresentation(
-                imageUrl = SystemImage.QUIET_NIGHT.imageUrl,
-                message = "조용하게 밤이 넘어갔습니다."
-            )
-        }
-
         val attacks = game.nightAttacks.values.toList()
         val presentationEvent = GameEvent.ResolveDawnPresentation(
             dayCount = game.dayCount,
@@ -2548,7 +2541,7 @@ object GameLoopManager {
             return DawnPresentation(imageUrl = "", message = "")
         }
 
-        val doctorSavedTarget = game.doctorSavedTargetTonight
+        val doctorSavedTarget = if (game.concealmentForcedQuietNight) null else game.doctorSavedTargetTonight
         val attacks = attacksByKey.values.toList()
         val deathsSet = deaths.toSet()
         val messageLines = mutableListOf<String>()
