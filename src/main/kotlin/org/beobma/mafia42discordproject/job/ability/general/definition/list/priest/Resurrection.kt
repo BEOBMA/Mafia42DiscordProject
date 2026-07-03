@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Priest
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class Resurrection : ActiveAbility, JobUniqueAbility {
     override val name: String = "소생"
@@ -29,13 +30,18 @@ class Resurrection : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "소생할 대상을 지정해야 합니다.")
         }
 
-        val priestJob = caster.job as? Priest ?: return AbilityResult(false, "")
+        val priestJob = caster.job as? Priest
+        val thiefJob = caster.job as? Thief
+        if (priestJob == null && thiefJob == null) {
+            return AbilityResult(false, "성직자 또는 소생 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         if (!effectiveTarget.state.isDead) {
             return AbilityResult(false, "죽은 플레이어만 소생 대상으로 지정할 수 있습니다.")
         }
 
-        priestJob.pendingResurrectionTargetId = effectiveTarget.member.id
+        priestJob?.pendingResurrectionTargetId = effectiveTarget.member.id
+        thiefJob?.stolenPriestResurrectionTargetId = effectiveTarget.member.id
         caster.state.hasUsedOneTimeAbility = true
 
         return AbilityResult(true, "${target.member.effectiveName}님을 소생 대상으로 지정했습니다.")

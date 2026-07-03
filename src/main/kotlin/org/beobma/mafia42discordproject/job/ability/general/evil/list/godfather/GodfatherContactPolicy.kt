@@ -4,6 +4,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.evil.list.Godfather
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 object GodfatherContactPolicy {
     fun canContactMafia(game: Game): Boolean {
@@ -13,6 +14,10 @@ object GodfatherContactPolicy {
 
     fun canUseExecution(game: Game, player: PlayerData): Boolean {
         if (player.state.isDead) return false
+        val thief = player.job as? Thief
+        if (thief != null) {
+            return thief.hasStolenAbility("말살") && thief.hasContactedMafia
+        }
         if (player.job !is Godfather) return false
         return player.state.hasContactedMafiaByInformant || canContactMafia(game)
     }

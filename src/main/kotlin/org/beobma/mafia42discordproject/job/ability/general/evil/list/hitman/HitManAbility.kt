@@ -20,6 +20,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
@@ -47,14 +48,21 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "이미 존재가 공개된 직업은 청부 직업으로 지정할 수 없습니다.")
         }
 
-        val hitManJob = caster.job as? HitMan ?: return AbilityResult(false, "청부업자만 사용할 수 있습니다.")
-        val firstTargetId = hitManJob.firstContractTargetId
-        val firstSelectedTargetId = hitManJob.firstContractSelectedTargetId
+        val hitManJob = caster.job as? HitMan
+        val thiefJob = caster.job as? Thief
+        if (hitManJob == null && thiefJob == null) {
+            return AbilityResult(false, "청부업자 또는 청부 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
+        val firstTargetId = hitManJob?.firstContractTargetId ?: thiefJob?.stolenHitmanFirstContractTargetId
+        val firstSelectedTargetId = hitManJob?.firstContractSelectedTargetId ?: thiefJob?.stolenHitmanFirstSelectedTargetId
 
         if (firstTargetId == null || firstSelectedTargetId == null) {
-            hitManJob.firstContractTargetId = effectiveTarget.member.id
-            hitManJob.firstContractSelectedTargetId = target.member.id
-            hitManJob.firstContractGuessedJobName = guessedJob.name
+            hitManJob?.firstContractTargetId = effectiveTarget.member.id
+            hitManJob?.firstContractSelectedTargetId = target.member.id
+            hitManJob?.firstContractGuessedJobName = guessedJob.name
+            thiefJob?.stolenHitmanFirstContractTargetId = effectiveTarget.member.id
+            thiefJob?.stolenHitmanFirstSelectedTargetId = target.member.id
+            thiefJob?.stolenHitmanFirstContractGuessedJobName = guessedJob.name
             return AbilityResult(true, contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name))
         }
 
@@ -66,14 +74,17 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
         val firstSelectedTarget = game.getPlayer(firstSelectedTargetId)
             ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
-        val firstJobName = hitManJob.firstContractGuessedJobName
+        val firstJobName = hitManJob?.firstContractGuessedJobName ?: thiefJob?.stolenHitmanFirstContractGuessedJobName
             ?: return AbilityResult(false, "첫 번째 직업 정보가 유실되었습니다. 다시 시도해 주세요.")
 
         val secondIntuition = contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name)
 
-        hitManJob.firstContractTargetId = null
-        hitManJob.firstContractSelectedTargetId = null
-        hitManJob.firstContractGuessedJobName = null
+        hitManJob?.firstContractTargetId = null
+        hitManJob?.firstContractSelectedTargetId = null
+        hitManJob?.firstContractGuessedJobName = null
+        thiefJob?.stolenHitmanFirstContractTargetId = null
+        thiefJob?.stolenHitmanFirstSelectedTargetId = null
+        thiefJob?.stolenHitmanFirstContractGuessedJobName = null
 
         scheduleResolution(
             game = game,
@@ -140,8 +151,10 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         }
 
         if (listOf(firstContract, secondContract).any { it.isDirectMafiaGuess() }) {
-            val hitManJob = caster.job as? HitMan ?: return
-            hitManJob.hasContactedMafia = true
+            val hitManJob = caster.job as? HitMan
+            val thiefJob = caster.job as? Thief
+            hitManJob?.hasContactedMafia = true
+            thiefJob?.hasContactedMafia = true
             GameLoopManager.notifyHitmanContact(game, caster)
             return
         }

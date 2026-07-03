@@ -14,6 +14,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Detective
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class DetectiveAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "추리"
@@ -36,15 +37,19 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val detective = caster.job as? Detective
-            ?: return AbilityResult(false, "사립탐정만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (detective == null && thief == null) {
+            return AbilityResult(false, "사립탐정 또는 추리 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val existingTargetId = detective.fixedReasoningTargetId
+        val existingTargetId = detective?.fixedReasoningTargetId ?: thief?.stolenDetectiveTargetId
         if (existingTargetId != null && existingTargetId != effectiveTarget.member.id) {
             return AbilityResult(false, "한번 정한 추리 대상은 변경할 수 없습니다.")
         }
 
-        detective.fixedReasoningTargetId = effectiveTarget.member.id
+        detective?.fixedReasoningTargetId = effectiveTarget.member.id
+        thief?.stolenDetectiveTargetId = effectiveTarget.member.id
         return AbilityResult(true, "${target.member.effectiveName}님을 추리 대상으로 지정했습니다.")
     }
 
@@ -67,10 +72,12 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
             if (game.currentPhase != GamePhase.NIGHT) return
             if (caster.state.isDead) return
 
-            val aliveDetectives = game.playerDatas.filter { !it.state.isDead && it.job is Detective }
+            val aliveDetectives = game.playerDatas.filter { player ->
+                !player.state.isDead &&
+                    ((player.job as? Detective)?.fixedReasoningTargetId == caster.member.id ||
+                        (player.job as? Thief)?.stolenDetectiveTargetId == caster.member.id)
+            }
             aliveDetectives.forEach { detectivePlayer ->
-                val detectiveJob = detectivePlayer.job as? Detective ?: return@forEach
-                if (detectiveJob.fixedReasoningTargetId != caster.member.id) return@forEach
                 val action = if (previousTargetId != null && previousTargetId != selectedTarget.member.id) "변경" else "지정"
 
                 sendDm(
@@ -81,6 +88,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
                 val hasTrap = detectivePlayer.allAbilities.any { it is Trap }
                 if (!hasTrap || selectedTarget.member.id != detectivePlayer.member.id) return@forEach
+                val detectiveJob = detectivePlayer.job as? Detective ?: return@forEach
                 if (caster.member.id in detectiveJob.trapTriggeredTargetIdsThisNight) return@forEach
 
                 detectiveJob.trapTriggeredTargetIdsThisNight += caster.member.id

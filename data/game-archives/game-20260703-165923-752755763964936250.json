@@ -1,0 +1,2486 @@
+{
+    "archivedAt": "2026-07-03T16:59:23.444109900Z",
+    "endReason": "FORCED_STOP",
+    "guildId": "752755763964936250",
+    "guildName": "좀비고 귀인 클랜 디코방",
+    "dayCount": 2,
+    "initialPlayerCount": 6,
+    "isCrazyMode": false,
+    "currentPhase": "DAY",
+    "isRunning": true,
+    "voiceChannelId": "1521943463728513155",
+    "firstMafiaTargetId": "597040055474978816",
+    "mafiaExecutionProtectedTargetId": null,
+    "nightPhaseStartedAtMillis": 1783097678723,
+    "prophetSpecialWinScheduledTeam": null,
+    "channels": {
+        "main": "1521943257884528671",
+        "mafia": "1521943318790144021",
+        "couple": "1521943398540378275",
+        "dead": "1521943426893877359"
+    },
+    "players": [
+        {
+            "id": "798996649845981255",
+            "name": "사라",
+            "job": "비밀결사",
+            "displayedJob": null,
+            "team": "시민 팀",
+            "abilities": [
+                "밀사",
+                "접선",
+                "검시",
+                "표식",
+                "배심원"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": true,
+                "poisonedDeathDay": 3,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "777116116379500554",
+            "name": "이수",
+            "job": "대부",
+            "displayedJob": null,
+            "team": "마피아 팀",
+            "abilities": [
+                "배후",
+                "말살",
+                "뒷처리",
+                "지령",
+                "밀서"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": true,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "job": "비밀결사",
+            "displayedJob": null,
+            "team": "시민 팀",
+            "abilities": [
+                "밀사",
+                "접선",
+                "확성기",
+                "유품",
+                "도주"
+            ],
+            "state": {
+                "isDead": true,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": true,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "job": "자경단원",
+            "displayedJob": null,
+            "team": "시민 팀",
+            "abilities": [
+                "숙청",
+                "숙청",
+                "유품",
+                "배심원",
+                "결사"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "1406571254156234762",
+            "name": "창탱이",
+            "job": "마피아",
+            "displayedJob": null,
+            "team": "마피아 팀",
+            "abilities": [
+                "처형",
+                "독살",
+                "수배",
+                "결백"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": true,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        },
+        {
+            "id": "1036233917218426952",
+            "name": "부계정임",
+            "job": "의사",
+            "displayedJob": null,
+            "team": "시민 팀",
+            "abilities": [
+                "치료",
+                "정보원",
+                "유품",
+                "진정"
+            ],
+            "state": {
+                "isDead": false,
+                "hasUsedOneTimeAbility": false,
+                "hasUsedDailyAbility": false,
+                "isTamed": false,
+                "isJobPubliclyRevealed": false,
+                "hasAnnouncedGodfatherContact": false,
+                "hasAnnouncedHitmanContact": false,
+                "hasAnnouncedMadScientistContact": false,
+                "hasAnnouncedThiefContact": false,
+                "hasContactedMafiaByInformant": false,
+                "hasContactedMafiaOnDeath": false,
+                "hasUsedMadScientistRegeneration": false,
+                "pendingMadScientistRevivalNight": null,
+                "pendingMadScientistPublicRevealNight": null,
+                "isMadScientistDistortionHidden": false,
+                "madScientistLynchedVoteTargetId": null,
+                "madScientistAnalysisEligibleDay": null,
+                "hasUsedMadScientistAnalysis": false,
+                "lastPaparazziIssueDay": null,
+                "hasReceivedInstructionsNoticeFirstDay": false,
+                "hasReceivedWantedNoticeFirstDay": false,
+                "healTier": "NONE",
+                "isSilenced": false,
+                "isThreatened": false,
+                "isShamaned": false,
+                "isPoisoned": false,
+                "poisonedDeathDay": null,
+                "isFrogCursed": false,
+                "frogCurseExpiresAfterDay": null
+            }
+        }
+    ],
+    "replayLogs": [
+        {
+            "sequence": 1,
+            "timestampMillis": 1783097324107,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "SYSTEM_INTERNAL",
+            "title": "게임 시작",
+            "body": "모드: 일반\n참가자 6명\n- 사라: 비밀결사\n- 이수: 대부\n- BEOBMA: 비밀결사\n- 은지: 자경단원\n- 창탱이: 마피아\n- 부계정임: 의사",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 2,
+            "timestampMillis": 1783097326919,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(52).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(206).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(178).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 3,
+            "timestampMillis": 1783097327169,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(74).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(190).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 4,
+            "timestampMillis": 1783097327419,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(89).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(162).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 5,
+            "timestampMillis": 1783097327689,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(83).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/vigilante_purge.webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 6,
+            "timestampMillis": 1783097327946,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(65).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(94).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 7,
+            "timestampMillis": 1783097328237,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(65).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(94).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 8,
+            "timestampMillis": 1783097330192,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(200).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 9,
+            "timestampMillis": 1783097330520,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(171).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(127).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 10,
+            "timestampMillis": 1783097330859,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(165).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 11,
+            "timestampMillis": 1783097331208,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(204).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 12,
+            "timestampMillis": 1783097331734,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "비밀결사 역할",
+            "body": "당신은 해 비밀결사입니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 13,
+            "timestampMillis": 1783097332099,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "비밀결사 역할",
+            "body": "당신은 달 비밀결사입니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 14,
+            "timestampMillis": 1783097334382,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(126).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(105).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 15,
+            "timestampMillis": 1783097334696,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(105).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(126).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 16,
+            "timestampMillis": 1783097340005,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(141).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(170).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(123).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 17,
+            "timestampMillis": 1783097340889,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(208).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 18,
+            "timestampMillis": 1783097343168,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 19,
+            "timestampMillis": 1783097348118,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(204).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(125).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(131).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 20,
+            "timestampMillis": 1783097349646,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(123).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(187).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 21,
+            "timestampMillis": 1783097351272,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(208).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 22,
+            "timestampMillis": 1783097357692,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(127).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(204).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(105).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 23,
+            "timestampMillis": 1783097362088,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(125).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(208).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 24,
+            "timestampMillis": 1783097362334,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(204).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(141).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(168).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 25,
+            "timestampMillis": 1783097365684,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(198).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(105).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(116).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 26,
+            "timestampMillis": 1783097365945,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(171).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(131).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(197).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 27,
+            "timestampMillis": 1783097374610,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "능력 선택 안내",
+            "body": "능력 중 하나를 선택하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(131).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(100).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 28,
+            "timestampMillis": 1783097392816,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 밤",
+            "body": "1일차 밤",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 29,
+            "timestampMillis": 1783097392816,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "밤이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 30,
+            "timestampMillis": 1783097404214,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "확성기 메시지를 전송했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 31,
+            "timestampMillis": 1783097406487,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 치료\n대상: 부계정임\n결과: 성공\n부계정임님을 치료 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 32,
+            "timestampMillis": 1783097406487,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "부계정임님을 치료 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 33,
+            "timestampMillis": 1783097420143,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 처형\n대상: BEOBMA\n결과: 성공\nBEOBMA 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 34,
+            "timestampMillis": 1783097420143,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "BEOBMA 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 35,
+            "timestampMillis": 1783097457912,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "DEATH",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "BEOBMA 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 36,
+            "timestampMillis": 1783097457929,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "검시 결과",
+            "body": "검시 능력을 통해 비밀결사의 사망을 확인하였습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 37,
+            "timestampMillis": 1783097460458,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "BEOBMA님의 유품을 통해 직업이 비밀결사(이)라고 밝혀졌습니다!",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(48).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 38,
+            "timestampMillis": 1783097461169,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "DEATH",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "BEOBMA 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 39,
+            "timestampMillis": 1783097461170,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "BEOBMA이(가) 살해당했습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(33).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 40,
+            "timestampMillis": 1783097467119,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 낮",
+            "body": "1일차 낮",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 41,
+            "timestampMillis": 1783097467119,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "낮이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 42,
+            "timestampMillis": 1783097467607,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "채팅",
+            "body": "",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 43,
+            "timestampMillis": 1783097468241,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "채팅",
+            "body": "",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 44,
+            "timestampMillis": 1783097468698,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "지령 결과",
+            "body": "은지은 경찰 계열 직업.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 45,
+            "timestampMillis": 1783097472396,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "수배 결과",
+            "body": "수배 결과: 접선하지 않은 마피아팀 정보\n이수의 직업은 대부",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 46,
+            "timestampMillis": 1783097486563,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "채팅",
+            "body": "",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 47,
+            "timestampMillis": 1783097488250,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "비밀결사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "채팅",
+            "body": "",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 48,
+            "timestampMillis": 1783097513560,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 49,
+            "timestampMillis": 1783097514280,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "은지님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 50,
+            "timestampMillis": 1783097517208,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 51,
+            "timestampMillis": 1783097518220,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "부계정임님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 52,
+            "timestampMillis": 1783097519203,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "777116116379500554",
+            "actorName": "이수",
+            "actorJobName": "대부",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 53,
+            "timestampMillis": 1783097519981,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "이수님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 54,
+            "timestampMillis": 1783097521513,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "798996649845981255",
+            "actorName": "사라",
+            "actorJobName": "비밀결사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 55,
+            "timestampMillis": 1783097522264,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "사라님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 56,
+            "timestampMillis": 1783097590372,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "ABILITY_USED",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 숙청\n대상: 창탱이\n결과: 성공\n\n창탱이님은 마피아 입니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(4).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 57,
+            "timestampMillis": 1783097590372,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "창탱이님은 마피아 입니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(4).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 58,
+            "timestampMillis": 1783097603297,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "하루에 한 번만 시간 조정을 사용할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 59,
+            "timestampMillis": 1783097608070,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "남은 시간이 0초 이하가 되어 즉시 다음 페이즈로 넘어갑니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 60,
+            "timestampMillis": 1783097608870,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 투표",
+            "body": "1일차 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 61,
+            "timestampMillis": 1783097608870,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "투표 시간입니다. 의심되는 사람을 투표하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 62,
+            "timestampMillis": 1783097609298,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이님이 시간을 단축시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 63,
+            "timestampMillis": 1783097615913,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "은지 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 64,
+            "timestampMillis": 1783097620201,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "부계정임 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 65,
+            "timestampMillis": 1783097622305,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "798996649845981255",
+            "actorName": "사라",
+            "actorJobName": "비밀결사",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "사라 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 66,
+            "timestampMillis": 1783097625378,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "777116116379500554",
+            "actorName": "이수",
+            "actorJobName": "대부",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "이수 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 67,
+            "timestampMillis": 1783097628952,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "창탱이 -> 사라",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 68,
+            "timestampMillis": 1783097647088,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 최후 변론",
+            "body": "창탱이 최후 변론",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 69,
+            "timestampMillis": 1783097647088,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이의 최후의 변론",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(44).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 70,
+            "timestampMillis": 1783097665745,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 찬반 투표",
+            "body": "창탱이 찬반 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 71,
+            "timestampMillis": 1783097671181,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "창탱이: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 72,
+            "timestampMillis": 1783097672637,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "은지: 찬성",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 73,
+            "timestampMillis": 1783097676851,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "777116116379500554",
+            "actorName": "이수",
+            "actorJobName": "대부",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "이수: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 74,
+            "timestampMillis": 1783097678371,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이님의 처형이 부결되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 75,
+            "timestampMillis": 1783097678723,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "2일차 밤",
+            "body": "2일차 밤",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 76,
+            "timestampMillis": 1783097678723,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "밤이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 77,
+            "timestampMillis": 1783097679187,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "정보원 결과",
+            "body": "정보원에 의해 현재 2명의 마피아팀이 살아있을 것이 밝혀졌습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 78,
+            "timestampMillis": 1783097691079,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 숙청\n대상: 창탱이\n결과: 실패\n알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 79,
+            "timestampMillis": 1783097691079,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 80,
+            "timestampMillis": 1783097702363,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 숙청\n대상: 창탱이\n결과: 실패\n알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 81,
+            "timestampMillis": 1783097702363,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 82,
+            "timestampMillis": 1783097707235,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 처형\n대상: 사라\n결과: 성공\n사라 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 83,
+            "timestampMillis": 1783097707235,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "사라 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 84,
+            "timestampMillis": 1783097712127,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 치료\n대상: 사라\n결과: 성공\n사라님을 치료 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 85,
+            "timestampMillis": 1783097712127,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "사라님을 치료 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 86,
+            "timestampMillis": 1783097720266,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 숙청\n대상: 창탱이\n결과: 실패\n알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 87,
+            "timestampMillis": 1783097720266,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "알고 있는 적팀만 숙청할 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 88,
+            "timestampMillis": 1783097744057,
+            "dayCount": 2,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "사라님이 의사의 치료를 받고 살아났습니다!",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 89,
+            "timestampMillis": 1783097749687,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "2일차 낮",
+            "body": "2일차 낮",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 90,
+            "timestampMillis": 1783097749687,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "낮이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 91,
+            "timestampMillis": 1783097872429,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "중독 알림",
+            "body": "중독 상태가 되었습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 92,
+            "timestampMillis": 1783097872429,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "중독 알림",
+            "body": "사라님이 중독 상태가 되었습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 93,
+            "timestampMillis": 1783097888049,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "777116116379500554",
+            "actorName": "이수",
+            "actorJobName": "대부",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "이수",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 94,
+            "timestampMillis": 1783097888954,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "이수님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 95,
+            "timestampMillis": 1783097903955,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "ABILITY_USED",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 숙청\n대상: 창탱이\n결과: 실패\n한번 정한 숙청 대상은 변경할 수 없습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 96,
+            "timestampMillis": 1783097903955,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "자경단원",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "한번 정한 숙청 대상은 변경할 수 없습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 97,
+            "timestampMillis": 1783097949284,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "1036233917218426952",
+            "actorName": "부계정임",
+            "actorJobName": "의사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "낮 시간을 15초 증가 했습니다. (하루 1회 사용 완료)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1036233917218426952",
+                    "name": "부계정임",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 98,
+            "timestampMillis": 1783097949968,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "부계정임님이 시간을 증가시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 99,
+            "timestampMillis": 1783097963444,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "GAME_END",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "게임 종료",
+            "body": "FORCED_STOP",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        }
+    ],
+    "nightAttacks": {},
+    "nightDeathCandidates": [],
+    "nightEvents": [],
+    "lastNightSummary": {
+        "processedEvents": [],
+        "deaths": [],
+        "blockedAttacks": [
+            {
+                "attacker": {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "job": "마피아"
+                },
+                "target": {
+                    "id": "798996649845981255",
+                    "name": "사라",
+                    "job": "비밀결사"
+                },
+                "attackTier": "NORMAL"
+            }
+        ],
+        "dawnPresentation": {
+            "imageUrl": "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).png",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).png"
+            ],
+            "message": "사라님이 의사의 치료를 받고 살아났습니다!"
+        }
+    },
+    "votes": {
+        "main": {
+            "534697552201777162": "1406571254156234762",
+            "777116116379500554": "1406571254156234762",
+            "798996649845981255": "1406571254156234762",
+            "1036233917218426952": "1406571254156234762",
+            "1406571254156234762": "798996649845981255"
+        },
+        "fake": {},
+        "prosCons": {
+            "534697552201777162": true,
+            "777116116379500554": false,
+            "1406571254156234762": false
+        },
+        "defenseTargetId": null,
+        "unwrittenRuleBlockedTargetIdTonight": null
+    },
+    "sets": {
+        "pendingEscapedPlayerIds": [],
+        "pendingNightDeathPlayerIds": [],
+        "publiclyRevealedAbilityTargetIds": [
+            "798996649845981255"
+        ],
+        "publiclyRevealedJobNames": [
+            "비밀결사",
+            "의사"
+        ],
+        "usedMegaphonePlayerIds": [
+            "597040055474978816"
+        ],
+        "usedSecretLetterPlayerIds": [],
+        "ghostTriggeredGhouls": [],
+        "pendingBeastmanTameIds": [],
+        "abilityUsersThisPhase": [],
+        "dayTimeAdjustmentUsedPlayers": [
+            "1036233917218426952",
+            "777116116379500554"
+        ],
+        "permanentlyDisenfranchisedVoters": []
+    },
+    "flags": {
+        "mafiaAttackFailedPreviousNight": true,
+        "concealmentForcedQuietNight": false,
+        "mafiaExecutionSucceededLastNight": false,
+        "megaphoneUsedTonight": false
+    },
+    "maps": {
+        "coupleSacrificeMap": {},
+        "willByPlayerId": {},
+        "activeThreatenedVoters": {},
+        "graveRobTargetsByGhoul": {},
+        "pendingPoisonNotifications": {},
+        "pendingWitchCurseByCaster": {},
+        "pendingOblivionCurseByCaster": {},
+        "abilityTargetByUserThisPhase": {},
+        "hostessFirstVoteTargetByDay": {}
+    },
+    "pendingLettersByRecipient": {},
+    "dayStartDiscoveries": [],
+    "seductionStatusByTarget": {}
+}

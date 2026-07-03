@@ -43,13 +43,17 @@ import org.beobma.mafia42discordproject.game.replay.GameReplaySender
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Inspection
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
+import org.beobma.mafia42discordproject.job.definition.Definition
+import org.beobma.mafia42discordproject.job.definition.list.Administrator
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.Couple
@@ -666,7 +670,39 @@ object GameManager {
         }
     }
 
+    private suspend fun notifyAdministratorInspection(game: Game) {
+        game.playerDatas
+            .filter { player ->
+                player.job is Administrator && player.allAbilities.any { it is Inspection }
+            }
+            .forEach { administratorPlayer ->
+                val knownJobName = game.playerDatas
+                    .asSequence()
+                    .filter { candidate -> candidate.member.id != administratorPlayer.member.id }
+                    .mapNotNull(PlayerData::job)
+                    .filter { job ->
+                        job is Definition &&
+                            job !is Administrator &&
+                            job !is MentalPatient
+                    }
+                    .distinctBy(Job::name)
+                    .toList()
+                    .randomOrNull()
+                    ?.name
 
+                val message = if (knownJobName != null) {
+                    "${SystemImage.ADMINISTRATOR_NOTICE.imageUrl}\n감사 결과: 이번 게임에 $knownJobName 직업이 존재합니다."
+                } else {
+                    "${SystemImage.ADMINISTRATOR_NOTICE.imageUrl}\n감사 결과: 확인할 수 있는 다른 시민 팀 직업이 없습니다."
+                }
+
+                runCatching {
+                    GameReplayMessenger.sendTrackedDm(game, administratorPlayer, message, "공무원 감사")
+                }.onFailure { error ->
+                    println("${administratorPlayer.member.effectiveName} 공무원 감사 DM 전송 실패: ${error.message}")
+                }
+            }
+    }
 
     data class JobAssignmentSimulationResult(
         val lines: List<String>,
@@ -1760,6 +1796,7 @@ object GameManager {
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
+        notifyAdministratorInspection(game)
         notifyNurseOath(game)
         game.isRunning = true
         gameLoopJob = gameLoopScope.launch {

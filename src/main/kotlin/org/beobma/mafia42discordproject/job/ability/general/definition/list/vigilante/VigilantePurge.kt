@@ -161,11 +161,11 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
         target: PlayerData,
         vigilante: Vigilante?
     ): Boolean {
-        val isDiscoveredToday = vigilante != null &&
+        val isDiscoveredMafiaTarget = vigilante != null &&
             target.member.id == vigilante.fixedPurgeTargetId &&
             vigilante.hasDiscoveredMafiaTarget &&
-            vigilante.discoveredMafiaDayCount == game.dayCount
-        if (isDiscoveredToday) return true
+            vigilante.discoveredMafiaDayCount != null
+        if (isDiscoveredMafiaTarget) return true
 
         return target.state.isJobPubliclyRevealed && isEnemy(caster, target)
     }

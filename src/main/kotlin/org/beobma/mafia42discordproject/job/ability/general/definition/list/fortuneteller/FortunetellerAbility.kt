@@ -16,6 +16,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "운세"
@@ -38,15 +39,19 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val fortuneteller = caster.job as? Fortuneteller
-            ?: return AbilityResult(false, "점쟁이만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (fortuneteller == null && thief == null) {
+            return AbilityResult(false, "점쟁이 또는 운세 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val fixedTargetId = fortuneteller.fixedFortuneTargetId
+        val fixedTargetId = fortuneteller?.fixedFortuneTargetId ?: thief?.stolenFortuneTargetId
         if (fixedTargetId != null && fixedTargetId != effectiveTarget.member.id) {
             return AbilityResult(false, "한번 정한 운세 대상은 변경할 수 없습니다.")
         }
 
-        fortuneteller.fixedFortuneTargetId = effectiveTarget.member.id
+        fortuneteller?.fixedFortuneTargetId = effectiveTarget.member.id
+        thief?.stolenFortuneTargetId = effectiveTarget.member.id
         sendFortuneResultImmediately(game, caster, effectiveTarget)
         return AbilityResult(true, "${target.member.effectiveName}님을 운세 대상으로 지정했습니다.")
     }

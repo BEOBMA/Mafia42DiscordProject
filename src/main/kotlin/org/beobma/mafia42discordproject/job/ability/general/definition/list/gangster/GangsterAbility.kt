@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Gangster
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class GangsterAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "공갈"
@@ -33,23 +34,34 @@ class GangsterAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val gangster = caster.job as? Gangster
-            ?: return AbilityResult(false, "건달만 공갈을 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (gangster == null && thief == null) {
+            return AbilityResult(false, "건달 또는 공갈 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
 
-        if (gangster.remainingThreatUsesTonight <= 0) {
+        val remainingUses = gangster?.remainingThreatUsesTonight ?: thief?.stolenRemainingThreatUsesTonight ?: 0
+        if (remainingUses <= 0) {
             return AbilityResult(false, "오늘 밤에는 더 이상 공갈을 사용할 수 없습니다.")
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        if (effectiveTarget.member.id in gangster.threatenedTargetIdsTonight) {
+        val threatenedTargets = gangster?.threatenedTargetIdsTonight ?: thief?.stolenThreatenedTargetIdsTonight ?: mutableSetOf()
+        if (effectiveTarget.member.id in threatenedTargets) {
             return AbilityResult(false, "이미 오늘 밤 공갈 대상으로 지정한 플레이어입니다.")
         }
 
-        gangster.threatenedTargetIdsTonight += effectiveTarget.member.id
-        gangster.remainingThreatUsesTonight -= 1
+        threatenedTargets += effectiveTarget.member.id
+        if (gangster != null) {
+            gangster.remainingThreatUsesTonight -= 1
+        }
+        if (thief != null) {
+            thief.stolenRemainingThreatUsesTonight -= 1
+        }
 
         val canTriggerCombinedAttack =
+            gangster != null &&
             caster.allAbilities.any { it is CombinedAttack } &&
-                effectiveTarget.member.id in gangster.threatenedTargetIdsLastNight &&
-                !effectiveTarget.state.isDead
+            effectiveTarget.member.id in gangster.threatenedTargetIdsLastNight &&
+            !effectiveTarget.state.isDead
         if (canTriggerCombinedAttack) {
             gangster.remainingThreatUsesTonight += 1
         }

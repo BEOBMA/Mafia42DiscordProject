@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class MartyrNightBombAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "자폭"
@@ -33,10 +34,15 @@ class MartyrNightBombAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val martyr = caster.job as? Martyr
-            ?: return AbilityResult(false, "테러리스트만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (martyr == null && thief == null) {
+            return AbilityResult(false, "테러리스트 또는 자폭 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val isChanged = martyr.nightBombTargetId != null && martyr.nightBombTargetId != effectiveTarget.member.id
-        martyr.nightBombTargetId = effectiveTarget.member.id
+        val previousTargetId = martyr?.nightBombTargetId ?: thief?.stolenMartyrNightBombTargetId
+        val isChanged = previousTargetId != null && previousTargetId != effectiveTarget.member.id
+        martyr?.nightBombTargetId = effectiveTarget.member.id
+        thief?.stolenMartyrNightBombTargetId = effectiveTarget.member.id
 
         return AbilityResult(
             true,
@@ -72,10 +78,15 @@ class MartyrDefenseBombAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val martyr = caster.job as? Martyr
-            ?: return AbilityResult(false, "테러리스트만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (martyr == null && thief == null) {
+            return AbilityResult(false, "테러리스트 또는 산화 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val isChanged = martyr.defenseBombTargetId != null && martyr.defenseBombTargetId != effectiveTarget.member.id
-        martyr.defenseBombTargetId = effectiveTarget.member.id
+        val previousTargetId = martyr?.defenseBombTargetId ?: thief?.stolenMartyrDefenseBombTargetId
+        val isChanged = previousTargetId != null && previousTargetId != effectiveTarget.member.id
+        martyr?.defenseBombTargetId = effectiveTarget.member.id
+        thief?.stolenMartyrDefenseBombTargetId = effectiveTarget.member.id
 
         return AbilityResult(
             true,

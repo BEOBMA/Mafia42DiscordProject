@@ -17,6 +17,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Witch
 
 class WitchAbility : ActiveAbility, JobUniqueAbility {
@@ -42,7 +43,11 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 저주할 수 없습니다.")
         }
 
-        val witch = caster.job as? Witch ?: return AbilityResult(false, "마녀만 사용할 수 있습니다.")
+        val witch = caster.job as? Witch
+        val thief = caster.job as? Thief
+        if (witch == null && thief == null) {
+            return AbilityResult(false, "마녀 또는 저주 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         if (effectiveTarget.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신을 저주할 수 없습니다.")
@@ -64,7 +69,7 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         val curseAt = nightEndsAt - CURSE_DELAY_BEFORE_NIGHT_END_MS
         val delayMillis = curseAt - now
         if (delayMillis <= 0L) {
-            applyCurseNow(game, caster, witch, effectiveTarget, notifyTarget = true)
+            applyCurseNow(game, caster, witch, thief, effectiveTarget, notifyTarget = true)
             return AbilityResult(true, "${target.member.effectiveName}님에게 즉시 저주를 걸었습니다.")
         }
 
@@ -73,7 +78,7 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
             if (game.currentPhase != GamePhase.NIGHT) return@launch
             val selectedTargetId = game.pendingWitchCurseByCaster[caster.member.id] ?: return@launch
             if (selectedTargetId != effectiveTarget.member.id) return@launch
-            applyCurseNow(game, caster, witch, effectiveTarget, notifyTarget = true)
+            applyCurseNow(game, caster, witch, thief, effectiveTarget, notifyTarget = true)
         }
         return AbilityResult(true, "${target.member.effectiveName}님에게 저주를 걸었습니다.")
     }
@@ -105,7 +110,8 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         private fun applyCurseNow(
             game: Game,
             caster: PlayerData,
-            witch: Witch,
+            witch: Witch?,
+            thief: Thief?,
             target: PlayerData,
             notifyTarget: Boolean
         ) {
@@ -119,11 +125,23 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
                     }
                 }
             }
-            if (target.job is Mafia && !witch.hasContactedMafia) {
+            if (target.job is Mafia && witch != null && !witch.hasContactedMafia) {
                 witch.hasContactedMafia = true
                 scope.launch {
                     runCatching {
                         GameLoopManager.announceMafiaSupportContact(game, caster, WITCH_CONTACT_IMAGE_URL)
+                    }
+                    runCatching {
+                        GameLoopManager.refreshMafiaChannelContactState(game)
+                    }
+                }
+            }
+            if (target.job is Mafia && thief != null && !thief.hasContactedMafiaByStolenWitch) {
+                thief.hasContactedMafiaByStolenWitch = true
+                thief.hasContactedMafia = true
+                scope.launch {
+                    runCatching {
+                        GameLoopManager.announceMafiaSupportContact(game, caster, WITCH_CONTACT_IMAGE_URL, "도둑")
                     }
                     runCatching {
                         GameLoopManager.refreshMafiaChannelContactState(game)

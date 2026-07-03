@@ -36,6 +36,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.doct
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
@@ -45,6 +46,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.politician.PoliticianAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
@@ -583,6 +585,7 @@ object GameLoopManager {
                 nurse.currentHealTarget = null
                 nurse.prescribedTargetId = null
             }
+            (player.job as? Thief)?.stolenHealTargetId = null
             (player.job as? Gangster)?.finalizeNightThreatSelection()
             (player.job as? Hypnotist)?.let { hypnotist ->
                 if (hypnotist.blockedNightsRemaining > 0) {
@@ -680,12 +683,14 @@ object GameLoopManager {
 
     private suspend fun resolvePriestResurrection(game: Game, summary: NightResolutionSummary) {
         game.playerDatas.forEach { priestPlayer ->
-            val priestJob = priestPlayer.job as? Priest ?: return@forEach
-            val targetId = priestJob.pendingResurrectionTargetId ?: return@forEach
-            priestJob.pendingResurrectionTargetId = null
+            val priestJob = priestPlayer.job as? Priest
+            val thiefJob = priestPlayer.job as? Thief
+            val targetId = priestJob?.pendingResurrectionTargetId ?: thiefJob?.stolenPriestResurrectionTargetId ?: return@forEach
+            priestJob?.pendingResurrectionTargetId = null
+            thiefJob?.stolenPriestResurrectionTargetId = null
 
             if (priestPlayer.state.isDead) {
-                game.sendMainChannerMessage("성직자 ${priestPlayer.member.effectiveName}님이 사망하여 소생이 취소되었습니다.")
+                game.sendMainChannerMessage("${priestPlayer.member.effectiveName}님이 사망하여 소생이 취소되었습니다.")
                 return@forEach
             }
 
@@ -707,6 +712,7 @@ object GameLoopManager {
             }
 
             target.state.isDead = false
+            target.state.diedDayCount = null
             target.state.isShamaned = false
             target.state.isPoisoned = false
             target.state.poisonedDeathDay = null
@@ -718,7 +724,7 @@ object GameLoopManager {
                 target.state.hasUsedMadScientistAnalysis = false
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
-            game.publiclyRevealedJobNames += priestJob.name
+            priestPlayer.job?.name?.let { game.publiclyRevealedJobNames += it }
 
             game.sendMainChannelMessageWithImageAndSound(
                 imageLink = SystemImage.PRIEST_RESURRECTION.imageUrl,
@@ -1007,6 +1013,7 @@ object GameLoopManager {
         if (victim.state.isDead) return
 
         victim.state.isDead = true
+        victim.state.diedDayCount = game.dayCount
         handleMadScientistDeath(game, victim, isLynch = isLynch)
         game.nightEvents += GameEvent.PlayerDied(victim, isLynch = isLynch)
         applyPoliceAutopsy(game, victim)
@@ -1061,6 +1068,7 @@ object GameLoopManager {
             }
 
             player.state.isDead = false
+            player.state.diedDayCount = null
             player.state.isShamaned = false
             player.state.isPoisoned = false
             player.state.poisonedDeathDay = null
@@ -1125,22 +1133,24 @@ object GameLoopManager {
         supportJobNameOverride: String? = null
     ) {
         val mafiaChannel = game.mafiaChannel ?: return
-        val aliveMafiaNames = game.playerDatas
+        val aliveMafiaMentions = game.playerDatas
             .filter { !it.state.isDead && it.job is Mafia }
-            .map { it.member.effectiveName }
+            .map(::mention)
 
-        val mafiaDescription = if (aliveMafiaNames.isEmpty()) {
+        val mafiaDescription = if (aliveMafiaMentions.isEmpty()) {
             "마피아가 없는 상태에서"
         } else {
-            "마피아 ${aliveMafiaNames.joinToString(", ")}님과"
+            "마피아 ${aliveMafiaMentions.joinToString(", ")}님과"
         }
 
         val supportJobName = supportJobNameOverride ?: contactPlayer.job?.name ?: "악인"
 
         mafiaChannel.createMessage(
-            "$contactImageUrl\n$mafiaDescription $supportJobName ${contactPlayer.member.effectiveName}님이 접선했습니다."
+            "$contactImageUrl\n$mafiaDescription $supportJobName ${mention(contactPlayer)}님이 접선했습니다."
         )
     }
+
+    private fun mention(player: PlayerData): String = "<@${player.member.id.value}>"
 
     suspend fun notifyHitmanContact(game: Game, hitmanPlayer: PlayerData) {
         if (hitmanPlayer.state.hasAnnouncedHitmanContact) return
@@ -1305,11 +1315,11 @@ object GameLoopManager {
                 GameReplayLogger.logDirectMessage(
                     game = game,
                     recipient = mafiaPlayer,
-                    body = "$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다",
+                    body = "$BEASTMAN_TAMED_IMAGE_URL\n${mention(beastmanPlayer)}님이 접선했습니다.",
                     title = "짐승인간 접선"
                 )
                 runCatching {
-                    mafiaPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다")
+                    mafiaPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n${mention(beastmanPlayer)}님이 접선했습니다.")
                 }
             }
         }
@@ -1533,7 +1543,7 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val baseWeight = if (voter.job is Politician) 2 else 1
+            val baseWeight = if (hasPoliticianAbility(voter)) 2 else 1
             val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = baseWeight)
             voter.allAbilities
                  .filterIsInstance<PassiveAbility>()
@@ -1911,20 +1921,18 @@ object GameLoopManager {
             .filterValues { !it }
             .keys
             .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
-        val judgePlayer = findAliveJudge(game)
-        val judgeVote = judgePlayer?.let { game.currentProsConsVotes[it.member.id] }
         val aggregateDecision = prosCount > consCount
-        val judgeJob = judgePlayer?.job as? Judge
+        val judgePlayer = findProsConsJudge(game, aggregateDecision)
+        val judgeVote = judgePlayer?.let { game.currentProsConsVotes[it.member.id] }
         val shouldRevealJudge = judgePlayer != null &&
-            judgeJob != null &&
-            !judgeJob.hasRevealedAuthority &&
+            !hasRevealedJudgeAuthority(judgePlayer) &&
             judgeVote != null &&
             judgeVote != aggregateDecision
 
         if (shouldRevealJudge) {
-            judgeJob.hasRevealedAuthority = true
+            revealJudgeAuthority(judgePlayer)
             judgePlayer.state.isJobPubliclyRevealed = true
-            game.publiclyRevealedJobNames += judgeJob.name
+            judgePlayer.job?.name?.let { game.publiclyRevealedJobNames += it }
             if (judgePlayer.allAbilities.any { it is UnwrittenRule }) {
                 game.unwrittenRuleBlockedTargetIdTonight = judgePlayer.member.id
             }
@@ -1991,7 +1999,7 @@ object GameLoopManager {
             return
         }
 
-        if (target.job is Politician) {
+        if (hasPoliticianAbility(target)) {
             val politicianJob = target.job ?: return
             game.publiclyRevealedJobNames += politicianJob.name
             if (!target.state.isJobPubliclyRevealed) {
@@ -2133,18 +2141,46 @@ object GameLoopManager {
         if (voter.member.id in game.permanentlyDisenfranchisedVoters) return 0
         if (game.activeThreatenedVoters.containsKey(voter.member.id)) return 0
 
-        val baseWeight = if (voter.job is Politician) 2 else 1
+        val baseWeight = if (hasPoliticianAbility(voter)) 2 else 1
         return baseWeight + (transferredVoteWeights[voter.member.id] ?: 0)
     }
 
-    private fun findAliveJudge(game: Game): PlayerData? {
-        return game.playerDatas.firstOrNull { !it.state.isDead && it.job is Judge }
+    private fun hasPoliticianAbility(player: PlayerData): Boolean {
+        return player.allAbilities.any { it is PoliticianAbility }
+    }
+
+    private fun findProsConsJudge(game: Game, aggregateDecision: Boolean): PlayerData? {
+        val candidates = game.playerDatas.filter { player ->
+            !player.state.isDead && player.allAbilities.any { it is JudgeAbility }
+        }
+        return candidates.firstOrNull(::hasRevealedJudgeAuthority)
+            ?: candidates.firstOrNull { player ->
+                val vote = game.currentProsConsVotes[player.member.id]
+                vote != null && vote != aggregateDecision
+            }
+            ?: candidates.firstOrNull { player -> game.currentProsConsVotes.containsKey(player.member.id) }
     }
 
     private fun findRevealedAliveJudge(game: Game): PlayerData? {
-        return findAliveJudge(game)?.takeIf { player ->
-            val judgeJob = player.job as? Judge ?: return@takeIf false
-            judgeJob.hasRevealedAuthority
+        return game.playerDatas.firstOrNull { player ->
+            !player.state.isDead &&
+                player.allAbilities.any { it is JudgeAbility } &&
+                hasRevealedJudgeAuthority(player)
+        }
+    }
+
+    private fun hasRevealedJudgeAuthority(player: PlayerData): Boolean {
+        return when (val job = player.job) {
+            is Judge -> job.hasRevealedAuthority
+            is Thief -> job.hasRevealedStolenJudgeAuthority
+            else -> false
+        }
+    }
+
+    private fun revealJudgeAuthority(player: PlayerData) {
+        when (val job = player.job) {
+            is Judge -> job.hasRevealedAuthority = true
+            is Thief -> job.hasRevealedStolenJudgeAuthority = true
         }
     }
 
@@ -2252,7 +2288,7 @@ object GameLoopManager {
                 announceMafiaSupportContact(game, player, BEASTMAN_TAMED_IMAGE_URL)
             }
             else -> {
-                mafiaChannel.createMessage("**${player.member.effectiveName}님이 밀정 능력으로 접선했습니다.**")
+                mafiaChannel.createMessage("**${mention(player)}님이 밀정 능력으로 접선했습니다.**")
             }
         }
 
@@ -2260,8 +2296,9 @@ object GameLoopManager {
     }
 
     private fun notifyJudgeProsVoters(game: Game, target: PlayerData) {
-        val judgePlayer = findAliveJudge(game) ?: return
-        if (judgePlayer.allAbilities.none { it is GovernmentAuthority }) return
+        val judgePlayer = game.playerDatas.firstOrNull { player ->
+            !player.state.isDead && player.allAbilities.any { it is GovernmentAuthority }
+        } ?: return
         val prosVoters = game.currentProsConsVotes
             .filterValues { it }
             .keys
@@ -2287,10 +2324,12 @@ object GameLoopManager {
         val mainChannel = game.mainChannel
 
         game.playerDatas.forEach { player ->
-            val martyr = player.job as? Martyr ?: return@forEach
+            val martyr = player.job as? Martyr
+            val thief = player.job as? Thief
+            if (martyr == null && thief == null) return@forEach
             if (player !in playersToDie) return@forEach
 
-            val selectedTargetId = martyr.nightBombTargetId ?: return@forEach
+            val selectedTargetId = martyr?.nightBombTargetId ?: thief?.stolenMartyrNightBombTargetId ?: return@forEach
             val selectedTarget = game.getPlayer(selectedTargetId) ?: return@forEach
             if (selectedTarget.state.isDead) return@forEach
 
@@ -2337,8 +2376,9 @@ object GameLoopManager {
     }
 
     private suspend fun resolveMartyrDefenseExplosion(game: Game, executedTarget: PlayerData) {
-        val martyr = executedTarget.job as? Martyr ?: return
-        val selectedTargetId = martyr.defenseBombTargetId ?: return
+        val martyr = executedTarget.job as? Martyr
+        val thief = executedTarget.job as? Thief
+        val selectedTargetId = martyr?.defenseBombTargetId ?: thief?.stolenMartyrDefenseBombTargetId ?: return
         val selectedTarget = game.getPlayer(selectedTargetId) ?: return
         if (selectedTarget.state.isDead) return
         if (selectedTarget.member.id == executedTarget.member.id) return
@@ -3042,8 +3082,8 @@ object GameLoopManager {
 
             if (!firstContact) return@forEach
 
-            val nurseMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
-            val doctorMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
+            val nurseMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${mention(doctorPlayer)})님과 접선했습니다."
+            val doctorMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${mention(nursePlayer)})님과 접선했습니다."
             runCatching {
                 GameReplayLogger.logDirectMessage(game, nursePlayer, nurseMessage, "간호사 접선")
                 nursePlayer.member.getDmChannel().createMessage(nurseMessage)
@@ -3094,7 +3134,8 @@ object GameLoopManager {
         val healers = game.playerDatas.filter { player ->
             val isDoctor = player.job is Doctor
             val isInheritedNurse = (player.job as? Nurse)?.canUseInheritedHeal == true
-            isDoctor || isInheritedNurse
+            val isStolenDoctor = (player.job as? Thief)?.stolenHealTargetId != null
+            isDoctor || isInheritedNurse || isStolenDoctor
         }
 
         healers.forEach { player ->
@@ -3102,10 +3143,12 @@ object GameLoopManager {
 
             val doctorJob = player.job as? Doctor
             val nurseJob = player.job as? Nurse
-            val targetId = doctorJob?.currentHealTarget ?: nurseJob?.currentHealTarget ?: return@forEach
+            val thiefJob = player.job as? Thief
+            val targetId = doctorJob?.currentHealTarget ?: nurseJob?.currentHealTarget ?: thiefJob?.stolenHealTargetId ?: return@forEach
             val target = game.getPlayer(targetId) ?: run {
                 doctorJob?.currentHealTarget = null
                 nurseJob?.currentHealTarget = null
+                thiefJob?.stolenHealTargetId = null
                 return@forEach
             }
 
@@ -3138,11 +3181,16 @@ object GameLoopManager {
                     val gangsterJob = gangsterOwner.job as? Gangster ?: return@forEach
                     gangsterJob.threatenedTargetIdsTonight.remove(target.member.id)
                 }
+                game.playerDatas.forEach { thiefOwner ->
+                    val thiefJob = thiefOwner.job as? Thief ?: return@forEach
+                    thiefJob.stolenThreatenedTargetIdsTonight.remove(target.member.id)
+                }
             }
 
             game.nightEvents += healEvent
             doctorJob?.currentHealTarget = null
             nurseJob?.currentHealTarget = null
+            thiefJob?.stolenHealTargetId = null
         }
     }
 
@@ -3155,6 +3203,19 @@ object GameLoopManager {
                 if (target.state.isDead) return@forEach
                 if (shouldIgnoreHarmfulEffectByMentalStrength(game, target)) {
                     gangster.threatenedTargetIdsTonight.remove(targetId)
+                    return@forEach
+                }
+                target.state.isThreatened = true
+                game.activeThreatenedVoters[targetId] = player.member.id
+            }
+        }
+        game.playerDatas.forEach { player ->
+            val thief = player.job as? Thief ?: return@forEach
+            thief.stolenThreatenedTargetIdsTonight.toList().forEach { targetId ->
+                val target = game.getPlayer(targetId) ?: return@forEach
+                if (target.state.isDead) return@forEach
+                if (shouldIgnoreHarmfulEffectByMentalStrength(game, target)) {
+                    thief.stolenThreatenedTargetIdsTonight.remove(targetId)
                     return@forEach
                 }
                 target.state.isThreatened = true

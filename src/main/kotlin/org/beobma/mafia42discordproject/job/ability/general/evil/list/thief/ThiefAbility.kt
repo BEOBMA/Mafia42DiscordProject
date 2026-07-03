@@ -17,7 +17,6 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Mafi
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Politician
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
-import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 
@@ -42,7 +41,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
         if (target.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신의 능력은 훔칠 수 없습니다.")
         }
-        if (target.state.isDead && !thief.hasCondolences()) {
+        if (target.state.isDead && !canStealFromDeadTarget(game, thief, target)) {
             return AbilityResult(false, "사망한 플레이어의 능력은 훔칠 수 없습니다.")
         }
 
@@ -72,12 +71,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "판사의 능력은 게임당 1회만 훔칠 수 있습니다.")
         }
 
-        val targetAbility = targetJob.abilities
-            .filterIsInstance<ActiveAbility>()
-            .firstOrNull { ability ->
-                ability.name != name &&
-                    (targetJob !is Vigilante || ability.usablePhase == GamePhase.NIGHT)
-            } as? JobUniqueAbility
+        val targetAbility = pickStealableAbility(targetJob.abilities)
             ?: return AbilityResult(false, "훔칠 수 있는 고유 능력이 없습니다.")
         val stolenAbility = instantiateAbility(targetAbility)
 
@@ -102,6 +96,23 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(26).webp"
         private const val THIEF_SOLDIER_FAIL_IMAGE_URL =
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(39).webp"
+        private val supportedStolenAbilityNames = setOf(
+            "수색",
+            "추리",
+            "치료",
+            "운세",
+            "공갈",
+            "자폭",
+            "산화",
+            "소생",
+            "숙청",
+            "처세",
+            "선고",
+            "말살",
+            "청부",
+            "첩보",
+            "저주"
+        )
 
         private fun notifyStealSuccess(game: Game, caster: PlayerData, target: PlayerData, targetJobName: String) {
             scope.launch {
@@ -153,5 +164,28 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
 
     private fun isAliveMafiaAbsent(game: Game): Boolean {
         return game.playerDatas.none { !it.state.isDead && it.job is Mafia }
+    }
+
+    private fun canStealFromDeadTarget(game: Game, thief: Thief, target: PlayerData): Boolean {
+        if (!thief.hasCondolences()) return false
+        val diedDayCount = target.state.diedDayCount ?: return false
+        return game.dayCount - diedDayCount <= 1
+    }
+
+    private fun pickStealableAbility(abilities: List<JobUniqueAbility>): JobUniqueAbility? {
+        return abilities
+            .filter { ability -> ability.name != name }
+            .filter { ability -> ability.name in supportedStolenAbilityNames }
+            .minByOrNull(::stealPriority)
+    }
+
+    private fun stealPriority(ability: JobUniqueAbility): Int {
+        val active = ability as? ActiveAbility ?: return 20
+        return when (active.usablePhase) {
+            GamePhase.NIGHT -> 0
+            GamePhase.VOTE -> 1
+            GamePhase.DAY -> 30
+            GamePhase.DAWN, GamePhase.END -> 40
+        }
     }
 }

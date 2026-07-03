@@ -19,6 +19,7 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class PoliceAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "수색"
@@ -39,14 +40,17 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val policeJob = caster.job as? Police
-            ?: return AbilityResult(false, "경찰이 아닙니다")
+        val thiefJob = caster.job as? Thief
+        if (policeJob == null && thiefJob == null) {
+            return AbilityResult(false, "경찰 또는 수색 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
 
-        if (policeJob.hasUsedSearchThisNight) {
+        if (policeJob?.hasUsedSearchThisNight == true || thiefJob?.hasUsedStolenPoliceSearchThisNight == true) {
             return AbilityResult(false, "이미 이번 밤에 수색 능력을 사용했습니다.")
         }
 
         if (target == null) {
-            policeJob.currentSearchTarget = null
+            policeJob?.currentSearchTarget = null
             return AbilityResult(true, null)
         }
         if (target.state.isDead) {
@@ -54,11 +58,12 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        val searchedTargets = (policeJob?.searchedTargets ?: thiefJob?.stolenPoliceSearchedTargetIds).orEmpty()
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
             isMafia = effectiveTarget.job is Mafia,
-            isRepeatedSearch = effectiveTarget.member.id in policeJob.searchedTargets
+            isRepeatedSearch = effectiveTarget.member.id in searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)
         policeSearchScope.launch {
@@ -66,7 +71,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()
-        if (warrant?.shouldRevealJob(effectiveTarget.member.id, policeJob.searchedTargets) == true) {
+        if (warrant?.shouldRevealJob(effectiveTarget.member.id, searchedTargets) == true) {
             val actualJob = effectiveTarget.job ?: return AbilityResult(false, "대상의 직업 정보를 확인할 수 없습니다.")
             val revealedJob = FrogCurseManager.displayedJob(effectiveTarget) ?: actualJob
 
@@ -84,10 +89,12 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        policeJob.currentSearchTarget = null
-        policeJob.hasUsedSearchThisNight = true
-        policeJob.eavesdroppingTargetId = effectiveTarget.member.id
-        policeJob.searchedTargets += effectiveTarget.member.id
+        policeJob?.currentSearchTarget = null
+        policeJob?.hasUsedSearchThisNight = true
+        policeJob?.eavesdroppingTargetId = effectiveTarget.member.id
+        policeJob?.searchedTargets?.add(effectiveTarget.member.id)
+        thiefJob?.hasUsedStolenPoliceSearchThisNight = true
+        thiefJob?.stolenPoliceSearchedTargetIds?.add(effectiveTarget.member.id)
         return AbilityResult(true, "수색 대상을 결정했습니다.")
     }
 

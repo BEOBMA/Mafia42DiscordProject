@@ -17,6 +17,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class SpyAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "첩보"
@@ -32,8 +33,13 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 첩보를 사용할 수 없습니다.")
         }
 
-        val spy = caster.job as? Spy ?: return AbilityResult(false, "스파이만 사용할 수 있습니다.")
-        if (spy.remainingIntelUsesTonight <= 0) {
+        val spy = caster.job as? Spy
+        val thief = caster.job as? Thief
+        if (spy == null && thief == null) {
+            return AbilityResult(false, "스파이 또는 첩보 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
+        val remainingUses = spy?.remainingIntelUsesTonight ?: thief?.stolenSpyRemainingIntelUsesTonight ?: 0
+        if (remainingUses <= 0) {
             return AbilityResult(false, "이번 밤에는 더 이상 첩보를 사용할 수 없습니다.")
         }
 
@@ -55,8 +61,14 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 조사할 수 없습니다.")
         }
 
-        spy.remainingIntelUsesTonight -= 1
-        spy.lastInvestigatedTargetId = effectiveTarget.member.id
+        if (spy != null) {
+            spy.remainingIntelUsesTonight -= 1
+            spy.lastInvestigatedTargetId = effectiveTarget.member.id
+        }
+        if (thief != null) {
+            thief.stolenSpyRemainingIntelUsesTonight -= 1
+            thief.stolenSpyLastInvestigatedTargetId = effectiveTarget.member.id
+        }
 
         if (effectiveTarget.job is Soldier) {
             notifySoldierDetected(game, caster, effectiveTarget)
@@ -64,10 +76,16 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         }
 
         if (effectiveTarget.job is Mafia) {
-            if (!spy.hasContactedMafia) {
+            if (spy != null && !spy.hasContactedMafia) {
                 spy.hasContactedMafia = true
                 spy.remainingIntelUsesTonight += 1
                 notifySpyContact(game, caster)
+            }
+            if (thief != null && !thief.hasContactedMafiaByStolenSpy) {
+                thief.hasContactedMafiaByStolenSpy = true
+                thief.hasContactedMafia = true
+                thief.stolenSpyRemainingIntelUsesTonight += 1
+                notifySpyContact(game, caster, supportJobNameOverride = "도둑")
             }
             return AbilityResult(true, "마피아 팀과 접선했습니다.")
         }
@@ -138,10 +156,10 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
             }
         }
 
-        private fun notifySpyContact(game: Game, spyPlayer: PlayerData) {
+        private fun notifySpyContact(game: Game, spyPlayer: PlayerData, supportJobNameOverride: String? = null) {
             scope.launch {
                 runCatching {
-                    GameLoopManager.announceMafiaSupportContact(game, spyPlayer, SPY_CONTACT_IMAGE_URL)
+                    GameLoopManager.announceMafiaSupportContact(game, spyPlayer, SPY_CONTACT_IMAGE_URL, supportJobNameOverride)
                 }
                 runCatching {
                     GameLoopManager.refreshMafiaChannelContactState(game)

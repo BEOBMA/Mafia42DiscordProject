@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "접선"
     override val description: String = "해 비밀결사가 달 비밀결사를 찾은 뒤 밤마다 해 비밀결사를 지목한다. 해 비밀결사를 지목하면 날이 밝은 후, 게임에서 승리한다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).webp"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(94).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
