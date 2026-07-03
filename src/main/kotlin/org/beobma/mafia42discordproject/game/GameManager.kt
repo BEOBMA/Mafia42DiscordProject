@@ -2475,11 +2475,16 @@ object GameManager {
     }
 
     // 찬반 투표 데이터 저장
-    fun receiveProsConsVote(voterId: Snowflake, isPros: Boolean): Boolean {
+    fun receiveProsConsVote(
+        voterId: Snowflake,
+        isPros: Boolean,
+        expectedDefenseTargetId: Snowflake? = null
+    ): Boolean {
         val game = currentGame ?: return false
 
         return synchronized(game) {
             if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId == null) return@synchronized false
+            if (expectedDefenseTargetId != null && game.defenseTargetId != expectedDefenseTargetId) return@synchronized false
             val voter = game.getPlayer(voterId) ?: return@synchronized false
             if (voter.state.isDead) return@synchronized false
             if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false

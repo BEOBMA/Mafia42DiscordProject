@@ -66,6 +66,7 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Exor
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Poisoning
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Probation
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.thief.ThiefAbility
 import org.beobma.mafia42discordproject.job.ability.general.list.*
 import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -73,6 +74,7 @@ import org.beobma.mafia42discordproject.job.evil.list.*
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
+    private const val PROS_CONS_VOTE_COMPONENT_ID_PREFIX = "pros_cons_vote_select"
     private const val NIGHT_DURATION_MS = 60_000L
     private const val DAWN_DURATION_MS = 5_000L
     private const val VOTE_DURATION_MS = 30_000L
@@ -1484,16 +1486,33 @@ object GameLoopManager {
         }
     }
 
+    private fun applyThiefStealsFromFinalVotes(game: Game, mainVoteSnapshot: Map<Snowflake, String>) {
+        game.playerDatas.forEach { thiefPlayer ->
+            if (thiefPlayer.state.isDead) return@forEach
+            val thiefAbility = thiefPlayer.allAbilities
+                .filterIsInstance<ThiefAbility>()
+                .firstOrNull() ?: return@forEach
+            val targetId = mainVoteSnapshot[thiefPlayer.member.id]
+                ?.let { targetIdString -> runCatching { Snowflake(targetIdString) }.getOrNull() }
+                ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
+
+            thiefAbility.stealFromFinalVote(game, thiefPlayer, target)
+        }
+    }
+
     suspend fun resolveVotePhase(game: Game): PlayerData? {
         val mainChannel = game.mainChannel ?: return null
-        synchronized(game) {
+        val mainVoteSnapshot = synchronized(game) {
             game.currentPhase = GamePhase.DAY
+            game.currentMainVotes.toMap()
         }
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        applyThiefStealsFromFinalVotes(game, mainVoteSnapshot)
         applyHostessSeductionFromVote(game)
         val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
         if (dictatorshipPolitician != null) {
-            val politicianVoteTargetId = game.currentMainVotes[dictatorshipPolitician.member.id]
+            val politicianVoteTargetId = mainVoteSnapshot[dictatorshipPolitician.member.id]
             val politicianTarget = politicianVoteTargetId
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
@@ -1512,7 +1531,7 @@ object GameLoopManager {
         }
         val authorityJudge = findRevealedAliveJudge(game)
         if (authorityJudge != null) {
-            val judgeVoteTargetId = game.currentMainVotes[authorityJudge.member.id]
+            val judgeVoteTargetId = mainVoteSnapshot[authorityJudge.member.id]
             val judgeTarget = judgeVoteTargetId
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
@@ -1560,7 +1579,7 @@ object GameLoopManager {
                 voter.state.madScientistAnalysisEligibleDay == game.dayCount &&
                 !voter.state.hasUsedMadScientistAnalysis
             ) {
-                val targetId = game.currentMainVotes[voter.member.id]?.let(::Snowflake)
+                val targetId = mainVoteSnapshot[voter.member.id]?.let(::Snowflake)
                 if (targetId != null && targetId == voter.state.madScientistLynchedVoteTargetId) {
                     weightEvent.weight += 1
                     voter.state.hasUsedMadScientistAnalysis = true
@@ -1571,7 +1590,7 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val targetIdString = game.currentMainVotes[voter.member.id]
+            val targetIdString = mainVoteSnapshot[voter.member.id]
             if (targetIdString == null) {
                 invalidVoteCount += weightEvent.weight
                 return@forEach
@@ -1877,8 +1896,11 @@ object GameLoopManager {
 
     suspend fun startProsConsVotePhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
-        game.currentPhase = GamePhase.VOTE
-        game.currentProsConsVotes.clear()
+        synchronized(game) {
+            game.currentPhase = GamePhase.VOTE
+            game.defenseTargetId = target.member.id
+            game.currentProsConsVotes.clear()
+        }
         GameReplayLogger.logPhase(game, "${target.member.effectiveName} 찬반 투표")
 
         game.playerDatas.forEach { player ->
@@ -1892,7 +1914,7 @@ object GameLoopManager {
 
         mainChannel.createMessage {
             actionRow {
-                stringSelect("pros_cons_vote_select") {
+                stringSelect("$PROS_CONS_VOTE_COMPONENT_ID_PREFIX:${target.member.id}") {
                     placeholder = "찬성 / 반대 선택"
                     option("찬성", "pros") {
                         description = "처형에 찬성합니다."
@@ -1908,22 +1930,23 @@ object GameLoopManager {
     suspend fun resolveExecutionPhase(game: Game, target: PlayerData) {
         val mainChannel = game.mainChannel ?: return
         val deadChannel = game.deadChannel
-        synchronized(game) {
+        val prosConsVotes = synchronized(game) {
             game.currentPhase = GamePhase.DAY
+            game.currentProsConsVotes.toMap()
         }
         val dictatorshipPolitician = findAliveDictatorshipPolitician(game)
         val gangsterTransferredVoteWeights = calculateTransferredVoteWeights(game)
-        val prosCount = game.currentProsConsVotes
+        val prosCount = prosConsVotes
             .filterValues { it }
             .keys
             .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
-        val consCount = game.currentProsConsVotes
+        val consCount = prosConsVotes
             .filterValues { !it }
             .keys
             .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
         val aggregateDecision = prosCount > consCount
-        val judgePlayer = findProsConsJudge(game, aggregateDecision)
-        val judgeVote = judgePlayer?.let { game.currentProsConsVotes[it.member.id] }
+        val judgePlayer = findProsConsJudge(game, prosConsVotes, aggregateDecision)
+        val judgeVote = judgePlayer?.let { prosConsVotes[it.member.id] }
         val shouldRevealJudge = judgePlayer != null &&
             !hasRevealedJudgeAuthority(judgePlayer) &&
             judgeVote != null &&
@@ -1943,14 +1966,14 @@ object GameLoopManager {
             )
         }
 
-        notifyJudgeProsVoters(game, target)
+        notifyJudgeProsVoters(game, target, prosConsVotes)
 
         if (findRevealedAliveJudge(game) != null && judgeVote == null) {
             mainChannel.createMessage("${target.member.effectiveName}님의 처형이 부결되었습니다.")
         }
 
         val finalDecision = when {
-            dictatorshipPolitician != null -> game.currentProsConsVotes[dictatorshipPolitician.member.id] ?: false
+            dictatorshipPolitician != null -> prosConsVotes[dictatorshipPolitician.member.id] ?: false
             findRevealedAliveJudge(game) != null -> judgeVote ?: false
             else -> aggregateDecision
         }
@@ -2149,16 +2172,20 @@ object GameLoopManager {
         return player.allAbilities.any { it is PoliticianAbility }
     }
 
-    private fun findProsConsJudge(game: Game, aggregateDecision: Boolean): PlayerData? {
+    private fun findProsConsJudge(
+        game: Game,
+        prosConsVotes: Map<Snowflake, Boolean>,
+        aggregateDecision: Boolean
+    ): PlayerData? {
         val candidates = game.playerDatas.filter { player ->
             !player.state.isDead && player.allAbilities.any { it is JudgeAbility }
         }
         return candidates.firstOrNull(::hasRevealedJudgeAuthority)
             ?: candidates.firstOrNull { player ->
-                val vote = game.currentProsConsVotes[player.member.id]
+                val vote = prosConsVotes[player.member.id]
                 vote != null && vote != aggregateDecision
             }
-            ?: candidates.firstOrNull { player -> game.currentProsConsVotes.containsKey(player.member.id) }
+            ?: candidates.firstOrNull { player -> prosConsVotes.containsKey(player.member.id) }
     }
 
     private fun findRevealedAliveJudge(game: Game): PlayerData? {
@@ -2295,11 +2322,15 @@ object GameLoopManager {
         refreshMafiaChannelContactState(game)
     }
 
-    private fun notifyJudgeProsVoters(game: Game, target: PlayerData) {
+    private fun notifyJudgeProsVoters(
+        game: Game,
+        target: PlayerData,
+        prosConsVotes: Map<Snowflake, Boolean>
+    ) {
         val judgePlayer = game.playerDatas.firstOrNull { player ->
             !player.state.isDead && player.allAbilities.any { it is GovernmentAuthority }
         } ?: return
-        val prosVoters = game.currentProsConsVotes
+        val prosVoters = prosConsVotes
             .filterValues { it }
             .keys
             .mapNotNull { voterId -> game.getPlayer(voterId) }

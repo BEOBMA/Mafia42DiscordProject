@@ -1,5 +1,6 @@
 package org.beobma.mafia42discordproject.listener
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
@@ -8,11 +9,16 @@ import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
 import org.beobma.mafia42discordproject.game.GameManager
 
 object ProsConsVoteListener : InteractionListener {
+    private const val COMPONENT_ID_PREFIX = "pros_cons_vote_select"
+
     override fun register(kord: Kord) {
         kord.on<SelectMenuInteractionCreateEvent> {
             InteractionErrorHandler.runSafely("select-pros-cons-vote") {
                 val interaction = interaction
-                if (interaction.componentId != "pros_cons_vote_select") return@runSafely
+                val componentId = interaction.componentId
+                if (componentId != COMPONENT_ID_PREFIX && !componentId.startsWith("$COMPONENT_ID_PREFIX:")) {
+                    return@runSafely
+                }
 
                 val deferredResponse = runCatching {
                     interaction.deferEphemeralResponse()
@@ -22,6 +28,18 @@ object ProsConsVoteListener : InteractionListener {
                 }
 
                 val voterId = interaction.user.id
+                val expectedDefenseTargetId = componentId
+                    .takeIf { it.startsWith("$COMPONENT_ID_PREFIX:") }
+                    ?.substringAfter("$COMPONENT_ID_PREFIX:")
+                    ?.let { rawTargetId -> runCatching { Snowflake(rawTargetId) }.getOrNull() }
+                if (expectedDefenseTargetId == null) {
+                    runCatching {
+                        deferredResponse.respond {
+                            content = "❌ 만료된 찬반 투표 메뉴입니다. 현재 투표 메뉴에서 다시 선택해주세요."
+                        }
+                    }
+                    return@runSafely
+                }
                 val selectedVote = interaction.values.firstOrNull()
                 val isPros = when (selectedVote) {
                     "pros" -> true
@@ -36,7 +54,7 @@ object ProsConsVoteListener : InteractionListener {
                     }
                 }
 
-                val isSuccess = GameManager.receiveProsConsVote(voterId, isPros)
+                val isSuccess = GameManager.receiveProsConsVote(voterId, isPros, expectedDefenseTargetId)
 
                 runCatching {
                     deferredResponse.respond {
