@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
@@ -42,12 +43,12 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
 
         val selectedTarget = candidates.shuffled().firstOrNull()
         if (selectedTarget == null) {
-            sendDm(owner, "지령이 도착하지 않았습니다.")
+            sendDm(game, owner, "지령이 도착하지 않았습니다.")
             return
         }
 
         val discoveredJob = FrogCurseManager.displayedJob(selectedTarget) ?: run {
-            sendDm(owner, "지령이 도착하지 않았습니다.")
+            sendDm(game, owner, "지령이 도착하지 않았습니다.")
             return
         }
 
@@ -56,7 +57,7 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
         val operationImageUrl = SystemImage.AGENT_NOTICE.imageUrl
         val actualJob = selectedTarget.job ?: return
 
-        sendDm(owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
+        sendDm(game, owner, "$operationImageUrl\n${selectedTarget.member.effectiveName}님이 ${discoveredJob.name} 직업이라는 지령이 도착했습니다.")
         dispatchDiscoveryEvent(
             game,
             GameEvent.JobDiscovered(
@@ -89,9 +90,10 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
             }
     }
 
-    private fun sendDm(owner: PlayerData, message: String) {
+    private fun sendDm(game: Game, owner: PlayerData, message: String) {
         agentDmScope.launch {
             runCatching {
+                GameReplayLogger.logDirectMessage(game, owner, message, "요원 지령")
                 owner.member.getDmChannel().createMessage(message)
             }
         }

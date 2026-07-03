@@ -22,6 +22,9 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.replay.ReplayLogType
+import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
@@ -314,6 +317,7 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
         processMadScientistNightTransitions(game)
         game.nightPhaseStartedAtMillis = System.currentTimeMillis()
         FrogCurseManager.clearExpiredAtNightStart(game)
@@ -784,6 +788,7 @@ object GameLoopManager {
 
         // 1. 게임 상태 및 날짜 변경
         game.currentPhase = GamePhase.DAY
+        GameReplayLogger.logPhase(game, "${game.dayCount}일차 낮")
         game.dayTimeAdjustmentUsedPlayers.clear()
         game.abilityUsersThisPhase.clear()
         game.abilityTargetByUserThisPhase.clear()
@@ -1283,11 +1288,23 @@ object GameLoopManager {
 
             beastmanPlayer.state.isTamed = true
 
+            GameReplayLogger.logDirectMessage(
+                game = game,
+                recipient = beastmanPlayer,
+                body = "$BEASTMAN_TAMED_IMAGE_URL\n길들여졌습니다.",
+                title = "짐승인간 접선"
+            )
             runCatching {
                 beastmanPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n길들여졌습니다.")
             }
 
             mafiaPlayers.forEach { mafiaPlayer ->
+                GameReplayLogger.logDirectMessage(
+                    game = game,
+                    recipient = mafiaPlayer,
+                    body = "$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다",
+                    title = "짐승인간 접선"
+                )
                 runCatching {
                     mafiaPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n접선했습니다")
                 }
@@ -1401,6 +1418,7 @@ object GameLoopManager {
         val mainChannel = game.mainChannel ?: return
         processEscapedPlayerDeaths(game)
         game.currentPhase = GamePhase.VOTE
+        GameReplayLogger.logPhase(game, "${game.dayCount}일차 투표")
         game.currentMainVotes.clear()
         game.currentFakeVotes.clear()
         game.currentProsConsVotes.clear()
@@ -1564,7 +1582,7 @@ object GameLoopManager {
             if (voter.member.id in game.permanentlyDisenfranchisedVoters) return@forEach
             if (game.activeThreatenedVoters.containsKey(voter.member.id)) return@forEach
             fakeVoteCounts[target] = (fakeVoteCounts[target] ?: 0) + 1
-            voteCounts[target] = (voteCounts[target] ?: 0) + 1
+            // 위증은 투표 공개에만 반영하고 실제 최다 득표/동표 판정에는 포함하지 않는다.
             weightedVoteTargets += target
         }
 
@@ -1728,6 +1746,7 @@ object GameLoopManager {
                         } else {
                             "당신에게 투표한 사람은 ${voters.joinToString(", ")}"
                         }
+                        GameReplayLogger.logDirectMessage(game, mindReader, message, "독심 결과")
                         mindReader.member.getDmChannel().createMessage(message)
                     }
                 }
@@ -1772,6 +1791,14 @@ object GameLoopManager {
             val recipient = game.getPlayer(recipientId) ?: return@forEach
             cabalNotificationScope.launch {
                 runCatching {
+                    letters.forEach { letter ->
+                        GameReplayLogger.logDirectMessage(
+                            game = game,
+                            recipient = recipient,
+                            body = "${letter.title}\n${letter.content}",
+                            title = "밀서 배달"
+                        )
+                    }
                     recipient.member.getDmChannel().createMessage {
                         letters.forEach { letter ->
                             embed {
@@ -1805,6 +1832,7 @@ object GameLoopManager {
         val mainChannel = game.mainChannel ?: return
         game.currentPhase = GamePhase.VOTE
         game.defenseTargetId = target.member.id
+        GameReplayLogger.logPhase(game, "${target.member.effectiveName} 최후 변론")
         (target.job as? Martyr)?.defenseBombTargetId = null
         game.sendMainChannelMessageWithImage(
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(44).webp",
@@ -1838,6 +1866,7 @@ object GameLoopManager {
         val mainChannel = game.mainChannel ?: return
         game.currentPhase = GamePhase.VOTE
         game.currentProsConsVotes.clear()
+        GameReplayLogger.logPhase(game, "${target.member.effectiveName} 찬반 투표")
 
         game.playerDatas.forEach { player ->
             val shouldMute = shouldRestrictCommunication(player)
@@ -2241,12 +2270,12 @@ object GameLoopManager {
         } else {
             prosVoters.joinToString(", ")
         }
+        val message = "${target.member.effectiveName} 처형 찬성 투표자 - $prosMessage"
 
         cabalNotificationScope.launch {
             runCatching {
-                judgePlayer.member.getDmChannel().createMessage(
-                    "${target.member.effectiveName} 처형 찬성 투표자 - $prosMessage"
-                )
+                GameReplayLogger.logDirectMessage(game, judgePlayer, message, "판사 투표 정보")
+                judgePlayer.member.getDmChannel().createMessage(message)
             }
         }
     }
@@ -2330,6 +2359,13 @@ object GameLoopManager {
         game.isRunning = false
         game.currentPhase = GamePhase.END
         val resultMessage = "${winningTeam.displayName} 승리: ${winningTeam.winMessage}"
+        GameReplayLogger.log(
+            game = game,
+            type = ReplayLogType.GAME_END,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "승리",
+            body = resultMessage
+        )
         val playerJobRevealMessage = buildString {
             appendLine("## 플레이어 직업 공개")
             game.playerDatas.forEachIndexed { index, playerData ->
@@ -2425,14 +2461,15 @@ object GameLoopManager {
                 val moonCabal = selectedTarget.job as? Cabal
                 moonCabal?.wasFoundBySun = true
                 sendCabalDm(
+                    game,
                     sunPlayer,
                     "비밀결사 ${selectedTarget.member.effectiveName}님을 찾았습니다."
                 )
                 if (newlyFoundMoon) {
-                    sendCabalDm(selectedTarget, "비밀결사의 표식이 발견되었습니다.")
+                    sendCabalDm(game, selectedTarget, "비밀결사의 표식이 발견되었습니다.")
                 }
             } else {
-                sendCabalDm(sunPlayer, "밀사 결과: 아니다.")
+                sendCabalDm(game, sunPlayer, "밀사 결과: 아니다.")
             }
         }
     }
@@ -2507,9 +2544,10 @@ object GameLoopManager {
         return if (isApostleTriggered) Team.CITIZEN else null
     }
 
-    private fun sendCabalDm(target: PlayerData, message: String) {
+    private fun sendCabalDm(game: Game, target: PlayerData, message: String, title: String = "비공개 알림") {
         cabalNotificationScope.launch {
             runCatching {
+                GameReplayLogger.logDirectMessage(game, target, message, title)
                 target.member.getDmChannel().createMessage(message)
             }
         }
@@ -2675,8 +2713,26 @@ object GameLoopManager {
             eventsToProcess.forEach { event ->
                 applyNurseDoctorInheritanceOnDeath(game, event)
                 when (event) {
+                    is GameEvent.PlayerDied -> {
+                        GameReplayLogger.log(
+                            game = game,
+                            type = ReplayLogType.DEATH,
+                            visibility = ReplayVisibility.PUBLIC,
+                            title = if (event.isLynch) "처형" else "사망",
+                            body = "${event.victim.member.effectiveName} 사망",
+                            actor = event.victim
+                        )
+                    }
                     is GameEvent.JobDiscovered -> {
                         FrogCurseManager.displayedJob(event.target)?.let { event.revealedJob = it }
+                        GameReplayLogger.logSystem(
+                            game = game,
+                            title = "직업 정보",
+                            body = "${event.discoverer.member.effectiveName} -> ${event.target.member.effectiveName}: ${event.revealedJob.name}",
+                            visibility = if (event.isPublicReveal) ReplayVisibility.PUBLIC else ReplayVisibility.DIRECT_MESSAGE,
+                            actor = event.discoverer,
+                            recipients = listOf(GameReplayLogger.recipient(event.discoverer, ReplayVisibility.DIRECT_MESSAGE))
+                        )
                     }
                     is GameEvent.PoliceJobRevealed -> {
                         FrogCurseManager.displayedJob(event.target)?.let { event.revealedJob = it }
@@ -2718,12 +2774,13 @@ object GameLoopManager {
             val policeJob = policePlayer.job as? Police ?: return@forEach
             policeJob.eavesdroppingTargetId = victim.member.id
             policeJob.searchedTargets += victim.member.id
+            val message =
+                "${victim.member.effectiveName}님은 ${if (victim.job is Mafia) "마피아입니다." else "마피아가 아닙니다."}"
 
             votePresentationScope.launch {
                 runCatching {
-                    policePlayer.member.getDmChannel().createMessage(
-                        "${victim.member.effectiveName}님은 ${if (victim.job is Mafia) "마피아입니다." else "마피아가 아닙니다."}"
-                    )
+                    GameReplayLogger.logDirectMessage(game, policePlayer, message, "검시 결과")
+                    policePlayer.member.getDmChannel().createMessage(message)
                 }
             }
         }
@@ -2790,6 +2847,12 @@ object GameLoopManager {
         }
 
         aliveSources.forEach { sourcePlayer ->
+            GameReplayLogger.logDirectMessage(
+                game = game,
+                recipient = sourcePlayer,
+                body = "정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아있을 것이 밝혀졌습니다.",
+                title = "정보원 결과"
+            )
             runCatching {
                 sourcePlayer.member.getDmChannel().createMessage(
                     "정보원에 의해 현재 ${aliveMafiaTeamCount}명의 마피아팀이 살아남은 것이 밝혀졌습니다."
@@ -2912,6 +2975,7 @@ object GameLoopManager {
             mercenary.hasExecutionAuthority = true
             mercenary.clientKilledByPlayerId = killingAttack.attacker.member.id
             sendCabalDm(
+                game,
                 mercenaryPlayer,
                 "${SystemImage.MERCENARY_CLIENT_DEATH.imageUrl}\n의뢰인 (${client.member.effectiveName})님이 사망했습니다."
             )
@@ -2930,10 +2994,11 @@ object GameLoopManager {
 
             mercenary.hasReceivedContract = true
             sendCabalDm(
+                game,
                 mercenaryPlayer,
                 "누군가에게 의뢰를 받았습니다"
             )
-            sendCabalDm(client, "용병 ${mercenaryPlayer.member.effectiveName}님에게 의뢰를 했습니다")
+            sendCabalDm(game, client, "용병 ${mercenaryPlayer.member.effectiveName}님에게 의뢰를 했습니다")
         }
     }
 
@@ -2945,6 +3010,7 @@ object GameLoopManager {
             val clientId = mercenary.clientPlayerId ?: return@forEach
             val client = game.getPlayer(clientId) ?: return@forEach
 
+            GameReplayLogger.logDirectMessage(game, client, "의뢰인으로 지정되었습니다.", "용병 의뢰")
             runCatching {
                 client.member.getDmChannel().createMessage("의뢰인으로 지정되었습니다.")
             }
@@ -2974,15 +3040,15 @@ object GameLoopManager {
 
             if (!firstContact) return@forEach
 
+            val nurseMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
+            val doctorMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
             runCatching {
-                nursePlayer.member.getDmChannel().createMessage(
-                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${doctorPlayer.member.effectiveName})님과 접선했습니다."
-                )
+                GameReplayLogger.logDirectMessage(game, nursePlayer, nurseMessage, "간호사 접선")
+                nursePlayer.member.getDmChannel().createMessage(nurseMessage)
             }
             runCatching {
-                doctorPlayer.member.getDmChannel().createMessage(
-                    "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${nursePlayer.member.effectiveName})님과 접선했습니다."
-                )
+                GameReplayLogger.logDirectMessage(game, doctorPlayer, doctorMessage, "간호사 접선")
+                doctorPlayer.member.getDmChannel().createMessage(doctorMessage)
             }
         }
     }
@@ -3085,7 +3151,7 @@ object GameLoopManager {
             gangster.threatenedTargetIdsTonight.toList().forEach { targetId ->
                 val target = game.getPlayer(targetId) ?: return@forEach
                 if (target.state.isDead) return@forEach
-                if (shouldIgnoreHarmfulEffectByMentalStrength(target)) {
+                if (shouldIgnoreHarmfulEffectByMentalStrength(game, target)) {
                     gangster.threatenedTargetIdsTonight.remove(targetId)
                     return@forEach
                 }
@@ -3147,9 +3213,10 @@ object GameLoopManager {
             val target = game.getPlayer(hackedTargetId) ?: return@forEach
             if (target.state.isDead) {
                 runCatching {
-                    player.member.getDmChannel().createMessage(
+                    val message =
                         "해킹에 실패했습니다.\nhttps://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(2).webp"
-                    )
+                    GameReplayLogger.logDirectMessage(game, player, message, "해킹 실패")
+                    player.member.getDmChannel().createMessage(message)
                 }
                 hacker.hasResolvedHackDiscovery = true
                 return@forEach
@@ -3236,9 +3303,9 @@ object GameLoopManager {
             if (target.state.isDead && !canPublishOnDeadTarget) {
                 reporter.hasPublishedArticle = true
                 runCatching {
-                    player.member.getDmChannel().createMessage(
-                        "취재 대상 ${target.member.effectiveName}님이 사망하여 기사를 발행하지 못했습니다."
-                    )
+                    val message = "취재 대상 ${target.member.effectiveName}님이 사망하여 기사를 발행하지 못했습니다."
+                    GameReplayLogger.logDirectMessage(game, player, message, "취재 실패")
+                    player.member.getDmChannel().createMessage(message)
                 }
                 return@forEach
             }
@@ -3278,19 +3345,21 @@ object GameLoopManager {
         }
 
         if (attacker.allAbilities.any { it is Poisoning }) {
-            if (shouldIgnoreHarmfulEffectByMentalStrength(target)) return
+            if (shouldIgnoreHarmfulEffectByMentalStrength(game, target)) return
             target.state.isPoisoned = true
             target.state.poisonedDeathDay = game.dayCount + 1
             game.pendingPoisonNotifications[target.member.id] = attacker.member.id
         }
     }
 
-    private fun shouldIgnoreHarmfulEffectByMentalStrength(target: PlayerData): Boolean {
+    private fun shouldIgnoreHarmfulEffectByMentalStrength(game: Game, target: PlayerData): Boolean {
         if (target.allAbilities.none { it is MentalStrength }) return false
 
         cabalNotificationScope.launch {
             runCatching {
-                target.member.getDmChannel().createMessage("정신력의 힘으로 해로운 효과를 이겨냈습니다.")
+                val message = "정신력의 힘으로 해로운 효과를 이겨냈습니다."
+                GameReplayLogger.logDirectMessage(game, target, message, "정신력 발동")
+                target.member.getDmChannel().createMessage(message)
             }
         }
         return true
@@ -3313,14 +3382,18 @@ object GameLoopManager {
 
             cabalNotificationScope.launch {
                 runCatching {
-                    target.member.getDmChannel().createMessage("중독 상태가 되었습니다.")
+                    val message = "중독 상태가 되었습니다."
+                    GameReplayLogger.logDirectMessage(game, target, message, "중독 알림")
+                    target.member.getDmChannel().createMessage(message)
                 }
             }
 
             if (attacker != null) {
                 cabalNotificationScope.launch {
                     runCatching {
-                        attacker.member.getDmChannel().createMessage("${target.member.effectiveName}님이 중독 상태가 되었습니다.")
+                        val message = "${target.member.effectiveName}님이 중독 상태가 되었습니다."
+                        GameReplayLogger.logDirectMessage(game, attacker, message, "중독 알림")
+                        attacker.member.getDmChannel().createMessage(message)
                     }
                 }
             }

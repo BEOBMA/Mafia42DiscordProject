@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
@@ -45,7 +46,9 @@ class Marker : Ability, JobSpecificExtraAbility, PassiveAbility {
 
         markerDmScope.launch {
             runCatching {
-                owner.member.getDmChannel().createMessage("비밀결사 ${event.victim.member.effectiveName}님이 ${killer}님에게 사망하였습니다.")
+                val message = "비밀결사 ${event.victim.member.effectiveName}님이 ${killer}님에게 사망하였습니다."
+                GameReplayLogger.logDirectMessage(game, owner, message, "비밀결사 표식")
+                owner.member.getDmChannel().createMessage(message)
             }
         }
     }

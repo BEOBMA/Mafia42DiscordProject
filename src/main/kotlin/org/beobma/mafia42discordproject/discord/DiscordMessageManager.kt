@@ -9,9 +9,25 @@ import kotlinx.coroutines.launch
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 
 object DiscordMessageManager {
+    private val replayTrackedEphemeralCommands = setOf(
+        "use",
+        "daytime",
+        "shaman-relay",
+        "spirit-relay",
+        "megaphone",
+        "secret-letter",
+        "will",
+        "perjury",
+        "password",
+        "gamestop"
+    )
+
     fun mention(user: User): String = user.mention
 
     fun mentions(users: List<User>): String = users.joinToString("\n") { "• ${it.mention}" }
@@ -32,6 +48,12 @@ object DiscordMessageManager {
                 }
         }
         if (content.isBlank()) return
+        GameReplayLogger.logSystem(
+            game = this,
+            title = "공개 메시지",
+            body = content,
+            visibility = ReplayVisibility.PUBLIC
+        )
         mainChannel.createMessage(content)
     }
 
@@ -87,9 +109,17 @@ object DiscordMessageManager {
 
     suspend fun respondEphemeral(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
         InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
+            val responseContent = content.takeIf { it.isNotBlank() } ?: "처리했습니다."
+            if (event.interaction.command.rootName in replayTrackedEphemeralCommands) {
+                val game = GameManager.getCurrentGameFor(event.interaction.user.id)
+                val recipient = game?.getPlayer(event.interaction.user.id)
+                if (game != null && recipient != null) {
+                    GameReplayLogger.logEphemeral(game, recipient, responseContent)
+                }
+            }
             val deferred = event.interaction.deferEphemeralResponse()
             deferred.respond {
-                this.content = content.takeIf { it.isNotBlank() } ?: "처리되었습니다."
+                this.content = responseContent
             }
         }
     }

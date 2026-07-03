@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.EvilCommonAbility
 import org.beobma.mafia42discordproject.job.definition.list.Agent
@@ -39,13 +40,16 @@ class Instructions : Ability, EvilCommonAbility {
                 runCatching {
                     val dm = owner.member.getDmChannel()
                     if (policePlayers.isEmpty()) {
-                        dm.createMessage("경찰 계열 직업이 없습니다.")
+                        val message = "경찰 계열 직업이 없습니다."
+                        GameReplayLogger.logDirectMessage(game, owner, message, "지령 결과")
+                        dm.createMessage(message)
                         return@runCatching
                     }
 
                     val lines = policePlayers.joinToString("\n") { target ->
                         "${target.member.effectiveName}은 경찰 계열 직업."
                     }
+                    GameReplayLogger.logDirectMessage(game, owner, lines, "지령 결과")
                     dm.createMessage(lines)
                 }
             }

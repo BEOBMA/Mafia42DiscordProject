@@ -15,6 +15,9 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.replay.ReplayLogType
+import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.SwindlerManager
@@ -175,6 +178,15 @@ object AbilityUseCommand : DiscordCommand {
             } else {
                 result.message?.takeIf { it.isNotBlank() } ?: "Failed to use your ability."
             }
+            GameReplayLogger.log(
+                game = game,
+                type = ReplayLogType.ABILITY_USED,
+                visibility = ReplayVisibility.EPHEMERAL,
+                title = "능력 사용",
+                body = buildAbilityReplayBody(selectedAbility.name, target, null, selectedJobName, result.isSuccess, message),
+                actor = caster,
+                recipients = listOf(GameReplayLogger.recipient(caster, ReplayVisibility.EPHEMERAL))
+            )
             DiscordMessageManager.respondEphemeral(event, message)
             return
         }
@@ -233,7 +245,43 @@ object AbilityUseCommand : DiscordCommand {
         } else {
             result.message?.takeIf { it.isNotBlank() } ?: "Failed to use your ability."
         }
+        GameReplayLogger.log(
+            game = game,
+            type = ReplayLogType.ABILITY_USED,
+            visibility = ReplayVisibility.EPHEMERAL,
+            title = "능력 사용",
+            body = buildAbilityReplayBody(
+                abilityName = selectedAbility.name,
+                target = target,
+                effectiveTarget = effectiveTarget,
+                selectedJobName = interaction.command.strings[jobOptionName],
+                isSuccess = result.isSuccess,
+                message = message
+            ),
+            actor = caster,
+            recipients = listOf(GameReplayLogger.recipient(caster, ReplayVisibility.EPHEMERAL))
+        )
         DiscordMessageManager.respondEphemeral(event, message)
+    }
+
+    private fun buildAbilityReplayBody(
+        abilityName: String,
+        target: PlayerData?,
+        effectiveTarget: PlayerData?,
+        selectedJobName: String?,
+        isSuccess: Boolean,
+        message: String
+    ): String {
+        return buildString {
+            appendLine("능력: $abilityName")
+            target?.let { appendLine("대상: ${it.member.effectiveName}") }
+            if (effectiveTarget != null && effectiveTarget.member.id != target?.member?.id) {
+                appendLine("실제 적용 대상: ${effectiveTarget.member.effectiveName}")
+            }
+            selectedJobName?.takeIf { it.isNotBlank() }?.let { appendLine("선택 직업: $it") }
+            appendLine("결과: ${if (isSuccess) "성공" else "실패"}")
+            append(message)
+        }
     }
 
     private suspend fun notifyMafiaTargetSelection(

@@ -2,14 +2,17 @@ package org.beobma.mafia42discordproject.game.system.notifications
 
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import dev.kord.core.behavior.channel.createMessage
-import org.beobma.mafia42discordproject.game.Game
-import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 
 abstract class BaseNotificationManager {
     protected suspend fun sendDmWithImage(targetPlayer: PlayerData, text: String, imageUrl: String? = null) {
         val finalMessage = if (imageUrl != null) "$imageUrl\n$text" else text
 
         try {
+            GameManager.getCurrentGameFor(targetPlayer.member.id)?.let { game ->
+                GameReplayLogger.logDirectMessage(game, targetPlayer, finalMessage, "조사 결과")
+            }
             val dmChannel = targetPlayer.member.getDmChannel()
             dmChannel.createMessage(finalMessage)
         } catch (e: Exception) {

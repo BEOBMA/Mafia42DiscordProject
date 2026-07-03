@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
@@ -37,31 +38,49 @@ class SwindlerFraud : JobUniqueAbility, PassiveAbility {
 
         val candidateJob = candidate.job ?: return
         if (candidateJob is Soldier) {
-            notifyFraudFailed(owner, candidate)
+            notifyFraudFailed(game, owner, candidate)
             return
         }
 
         swindler.disguisedTargetId = candidate.member.id
         swindler.disguisedJobName = candidateJob.name
-        notifyFraudSuccess(owner, candidate, candidateJob.name)
+        notifyFraudSuccess(game, owner, candidate, candidateJob.name)
     }
 
-    private fun notifyFraudSuccess(swindlerPlayer: PlayerData, targetPlayer: PlayerData, targetJobName: String) {
+    private fun notifyFraudSuccess(game: Game, swindlerPlayer: PlayerData, targetPlayer: PlayerData, targetJobName: String) {
         dmScope.launch {
             runCatching {
+                GameReplayLogger.logDirectMessage(
+                    game = game,
+                    recipient = swindlerPlayer,
+                    body = "(${targetPlayer.member.effectiveName})의 (${targetJobName})으로 변장했습니다.",
+                    title = "사기 결과"
+                )
                 swindlerPlayer.member.getDmChannel()
                     .createMessage("(${targetPlayer.member.effectiveName})의 (${targetJobName})으로 변장했습니다.")
             }
         }
     }
 
-    private fun notifyFraudFailed(swindlerPlayer: PlayerData, soldierPlayer: PlayerData) {
+    private fun notifyFraudFailed(game: Game, swindlerPlayer: PlayerData, soldierPlayer: PlayerData) {
         dmScope.launch {
             runCatching {
+                GameReplayLogger.logDirectMessage(
+                    game = game,
+                    recipient = swindlerPlayer,
+                    body = "**사기에 실패했습니다.**\n$SWINDLER_SOLDIER_DETECTED_IMAGE_URL",
+                    title = "사기 실패"
+                )
                 swindlerPlayer.member.getDmChannel()
                     .createMessage("**사기에 실패했습니다.**\n$SWINDLER_SOLDIER_DETECTED_IMAGE_URL")
             }
             runCatching {
+                GameReplayLogger.logDirectMessage(
+                    game = game,
+                    recipient = soldierPlayer,
+                    body = "**사기꾼 ${swindlerPlayer.member.effectiveName}님의 정체를 알아냈습니다.**\n$SWINDLER_SOLDIER_DETECTED_IMAGE_URL",
+                    title = "사기 감지"
+                )
                 soldierPlayer.member.getDmChannel()
                     .createMessage("**사기꾼 ${swindlerPlayer.member.effectiveName}님의 정체를 알아냈습니다.**\n$SWINDLER_SOLDIER_DETECTED_IMAGE_URL")
             }

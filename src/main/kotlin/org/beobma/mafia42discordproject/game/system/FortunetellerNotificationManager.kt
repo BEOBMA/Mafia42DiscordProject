@@ -1,7 +1,9 @@
 package org.beobma.mafia42discordproject.game.system
 
 import dev.kord.core.behavior.channel.createMessage
+import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 
 object FortunetellerNotificationManager {
     suspend fun notifyFortuneResult(
@@ -23,6 +25,9 @@ object FortunetellerNotificationManager {
         }
 
         runCatching {
+            GameManager.getCurrentGameFor(fortuneteller.member.id)?.let { game ->
+                GameReplayLogger.logDirectMessage(game, fortuneteller, message, "예언 결과")
+            }
             fortuneteller.member.getDmChannel().createMessage(message)
         }
     }

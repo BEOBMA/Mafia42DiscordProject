@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.ShamaningPolicy
 import org.beobma.mafia42discordproject.game.system.SystemImage
@@ -48,6 +49,20 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         val shamanedImage = SystemImage.SHAMAN_EXORCISM.imageUrl
 
         CoroutineScope(Dispatchers.Default).launch {
+            val casterMessage = if (isEarthbound) {
+                "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+            } else {
+                "${target.member.effectiveName}님을 성불했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+            }
+            GameReplayLogger.logDirectMessage(game, caster, casterMessage, "성불 결과")
+            if (!isEarthbound) {
+                GameReplayLogger.logDirectMessage(
+                    game,
+                    target,
+                    "${caster.member.effectiveName}님에게 성불당했습니다.\n$shamanedImage",
+                    "성불 알림"
+                )
+            }
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     if (isEarthbound) {

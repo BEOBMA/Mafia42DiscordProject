@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -140,15 +141,17 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                     "시민"
                 }
                 runCatching {
-                    caster.member.getDmChannel().createMessage(
-                        "${discovery.target.member.effectiveName}님은 ${teamDescription}입니다."
-                    )
+                    val message = "${discovery.target.member.effectiveName}님은 ${teamDescription}입니다."
+                    GameReplayLogger.logDirectMessage(game, caster, message, "최면 해제 결과")
+                    caster.member.getDmChannel().createMessage(message)
                 }
             }
 
             if (discoveries.none { !it.isCancelled }) {
                 runCatching {
-                    caster.member.getDmChannel().createMessage("최면 해제 결과: 확인 가능한 생존 대상이 없습니다.")
+                    val message = "최면 해제 결과: 확인 가능한 생존 대상이 없습니다."
+                    GameReplayLogger.logDirectMessage(game, caster, message, "최면 해제 결과")
+                    caster.member.getDmChannel().createMessage(message)
                 }
             }
         }

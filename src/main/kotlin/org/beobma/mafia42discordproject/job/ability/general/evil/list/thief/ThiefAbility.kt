@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -51,7 +52,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
             if (thief.hasSuccessor() && isAliveMafiaAbsent(game)) {
                 val successorAbility = instantiateAbility(MafiaAbility())
                 thief.setStolenAbility(successorAbility)
-                notifyStealSuccess(caster, target, targetJob.name)
+                notifyStealSuccess(game, caster, target, targetJob.name)
                 return AbilityResult(true, "**${target.member.effectiveName}님의 직업 ${targetJob.name}을 훔쳤습니다.**")
             }
             thief.hasContactedMafia = true
@@ -60,7 +61,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
         }
 
         if (targetJob is Soldier) {
-            notifyStealFailedOnSoldier(caster, target)
+            notifyStealFailedOnSoldier(game, caster, target)
             return AbilityResult(true, "훔치는 데 실패했습니다.")
         }
 
@@ -88,7 +89,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
             thief.hasStolenJudgeAbility = true
         }
 
-        notifyStealSuccess(caster, target, targetJob.name)
+        notifyStealSuccess(game, caster, target, targetJob.name)
         return AbilityResult(true, "**${target.member.effectiveName}님의 직업 ${targetJob.name}을 훔쳤습니다.**")
     }
 
@@ -102,25 +103,27 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
         private const val THIEF_SOLDIER_FAIL_IMAGE_URL =
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(39).webp"
 
-        private fun notifyStealSuccess(caster: PlayerData, target: PlayerData, targetJobName: String) {
+        private fun notifyStealSuccess(game: Game, caster: PlayerData, target: PlayerData, targetJobName: String) {
             scope.launch {
                 runCatching {
-                    caster.member.getDmChannel().createMessage(
-                        "**${target.member.effectiveName}님의 직업 ${targetJobName}을 훔쳤습니다.**\n$THIEF_STEAL_IMAGE_URL"
-                    )
+                    val message = "**${target.member.effectiveName}님의 직업 ${targetJobName}을 훔쳤습니다.**\n$THIEF_STEAL_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, caster, message, "도둑질 결과")
+                    caster.member.getDmChannel().createMessage(message)
                 }
             }
         }
 
-        private fun notifyStealFailedOnSoldier(caster: PlayerData, soldierTarget: PlayerData) {
+        private fun notifyStealFailedOnSoldier(game: Game, caster: PlayerData, soldierTarget: PlayerData) {
             scope.launch {
                 runCatching {
-                    caster.member.getDmChannel().createMessage("**훔치는 데 실패했습니다.**\n$THIEF_SOLDIER_FAIL_IMAGE_URL")
+                    val message = "**훔치는 데 실패했습니다.**\n$THIEF_SOLDIER_FAIL_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, caster, message, "도둑질 실패")
+                    caster.member.getDmChannel().createMessage(message)
                 }
                 runCatching {
-                    soldierTarget.member.getDmChannel().createMessage(
-                        "**${caster.member.effectiveName}님이 직업을 훔치려고 시도했습니다.**\n$THIEF_SOLDIER_FAIL_IMAGE_URL"
-                    )
+                    val message = "**${caster.member.effectiveName}님이 직업을 훔치려고 시도했습니다.**\n$THIEF_SOLDIER_FAIL_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, soldierTarget, message, "도둑질 감지")
+                    soldierTarget.member.getDmChannel().createMessage(message)
                 }
             }
         }

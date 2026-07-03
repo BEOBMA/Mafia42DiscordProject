@@ -10,6 +10,8 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
+import org.beobma.mafia42discordproject.game.replay.ReplayRecipient
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
@@ -76,6 +78,12 @@ object GameArchiveManager {
             put("players", buildJsonArray {
                 game.playerDatas.forEach { player ->
                     add(buildPlayerSnapshot(game, player))
+                }
+            })
+
+            put("replayLogs", buildJsonArray {
+                game.replayLogs.sortedBy { it.sequence }.forEach { entry ->
+                    add(buildReplayLogSnapshot(entry))
                 }
             })
 
@@ -273,6 +281,37 @@ object GameArchiveManager {
         return buildJsonObject {
             putNullable("type", event::class.simpleName)
             put("payload", event.toString())
+        }
+    }
+
+    private fun buildReplayLogSnapshot(entry: ReplayLogEntry): JsonObject {
+        return buildJsonObject {
+            put("sequence", entry.sequence)
+            put("timestampMillis", entry.timestampMillis)
+            put("dayCount", entry.dayCount)
+            put("phase", entry.phase.name)
+            put("type", entry.type.name)
+            putNullable("actorId", entry.actorId?.value?.toString())
+            putNullable("actorName", entry.actorName)
+            putNullable("actorJobName", entry.actorJobName)
+            put("visibility", entry.visibility.name)
+            put("title", entry.title)
+            put("body", entry.body)
+            put("imageUrls", buildJsonArray {
+                entry.imageUrls.forEach { add(it) }
+            })
+            put("recipients", buildJsonArray {
+                entry.recipients.forEach { add(buildReplayRecipientSnapshot(it)) }
+            })
+            putNullable("relatedEventId", entry.relatedEventId)
+        }
+    }
+
+    private fun buildReplayRecipientSnapshot(recipient: ReplayRecipient): JsonObject {
+        return buildJsonObject {
+            putNullable("id", recipient.id?.value?.toString())
+            put("name", recipient.name)
+            put("scope", recipient.scope.name)
         }
     }
 

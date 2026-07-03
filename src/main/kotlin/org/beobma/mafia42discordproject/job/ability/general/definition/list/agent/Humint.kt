@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.definition.list.Agent
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import kotlin.reflect.KClass
 
 class Humint : Ability, JobSpecificExtraAbility {
@@ -27,6 +28,8 @@ class Humint : Ability, JobSpecificExtraAbility {
             val targetMessage = "${caster.member.effectiveName}님에게 당신의 정보를 공유했습니다!"
             val casterMessage = "요원 ${target.member.effectiveName}님이 자신의 정보를 전달 하였습니다."
             runCatching {
+                GameReplayLogger.logDirectMessage(game, target, targetMessage, "흥신소")
+                GameReplayLogger.logDirectMessage(game, caster, casterMessage, "흥신소")
                 target.member.getDmChannel().createMessage(targetMessage)
                 caster.member.getDmChannel().createMessage(casterMessage)
             }

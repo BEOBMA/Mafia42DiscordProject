@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -72,6 +73,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
                 val action = if (previousTargetId != null && previousTargetId != selectedTarget.member.id) "변경" else "지정"
 
                 sendDm(
+                    game,
                     detectivePlayer,
                     "${caster.member.effectiveName}님이 스킬의 대상을 ${selectedTarget.member.effectiveName}님으로 ${action}했습니다."
                 )
@@ -83,15 +85,17 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
                 detectiveJob.trapTriggeredTargetIdsThisNight += caster.member.id
                 val casterJobName = caster.job?.name ?: "알 수 없음"
                 sendDm(
+                    game,
                     detectivePlayer,
                     "함정을 통해 ${caster.member.effectiveName}님의 직업이 ${casterJobName}라는 것을 알아내었습니다."
                 )
             }
         }
 
-        private fun sendDm(owner: PlayerData, message: String) {
+        private fun sendDm(game: Game, owner: PlayerData, message: String) {
             detectiveDmScope.launch {
                 runCatching {
+                    GameReplayLogger.logDirectMessage(game, owner, message, "탐정 알림")
                     owner.member.getDmChannel().createMessage(message)
                 }
             }

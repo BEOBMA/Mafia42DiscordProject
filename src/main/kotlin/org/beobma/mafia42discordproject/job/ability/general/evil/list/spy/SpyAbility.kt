@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -58,7 +59,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         spy.lastInvestigatedTargetId = effectiveTarget.member.id
 
         if (effectiveTarget.job is Soldier) {
-            notifySoldierDetected(caster, effectiveTarget)
+            notifySoldierDetected(game, caster, effectiveTarget)
             return AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다.")
         }
 
@@ -72,7 +73,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val jobName = FrogCurseManager.displayedJob(effectiveTarget)?.name ?: "알 수 없음"
-        notifyInvestigationResult(caster, effectiveTarget.member.effectiveName, jobName)
+        notifyInvestigationResult(game, caster, effectiveTarget.member.effectiveName, jobName)
         return AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다.")
     }
 
@@ -95,7 +96,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
                 spyJob.lastInvestigatedTargetId = victim.member.id
 
                 if (victim.job is Soldier) {
-                    notifySoldierDetected(spyPlayer, victim)
+                    notifySoldierDetected(game, spyPlayer, victim)
                     return@forEach
                 }
 
@@ -108,25 +109,31 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
                 }
 
                 val revealedJobName = FrogCurseManager.displayedJob(victim)?.name ?: "알 수 없음"
-                notifyInvestigationResult(spyPlayer, victim.member.effectiveName, revealedJobName)
+                notifyInvestigationResult(game, spyPlayer, victim.member.effectiveName, revealedJobName)
             }
         }
 
-        private fun notifyInvestigationResult(spyPlayer: PlayerData, targetName: String, jobName: String) {
+        private fun notifyInvestigationResult(game: Game, spyPlayer: PlayerData, targetName: String, jobName: String) {
             scope.launch {
                 runCatching {
-                    spyPlayer.member.getDmChannel().createMessage("**${targetName}님의 직업은 ${jobName}**\n$SPY_INTEL_IMAGE_URL")
+                    val message = "**${targetName}님의 직업은 ${jobName}**\n$SPY_INTEL_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, spyPlayer, message, "스파이 첩보")
+                    spyPlayer.member.getDmChannel().createMessage(message)
                 }
             }
         }
 
-        private fun notifySoldierDetected(spyPlayer: PlayerData, soldierPlayer: PlayerData) {
+        private fun notifySoldierDetected(game: Game, spyPlayer: PlayerData, soldierPlayer: PlayerData) {
             scope.launch {
                 runCatching {
-                    spyPlayer.member.getDmChannel().createMessage("**${soldierPlayer.member.effectiveName}님의 직업은 군인**\n$SPY_SOLDIER_IMAGE_URL")
+                    val message = "**${soldierPlayer.member.effectiveName}님의 직업은 군인**\n$SPY_SOLDIER_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, spyPlayer, message, "스파이 첩보")
+                    spyPlayer.member.getDmChannel().createMessage(message)
                 }
                 runCatching {
-                    soldierPlayer.member.getDmChannel().createMessage("**스파이 ${spyPlayer.member.effectiveName}님이 당신을 조사하였습니다.**\n$SPY_SOLDIER_IMAGE_URL")
+                    val message = "**스파이 ${spyPlayer.member.effectiveName}님이 당신을 조사하였습니다.**\n$SPY_SOLDIER_IMAGE_URL"
+                    GameReplayLogger.logDirectMessage(game, soldierPlayer, message, "스파이 조사")
+                    soldierPlayer.member.getDmChannel().createMessage(message)
                 }
             }
         }

@@ -55,6 +55,7 @@ suspend fun main() {
         GameManager.relayNightPrivateChat(this)
         if (!content.startsWith("!")) {
             if (GameManager.enforceDeadPlayerChatRestriction(this)) return@on
+            GameManager.recordReplayChat(this)
             return@on
         }
 
@@ -63,6 +64,7 @@ suspend fun main() {
 
         val commandName = tokens.first().lowercase()
         val command = CommandRegistry.find(commandName) ?: return@on
+        if (command != DebugCommand) GameManager.recordReplayChat(this)
         if (GameManager.handleSpiritCommands(this, commandName, tokens.drop(1))) return@on
         if (command != DebugCommand && GameManager.enforceDeadPlayerChatRestriction(this)) return@on
         command.handleMessage(this, tokens.drop(1))

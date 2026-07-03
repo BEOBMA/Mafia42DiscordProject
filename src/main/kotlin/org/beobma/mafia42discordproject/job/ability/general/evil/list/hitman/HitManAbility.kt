@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -134,7 +135,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
         val soldierTarget = listOf(firstTarget, secondTarget).firstOrNull { it.job is Soldier }
         if (soldierTarget != null) {
-            sendSoldierCriticalMessages(caster, soldierTarget)
+            sendSoldierCriticalMessages(game, caster, soldierTarget)
             return
         }
 
@@ -198,8 +199,20 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         game.sendMainChannerMessageAndSound(message, CONTRACT_SUCCESS_SOUND_PATH)
     }
 
-    private fun sendSoldierCriticalMessages(caster: PlayerData, soldierTarget: PlayerData) {
+    private fun sendSoldierCriticalMessages(game: Game, caster: PlayerData, soldierTarget: PlayerData) {
         scope.launch {
+            GameReplayLogger.logDirectMessage(
+                game = game,
+                recipient = caster,
+                body = "$SOLDIER_CRITICAL_IMAGE_URL\n군인 ${soldierTarget.member.effectiveName}님에게 간파당하여 의뢰에 실패했습니다.",
+                title = "청부 실패"
+            )
+            GameReplayLogger.logDirectMessage(
+                game = game,
+                recipient = soldierTarget,
+                body = "$SOLDIER_CRITICAL_IMAGE_URL\n청부업자 ${caster.member.effectiveName}님의 정체를 알아냈습니다.",
+                title = "청부 감지"
+            )
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     "$SOLDIER_CRITICAL_IMAGE_URL\n군인 ${soldierTarget.member.effectiveName}님에게 간파당하여 암살에 실패했습니다."

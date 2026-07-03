@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
@@ -35,7 +36,9 @@ class Ghost : JobSpecificExtraAbility, PassiveAbility {
         CoroutineScope(Dispatchers.Default).launch {
             runCatching {
                 val dm = owner.member.getDmChannelOrNull() ?: owner.member.getDmChannel()
-                dm.createMessage("[망령] ${deceasedChatEvent.chatSender.member.effectiveName}: ${deceasedChatEvent.chat}")
+                val message = "[망령] ${deceasedChatEvent.chatSender.member.effectiveName}: ${deceasedChatEvent.chat}"
+                GameReplayLogger.logDirectMessage(game, owner, message, "망령")
+                dm.createMessage(message)
             }
         }
     }

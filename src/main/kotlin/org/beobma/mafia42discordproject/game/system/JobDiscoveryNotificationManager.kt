@@ -1,5 +1,9 @@
 package org.beobma.mafia42discordproject.game.system
 
+import dev.kord.core.behavior.channel.createMessage
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
+
 object JobDiscoveryNotificationManager {
     private const val HACKER_SUCCESS_IMAGE_URL =
         "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(6).webp"
@@ -28,6 +32,14 @@ object JobDiscoveryNotificationManager {
                         } else {
                             "📢 [직업 공개] ${event.target.member.effectiveName}님의 직업은 [${event.revealedJob.name}] 입니다!"
                         }
+                        if (game != null) {
+                            GameReplayLogger.logSystem(
+                                game = game,
+                                title = "직업 공개",
+                                body = message,
+                                visibility = ReplayVisibility.PUBLIC
+                            )
+                        }
                         game?.mainChannel?.createMessage(message)
                     }
                     return@forEach
@@ -35,15 +47,19 @@ object JobDiscoveryNotificationManager {
 
                 if (event.notifyTarget) {
                     runCatching {
-                        event.target.member.getDmChannel().createMessage(
-                            buildTargetNotificationMessage(event)
-                        )
+                        val message = buildTargetNotificationMessage(event)
+                        if (game != null) {
+                            GameReplayLogger.logDirectMessage(game, event.target, message, "직업 발견 알림")
+                        }
+                        event.target.member.getDmChannel().createMessage(message)
                     }
                 }
                 runCatching {
-                    event.discoverer.member.getDmChannel().createMessage(
-                        buildDiscovererNotificationMessage(event)
-                    )
+                    val message = buildDiscovererNotificationMessage(event)
+                    if (game != null) {
+                        GameReplayLogger.logDirectMessage(game, event.discoverer, message, "직업 발견 결과")
+                    }
+                    event.discoverer.member.getDmChannel().createMessage(message)
                 }
             }
     }

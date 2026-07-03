@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
@@ -41,7 +42,9 @@ class Postmortem : Ability, JobSpecificExtraAbility, PassiveAbility {
 
                 postmortemDmScope.launch {
                     runCatching {
-                        owner.member.getDmChannel().createMessage("검시 능력을 통해 비밀결사의 사망을 확인하였습니다.")
+                        val message = "검시 능력을 통해 비밀결사의 사망을 확인하였습니다."
+                        GameReplayLogger.logDirectMessage(game, owner, message, "검시 결과")
+                        owner.member.getDmChannel().createMessage(message)
                     }
                 }
             }

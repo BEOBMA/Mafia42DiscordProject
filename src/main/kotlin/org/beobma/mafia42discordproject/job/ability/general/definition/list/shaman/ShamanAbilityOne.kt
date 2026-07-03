@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
@@ -22,7 +23,9 @@ class ShamanAbilityOne : PassiveAbility, JobUniqueAbility {
             runCatching {
                 val senderName = deceasedChatEvent.chatSender.member.effectiveName
                 val dm = owner.member.getDmChannelOrNull() ?: owner.member.getDmChannel()
-                dm.createMessage("$senderName: ${deceasedChatEvent.chat}")
+                val message = "$senderName: ${deceasedChatEvent.chat}"
+                GameReplayLogger.logDirectMessage(game, owner, message, "접신")
+                dm.createMessage(message)
             }
         }
     }

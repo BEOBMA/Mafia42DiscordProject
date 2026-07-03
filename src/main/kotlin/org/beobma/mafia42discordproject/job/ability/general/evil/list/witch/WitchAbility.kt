@@ -10,6 +10,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -93,7 +94,9 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
                 FrogCurseManager.applyCurse(target, game.dayCount)
                 scope.launch {
                     runCatching {
-                        target.member.getDmChannel().createMessage("저주를 받아 개구리가 되었습니다.")
+                        val message = "저주를 받아 개구리가 되었습니다."
+                        GameReplayLogger.logDirectMessage(game, target, message, "마녀 저주")
+                        target.member.getDmChannel().createMessage(message)
                     }
                 }
             }
@@ -110,7 +113,9 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
             if (notifyTarget) {
                 scope.launch {
                     runCatching {
-                        target.member.getDmChannel().createMessage("저주를 받아 개구리가 되었습니다.")
+                        val message = "저주를 받아 개구리가 되었습니다."
+                        GameReplayLogger.logDirectMessage(game, target, message, "마녀 저주")
+                        target.member.getDmChannel().createMessage(message)
                     }
                 }
             }

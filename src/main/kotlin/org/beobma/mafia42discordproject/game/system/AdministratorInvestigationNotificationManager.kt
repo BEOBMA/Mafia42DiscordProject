@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.game.system
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
 
 object AdministratorInvestigationNotificationManager {
@@ -16,6 +17,7 @@ object AdministratorInvestigationNotificationManager {
             val resultMessage = buildResultMessage(game, selectedJob, resultPlayerId)
 
             runCatching {
+                GameReplayLogger.logDirectMessage(game, player, resultMessage, "관리자 조사")
                 player.member.getDmChannel().createMessage(resultMessage)
             }
 

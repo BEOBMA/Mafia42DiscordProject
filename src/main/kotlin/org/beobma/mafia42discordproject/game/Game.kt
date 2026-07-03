@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
 import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
@@ -62,6 +63,10 @@ data class Game(
     var deadChannel: TextChannel? = null
     var voiceChannelId: Snowflake? = null
     var hasArchivedSnapshot: Boolean = false
+    var hasSentReplay: Boolean = false
+    var replayStartedAtMillis: Long = System.currentTimeMillis()
+    var nextReplaySequence: Long = 1L
+    val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()

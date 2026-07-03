@@ -7,7 +7,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
+import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.definition.Definition
@@ -65,6 +67,10 @@ object SwindlerManager {
 
         dmScope.launch {
             runCatching {
+                val replayMessage = "**${discoverer.member.effectiveName}님을 속였습니다.**"
+                GameManager.getCurrentGameFor(target.member.id)?.let { game ->
+                    GameReplayLogger.logDirectMessage(game, target, replayMessage, "사기 성공")
+                }
                 target.member.getDmChannel().createMessage("**${discoverer.member.effectiveName}님을 속였습니다.**")
             }
         }
@@ -78,6 +84,10 @@ object SwindlerManager {
         val discovererJobName = discoverer.job?.name ?: "알 수 없음"
         dmScope.launch {
             runCatching {
+                val replayMessage = "${discoverer.member.effectiveName}님의 직업은 ${discovererJobName}"
+                GameManager.getCurrentGameFor(target.member.id)?.let { game ->
+                    GameReplayLogger.logDirectMessage(game, target, replayMessage, "함정 결과")
+                }
                 target.member.getDmChannel().createMessage("${discoverer.member.effectiveName}님의 직업은 ${discovererJobName}")
             }
         }

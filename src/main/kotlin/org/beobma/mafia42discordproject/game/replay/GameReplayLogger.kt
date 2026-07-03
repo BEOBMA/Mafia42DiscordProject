@@ -1,0 +1,164 @@
+package org.beobma.mafia42discordproject.game.replay
+
+import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.player.PlayerData
+
+object GameReplayLogger {
+    private val urlRegex = Regex("""https?://\S+""")
+
+    fun log(
+        game: Game,
+        type: ReplayLogType,
+        visibility: ReplayVisibility,
+        title: String,
+        body: String,
+        actor: PlayerData? = null,
+        recipients: List<ReplayRecipient> = emptyList(),
+        imageUrls: List<String> = emptyList(),
+        relatedEventId: String? = null
+    ) {
+        runCatching {
+            val cleanBody = body.trim()
+            val urls = (imageUrls + urlRegex.findAll(cleanBody).map { it.value.trimEnd(')', ']', ',', '.') })
+                .filter(String::isNotBlank)
+                .distinct()
+
+            synchronized(game) {
+                val sequence = game.nextReplaySequence
+                game.nextReplaySequence += 1
+                game.replayLogs += ReplayLogEntry(
+                    sequence = sequence,
+                    timestampMillis = System.currentTimeMillis(),
+                    dayCount = game.dayCount,
+                    phase = game.currentPhase,
+                    type = type,
+                    actorId = actor?.member?.id,
+                    actorName = actor?.member?.effectiveName,
+                    actorJobName = actor?.job?.name,
+                    recipients = recipients,
+                    visibility = visibility,
+                    title = title.take(120),
+                    body = cleanBody,
+                    imageUrls = urls,
+                    relatedEventId = relatedEventId
+                )
+            }
+        }.onFailure { error ->
+            println("[GameReplayLogger] replay log failed: ${error.message}")
+        }
+    }
+
+    fun recipient(player: PlayerData, scope: ReplayVisibility): ReplayRecipient =
+        ReplayRecipient(player.member.id, player.member.effectiveName, scope)
+
+    fun logGameStart(game: Game, modeName: String) {
+        val playerSummary = game.playerDatas.joinToString("\n") { player ->
+            val jobName = player.job?.name ?: "미배정"
+            "- ${player.member.effectiveName}: $jobName"
+        }
+        log(
+            game = game,
+            type = ReplayLogType.GAME_START,
+            visibility = ReplayVisibility.SYSTEM_INTERNAL,
+            title = "게임 시작",
+            body = "모드: $modeName\n참가자 ${game.playerDatas.size}명\n$playerSummary"
+        )
+    }
+
+    fun logGameEnd(game: Game, endReason: String, winningTeamName: String?) {
+        val result = winningTeamName ?: endReason
+        log(
+            game = game,
+            type = ReplayLogType.GAME_END,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "게임 종료",
+            body = result
+        )
+    }
+
+    fun logPhase(game: Game, title: String, body: String = title) {
+        log(
+            game = game,
+            type = ReplayLogType.PHASE_START,
+            visibility = ReplayVisibility.PUBLIC,
+            title = title,
+            body = body
+        )
+    }
+
+    fun logChat(
+        game: Game,
+        actor: PlayerData,
+        body: String,
+        visibility: ReplayVisibility
+    ) {
+        val type = when (visibility) {
+            ReplayVisibility.MAFIA_CHANNEL -> ReplayLogType.CHAT_MAFIA
+            ReplayVisibility.COUPLE_CHANNEL -> ReplayLogType.CHAT_COUPLE
+            ReplayVisibility.DEAD_CHANNEL -> ReplayLogType.CHAT_DEAD
+            else -> ReplayLogType.CHAT_PUBLIC
+        }
+        log(
+            game = game,
+            type = type,
+            visibility = visibility,
+            title = "채팅",
+            body = body,
+            actor = actor
+        )
+    }
+
+    fun logDirectMessage(
+        game: Game,
+        recipient: PlayerData,
+        body: String,
+        title: String = "개인 DM",
+        actor: PlayerData? = null
+    ) {
+        log(
+            game = game,
+            type = ReplayLogType.DIRECT_MESSAGE,
+            visibility = ReplayVisibility.DIRECT_MESSAGE,
+            title = title,
+            body = body,
+            actor = actor,
+            recipients = listOf(recipient(recipient, ReplayVisibility.DIRECT_MESSAGE))
+        )
+    }
+
+    fun logEphemeral(
+        game: Game,
+        recipient: PlayerData,
+        body: String,
+        title: String = "개인 응답"
+    ) {
+        log(
+            game = game,
+            type = ReplayLogType.EPHEMERAL,
+            visibility = ReplayVisibility.EPHEMERAL,
+            title = title,
+            body = body,
+            actor = recipient,
+            recipients = listOf(recipient(recipient, ReplayVisibility.EPHEMERAL))
+        )
+    }
+
+    fun logSystem(
+        game: Game,
+        title: String,
+        body: String,
+        visibility: ReplayVisibility = ReplayVisibility.PUBLIC,
+        actor: PlayerData? = null,
+        recipients: List<ReplayRecipient> = emptyList()
+    ) {
+        log(
+            game = game,
+            type = ReplayLogType.SYSTEM_RESULT,
+            visibility = visibility,
+            title = title,
+            body = body,
+            actor = actor,
+            recipients = recipients
+        )
+    }
+}
