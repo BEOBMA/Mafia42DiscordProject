@@ -53,6 +53,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
         fun resetNightState(owner: PlayerData) {
             val detective = owner.job as? Detective ?: return
+            detective.fixedReasoningTargetId = null
             detective.trapTriggeredTargetIdsThisNight.clear()
         }
 

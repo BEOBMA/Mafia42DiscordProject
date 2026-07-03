@@ -44,7 +44,7 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
         val casterJob = caster.job
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
-        if (game.dayCount == 1 && game.firstMafiaTargetId == null) {
+        if (game.dayCount == 1) {
             game.firstMafiaTargetId = target.member.id
         }
         var attackTier = AttackTier.NORMAL
