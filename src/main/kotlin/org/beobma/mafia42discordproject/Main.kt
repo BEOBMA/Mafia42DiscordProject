@@ -127,8 +127,12 @@ private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCom
         .firstOrNull()
 
     if (existingCommand != null) {
-        println("ℹ️ 글로벌 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name}")
-        return
+        val deleteResult = runCatching { existingCommand.delete() }
+        if (deleteResult.isFailure) {
+            println("Failed to delete existing global command: /${command.name}, reason=${deleteResult.exceptionOrNull()?.message}")
+            return
+        }
+        println("Deleted existing global command before recreation: /${command.name}")
     }
 
     runCatching {
@@ -146,8 +150,12 @@ private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, 
         .firstOrNull()
 
     if (existingCommand != null) {
-        println("ℹ️ 길드 명령어가 이미 존재하여 생성을 건너뜁니다: /${command.name} (guildId=$guildId)")
-        return
+        val deleteResult = runCatching { existingCommand.delete() }
+        if (deleteResult.isFailure) {
+            println("Failed to delete existing guild command: /${command.name} (guildId=$guildId), reason=${deleteResult.exceptionOrNull()?.message}")
+            return
+        }
+        println("Deleted existing guild command before recreation: /${command.name} (guildId=$guildId)")
     }
 
     runCatching {

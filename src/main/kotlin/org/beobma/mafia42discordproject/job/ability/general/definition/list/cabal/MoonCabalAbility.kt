@@ -50,6 +50,9 @@ class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
         cabal.selectedTargetId = effectiveTarget.member.id
         val isSunTarget = effectiveTarget.member.id == cabal.pairedPlayerId
         cabal.moonMarkedSunTonight = isSunTarget
+        if (isSunTarget) {
+            cabal.hasFoundSun = true
+        }
 
         return if (isSunTarget) {
             AbilityResult(true, "접선에 성공할 수 있도록 해 비밀결사를 지목했습니다.")

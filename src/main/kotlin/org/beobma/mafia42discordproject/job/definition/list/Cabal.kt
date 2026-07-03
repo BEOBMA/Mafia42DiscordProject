@@ -23,6 +23,7 @@ class Cabal : Job(), Definition {
     var selectedTargetId: Snowflake? = null
 
     var hasFoundMoon: Boolean = false
+    var hasFoundSun: Boolean = false
     var wasFoundBySun: Boolean = false
 
     var moonMarkedSunTonight: Boolean = false

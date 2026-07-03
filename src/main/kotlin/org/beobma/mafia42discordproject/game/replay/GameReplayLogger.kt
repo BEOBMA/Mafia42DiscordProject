@@ -18,10 +18,11 @@ object GameReplayLogger {
         relatedEventId: String? = null
     ) {
         runCatching {
-            val cleanBody = body.trim()
-            val urls = (imageUrls + urlRegex.findAll(cleanBody).map { it.value.trimEnd(')', ']', ',', '.') })
+            val rawBody = body.trim()
+            val urls = (imageUrls + urlRegex.findAll(rawBody).map { it.value.trimEnd(')', ']', ',', '.') })
                 .filter(String::isNotBlank)
                 .distinct()
+            val cleanBody = removeImageUrls(rawBody, urls)
 
             synchronized(game) {
                 val sequence = game.nextReplaySequence
@@ -46,6 +47,17 @@ object GameReplayLogger {
         }.onFailure { error ->
             println("[GameReplayLogger] replay log failed: ${error.message}")
         }
+    }
+
+    private fun removeImageUrls(body: String, urls: List<String>): String {
+        var sanitized = body
+        urls.forEach { url ->
+            sanitized = sanitized.replace(url, "")
+        }
+        return urlRegex.replace(sanitized, "")
+            .replace(Regex("""[ \t]+\n"""), "\n")
+            .replace(Regex("""\n{3,}"""), "\n\n")
+            .trim()
     }
 
     fun recipient(player: PlayerData, scope: ReplayVisibility): ReplayRecipient =

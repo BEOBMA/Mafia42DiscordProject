@@ -318,6 +318,9 @@ object GameLoopManager {
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
+        if (game.dayCount > 1) {
+            game.mafiaExecutionProtectedTargetId = null
+        }
         processMadScientistNightTransitions(game)
         game.nightPhaseStartedAtMillis = System.currentTimeMillis()
         FrogCurseManager.clearExpiredAtNightStart(game)
@@ -2489,8 +2492,7 @@ object GameLoopManager {
         val moonCabal = moon.second
 
         val rolesStillCabal = sunPlayer.job is Cabal && moonPlayer.job is Cabal
-        val moonMarkedSun = moonCabal.moonMarkedSunTonight && moonCabal.selectedTargetId == sunPlayer.member.id
-        val canTrigger = rolesStillCabal && sunCabal.hasFoundMoon && moonCabal.wasFoundBySun && moonMarkedSun
+        val canTrigger = rolesStillCabal && sunCabal.hasFoundMoon && moonCabal.wasFoundBySun && moonCabal.hasFoundSun
 
         sunCabal.cabalSpecialWinReady = canTrigger
         moonCabal.cabalSpecialWinReady = canTrigger
