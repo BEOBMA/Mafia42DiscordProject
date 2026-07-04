@@ -125,25 +125,26 @@ object GameStatisticsImageRenderer {
 
     private fun buildSections(root: JsonObject): List<Section> {
         return buildList {
+            val overview = root.objAny("개요", "overview")
             add(overviewSection(root))
-            add(counterSection("승리팀 분포", root.obj("overview")?.obj("winningTeams")))
-            add(counterSection("종료 사유", root.obj("overview")?.obj("endReasons")))
-            add(counterSection("모드", root.obj("overview")?.obj("modes")))
-            add(counterSection("인원 분포", root.obj("overview")?.obj("initialPlayerCounts")))
-            add(counterSection("일차 분포", root.obj("overview")?.obj("dayCounts")))
-            add(bucketSection("팀별 통계", root.obj("byTeam"), "팀"))
-            add(bucketSection("직업별 통계", root.obj("byJob"), "직업"))
-            add(bucketSection("표시 직업별 통계", root.obj("byDisplayedJob"), "표시 직업"))
-            add(bucketSection("능력별 통계", root.obj("byAbility"), "능력"))
-            add(playerSection(root.obj("byPlayer")))
-            add(jobAbilitySection(root.obj("byJobAbility")))
-            add(playerJobSection(root.obj("byPlayerJob")))
-            add(playerAbilitySection(root.obj("byPlayerAbility")))
+            add(counterSection("승리팀 분포", overview?.objAny("승리팀분포", "winningTeams")))
+            add(counterSection("종료 사유", overview?.objAny("종료사유분포", "endReasons")))
+            add(counterSection("모드", overview?.objAny("모드분포", "modes")))
+            add(counterSection("인원 분포", overview?.objAny("시작인원분포", "initialPlayerCounts")))
+            add(counterSection("일차 분포", overview?.objAny("일차분포", "dayCounts")))
+            add(bucketSection("팀별 통계", root.objAny("팀별통계", "byTeam"), "팀"))
+            add(bucketSection("직업별 통계", root.objAny("직업별통계", "byJob"), "직업"))
+            add(bucketSection("표시 직업별 통계", root.objAny("표시직업별통계", "byDisplayedJob"), "표시 직업"))
+            add(bucketSection("능력별 통계", root.objAny("능력별통계", "byAbility"), "능력"))
+            add(playerSection(root.objAny("참가자별통계", "byPlayer")))
+            add(jobAbilitySection(root.objAny("직업능력조합", "byJobAbility")))
+            add(playerJobSection(root.objAny("참가자직업통계", "byPlayerJob")))
+            add(playerAbilitySection(root.objAny("참가자능력통계", "byPlayerAbility")))
 
-            val usage = root.obj("abilityUsage")
-            add(usageSection("능력 사용 통계", usage?.obj("byAbility"), "능력"))
-            add(usageJobSection(usage?.obj("byAbilityAndJob")))
-            add(usagePlayerSection(usage?.obj("byAbilityAndPlayer")))
+            val usage = root.objAny("능력사용통계", "abilityUsage")
+            add(usageSection("능력 사용 통계", usage?.objAny("능력별", "byAbility"), "능력"))
+            add(usageJobSection(usage?.objAny("능력직업별", "byAbilityAndJob")))
+            add(usagePlayerSection(usage?.objAny("능력참가자별", "byAbilityAndPlayer")))
         }
     }
 
@@ -234,21 +235,25 @@ object GameStatisticsImageRenderer {
         g.color = text
         g.drawString("게임 통계 리포트", SIDE_PADDING, 74)
 
-        val overview = root.obj("overview")
+        val overview = root.objAny("개요", "overview")
         g.font = subtitleFont
         g.color = gold
-        g.drawString("총 ${overview?.int("totalGames") ?: 0}게임 / 참가 기록 ${overview?.int("totalPlayerEntries") ?: 0}건", SIDE_PADDING, 156)
+        g.drawString(
+            "총 ${overview?.intAny("전체게임수", "totalGames") ?: 0}게임 / 참가 기록 ${overview?.intAny("전체참가기록수", "totalPlayerEntries") ?: 0}건",
+            SIDE_PADDING,
+            156,
+        )
 
         g.color = muted
-        val generatedAt = root.string("generatedAt")?.let { formatInstant(it) } ?: "알 수 없음"
+        val generatedAt = root.stringAny("생성시각", "generatedAt")?.let { formatInstant(it) } ?: "알 수 없음"
         g.drawString("생성: $generatedAt", SIDE_PADDING, 206)
         g.drawString("페이지 $pageNumber/$totalPages", WIDTH - 280, 74)
 
         g.font = smallFont
         g.color = Color(212, 217, 225)
-        val source = root.string("sourceArchiveDirectory") ?: "data/game-archives"
-        val processed = root.int("processedArchiveCount") ?: 0
-        val newCount = root.int("newArchiveCount") ?: 0
+        val source = root.stringAny("원본아카이브폴더", "sourceArchiveDirectory") ?: "data/game-archives"
+        val processed = root.intAny("반영된아카이브수", "processedArchiveCount") ?: 0
+        val newCount = root.intAny("새로반영된아카이브수", "newArchiveCount") ?: 0
         g.drawString("원본: $source / 반영된 고유 게임 ${processed}개 / 새로 반영 ${newCount}개", SIDE_PADDING, 282)
         return HEADER_HEIGHT
     }
@@ -341,14 +346,14 @@ object GameStatisticsImageRenderer {
     }
 
     private fun overviewSection(root: JsonObject): Section {
-        val overview = root.obj("overview")
+        val overview = root.objAny("개요", "overview")
         val rows = listOf(
-            listOf("전체 게임", "${overview?.int("totalGames") ?: 0}", "게임"),
-            listOf("전체 참가 기록", "${overview?.int("totalPlayerEntries") ?: 0}", "건"),
-            listOf("평균 진행 일차", formatNumber(overview?.double("averageDayCount")), "일"),
-            listOf("평균 시작 인원", formatNumber(overview?.double("averageInitialPlayerCount")), "명"),
-            listOf("아카이브 파일", "${root.int("sourceArchiveFileCount") ?: 0}", "개"),
-            listOf("중복 제외 파일", "${root.int("duplicateArchiveFileCount") ?: 0}", "개"),
+            listOf("전체 게임", "${overview?.intAny("전체게임수", "totalGames") ?: 0}", "게임"),
+            listOf("전체 참가 기록", "${overview?.intAny("전체참가기록수", "totalPlayerEntries") ?: 0}", "건"),
+            listOf("평균 진행 일차", formatNumber(overview?.doubleAny("평균진행일차", "averageDayCount")), "일"),
+            listOf("평균 시작 인원", formatNumber(overview?.doubleAny("평균시작인원", "averageInitialPlayerCount")), "명"),
+            listOf("아카이브 파일", "${root.intAny("원본아카이브파일수", "sourceArchiveFileCount") ?: 0}", "개"),
+            listOf("중복 제외 파일", "${root.intAny("중복제외파일수", "duplicateArchiveFileCount") ?: 0}", "개"),
         )
         return Section(
             title = "개요",
@@ -381,7 +386,7 @@ object GameStatisticsImageRenderer {
     private fun playerSection(data: JsonObject?): Section {
         val rows = data.entriesSortedByGames().map { (playerId, value) ->
             val obj = value as? JsonObject
-            val name = obj?.string("name") ?: playerId
+            val name = obj?.stringAny("이름", "name") ?: playerId
             listOf(
                 name,
                 obj.games(),
@@ -389,8 +394,8 @@ object GameStatisticsImageRenderer {
                 obj.losses(),
                 obj.winRate(),
                 obj.survivalRate(),
-                summarizeNestedNames(obj?.obj("jobs")),
-                summarizeNestedNames(obj?.obj("abilities")),
+                summarizeNestedNames(obj?.objAny("직업들", "jobs")),
+                summarizeNestedNames(obj?.objAny("능력들", "abilities")),
             )
         }
         return Section(
@@ -401,7 +406,7 @@ object GameStatisticsImageRenderer {
                 Column("승", 1, true),
                 Column("패", 1, true),
                 Column("승률", 1, true),
-                Column("생존률", 1, true),
+                Column("생존율", 1, true),
                 Column("주요 직업", 3),
                 Column("주요 능력", 3),
             ),
@@ -413,8 +418,8 @@ object GameStatisticsImageRenderer {
         val rows = data.entriesSortedByGames().mapNotNull { (_, value) ->
             val obj = value as? JsonObject ?: return@mapNotNull null
             listOf(
-                obj.string("job") ?: "UNKNOWN",
-                obj.string("ability") ?: "UNKNOWN",
+                obj.stringAny("직업", "job") ?: "알수없음",
+                obj.stringAny("능력", "ability") ?: "알수없음",
             ) + bucketValues(obj)
         }
         return Section(
@@ -428,8 +433,8 @@ object GameStatisticsImageRenderer {
         val rows = data.entriesSortedByGames().mapNotNull { (_, value) ->
             val obj = value as? JsonObject ?: return@mapNotNull null
             listOf(
-                obj.string("playerName") ?: "UNKNOWN",
-                obj.string("job") ?: "UNKNOWN",
+                obj.stringAny("참가자명", "playerName") ?: "알수없음",
+                obj.stringAny("직업", "job") ?: "알수없음",
             ) + bucketValues(obj)
         }
         return Section(
@@ -443,8 +448,8 @@ object GameStatisticsImageRenderer {
         val rows = data.entriesSortedByGames().mapNotNull { (_, value) ->
             val obj = value as? JsonObject ?: return@mapNotNull null
             listOf(
-                obj.string("playerName") ?: "UNKNOWN",
-                obj.string("ability") ?: "UNKNOWN",
+                obj.stringAny("참가자명", "playerName") ?: "알수없음",
+                obj.stringAny("능력", "ability") ?: "알수없음",
             ) + bucketValues(obj)
         }
         return Section(
@@ -470,8 +475,8 @@ object GameStatisticsImageRenderer {
         val rows = data.entriesSortedByUses().mapNotNull { (_, value) ->
             val obj = value as? JsonObject ?: return@mapNotNull null
             listOf(
-                obj.string("ability") ?: "UNKNOWN",
-                obj.string("job") ?: "UNKNOWN",
+                obj.stringAny("능력", "ability") ?: "알수없음",
+                obj.stringAny("직업", "job") ?: "알수없음",
             ) + usageValues(obj)
         }
         return Section(
@@ -485,8 +490,8 @@ object GameStatisticsImageRenderer {
         val rows = data.entriesSortedByUses().mapNotNull { (_, value) ->
             val obj = value as? JsonObject ?: return@mapNotNull null
             listOf(
-                obj.string("playerName") ?: "UNKNOWN",
-                obj.string("ability") ?: "UNKNOWN",
+                obj.stringAny("참가자명", "playerName") ?: "알수없음",
+                obj.stringAny("능력", "ability") ?: "알수없음",
             ) + usageValues(obj)
         }
         return Section(
@@ -504,7 +509,7 @@ object GameStatisticsImageRenderer {
         Column("패", 1, true),
         Column("무효", 1, true),
         Column("승률", 1, true),
-        Column("생존률", 1, true),
+        Column("생존율", 1, true),
     )
 
     private fun usageColumns(nameColumn: String): List<Column> = listOf(Column(nameColumn, 5)) + usageStatColumns()
@@ -535,19 +540,19 @@ object GameStatisticsImageRenderer {
     )
 
     private fun usageValues(obj: JsonObject): List<String> = listOf(
-        "${obj.int("uses") ?: 0}",
-        "${obj.int("successes") ?: 0}",
-        "${obj.int("failures") ?: 0}",
-        "${obj.int("unknownResults") ?: 0}",
-        "${formatNumber(obj.double("successRate"))}%",
-        summarizeCounter(obj.obj("results")),
+        "${obj.intAny("사용수", "uses") ?: 0}",
+        "${obj.intAny("성공수", "successes") ?: 0}",
+        "${obj.intAny("실패수", "failures") ?: 0}",
+        "${obj.intAny("결과미확인수", "unknownResults") ?: 0}",
+        "${formatNumber(obj.doubleAny("성공률", "successRate"))}%",
+        summarizeCounter(obj.objAny("결과분포", "results")),
     )
 
     private fun summarizeNestedNames(obj: JsonObject?, limit: Int = 3): String {
         return obj.entriesSortedByGames()
             .take(limit)
             .joinToString(", ") { (key, value) ->
-                val games = (value as? JsonObject)?.int("games") ?: 0
+                val games = (value as? JsonObject)?.intAny("게임수", "games") ?: 0
                 "$key $games"
             }
             .ifBlank { "-" }
@@ -563,7 +568,7 @@ object GameStatisticsImageRenderer {
     private fun JsonObject?.entriesSortedByGames(): List<Map.Entry<String, kotlinx.serialization.json.JsonElement>> {
         return this?.entries
             ?.sortedWith(compareByDescending<Map.Entry<String, kotlinx.serialization.json.JsonElement>> {
-                (it.value as? JsonObject)?.int("games") ?: 0
+                (it.value as? JsonObject)?.intAny("게임수", "games") ?: 0
             }.thenBy { it.key })
             .orEmpty()
     }
@@ -571,7 +576,7 @@ object GameStatisticsImageRenderer {
     private fun JsonObject?.entriesSortedByUses(): List<Map.Entry<String, kotlinx.serialization.json.JsonElement>> {
         return this?.entries
             ?.sortedWith(compareByDescending<Map.Entry<String, kotlinx.serialization.json.JsonElement>> {
-                (it.value as? JsonObject)?.int("uses") ?: 0
+                (it.value as? JsonObject)?.intAny("사용수", "uses") ?: 0
             }.thenBy { it.key })
             .orEmpty()
     }
@@ -584,25 +589,41 @@ object GameStatisticsImageRenderer {
             .orEmpty()
     }
 
-    private fun JsonObject?.games(): String = "${this?.int("games") ?: 0}"
+    private fun JsonObject?.games(): String = "${this?.intAny("게임수", "games") ?: 0}"
 
-    private fun JsonObject?.wins(): String = "${this?.int("wins") ?: 0}"
+    private fun JsonObject?.wins(): String = "${this?.intAny("승리수", "wins") ?: 0}"
 
-    private fun JsonObject?.losses(): String = "${this?.int("losses") ?: 0}"
+    private fun JsonObject?.losses(): String = "${this?.intAny("패배수", "losses") ?: 0}"
 
-    private fun JsonObject?.noContest(): String = "${this?.int("noContest") ?: 0}"
+    private fun JsonObject?.noContest(): String = "${this?.intAny("무효수", "noContest") ?: 0}"
 
-    private fun JsonObject?.winRate(): String = "${formatNumber(this?.double("winRate"))}%"
+    private fun JsonObject?.winRate(): String = "${formatNumber(this?.doubleAny("승률", "winRate"))}%"
 
-    private fun JsonObject?.survivalRate(): String = "${formatNumber(this?.double("survivalRate"))}%"
+    private fun JsonObject?.survivalRate(): String = "${formatNumber(this?.doubleAny("생존율", "생존률", "survivalRate"))}%"
 
     private fun JsonObject.obj(key: String): JsonObject? = this[key] as? JsonObject
 
+    private fun JsonObject.objAny(vararg keys: String): JsonObject? {
+        return keys.firstNotNullOfOrNull { key -> this[key] as? JsonObject }
+    }
+
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
+
+    private fun JsonObject.stringAny(vararg keys: String): String? {
+        return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.contentOrNull }
+    }
 
     private fun JsonObject.int(key: String): Int? = this[key]?.jsonPrimitive?.intOrNull
 
+    private fun JsonObject.intAny(vararg keys: String): Int? {
+        return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.intOrNull }
+    }
+
     private fun JsonObject.double(key: String): Double? = this[key]?.jsonPrimitive?.doubleOrNull
+
+    private fun JsonObject.doubleAny(vararg keys: String): Double? {
+        return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.doubleOrNull }
+    }
 
     private fun percent(count: Int, total: Int): Double {
         if (total <= 0) return 0.0

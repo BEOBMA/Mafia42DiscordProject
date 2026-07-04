@@ -26,6 +26,80 @@ object GameStatisticsManager {
     private val outputDir: Path = Path.of("data", "statistics")
     private val outputPath: Path = outputDir.resolve("game-statistics.json")
 
+    private object Key {
+        const val SCHEMA_VERSION = "스키마버전"
+        const val GENERATED_AT = "생성시각"
+        const val SOURCE_ARCHIVE_DIRECTORY = "원본아카이브폴더"
+        const val OUTPUT_FILE = "출력파일"
+        const val SOURCE_ARCHIVE_FILE_COUNT = "원본아카이브파일수"
+        const val PROCESSED_ARCHIVE_COUNT = "반영된아카이브수"
+        const val NEW_ARCHIVE_COUNT = "새로반영된아카이브수"
+        const val DUPLICATE_ARCHIVE_FILE_COUNT = "중복제외파일수"
+        const val UNREADABLE_ARCHIVE_COUNT = "읽기실패파일수"
+        const val OVERVIEW = "개요"
+        const val PROCESSED_ARCHIVES = "반영된아카이브"
+        const val BY_TEAM = "팀별통계"
+        const val BY_JOB = "직업별통계"
+        const val BY_DISPLAYED_JOB = "표시직업별통계"
+        const val BY_ABILITY = "능력별통계"
+        const val BY_PLAYER = "참가자별통계"
+        const val BY_JOB_ABILITY = "직업능력조합"
+        const val BY_PLAYER_JOB = "참가자직업통계"
+        const val BY_PLAYER_ABILITY = "참가자능력통계"
+        const val ABILITY_USAGE = "능력사용통계"
+        const val BY_ABILITY_USAGE = "능력별"
+        const val BY_ABILITY_AND_JOB_USAGE = "능력직업별"
+        const val BY_ABILITY_AND_PLAYER_USAGE = "능력참가자별"
+
+        const val TOTAL_GAMES = "전체게임수"
+        const val TOTAL_PLAYER_ENTRIES = "전체참가기록수"
+        const val AVERAGE_DAY_COUNT = "평균진행일차"
+        const val AVERAGE_INITIAL_PLAYER_COUNT = "평균시작인원"
+        const val WINNING_TEAMS = "승리팀분포"
+        const val END_REASONS = "종료사유분포"
+        const val MODES = "모드분포"
+        const val INITIAL_PLAYER_COUNTS = "시작인원분포"
+        const val DAY_COUNTS = "일차분포"
+        const val REPLAY_EVENT_TYPES = "리플레이이벤트분포"
+
+        const val FILE_NAME = "파일명"
+        const val ARCHIVED_AT = "보관시각"
+        const val GUILD_ID = "길드ID"
+        const val GUILD_NAME = "길드명"
+        const val END_REASON = "종료사유"
+        const val WINNING_TEAM = "승리팀"
+        const val PLAYER_COUNT = "플레이어수"
+        const val INITIAL_PLAYER_COUNT = "시작인원"
+        const val DAY_COUNT = "진행일차"
+        const val IS_CRAZY_MODE = "미치광이모드"
+        const val REPLAY_LOG_COUNT = "리플레이로그수"
+
+        const val NAME = "이름"
+        const val JOB = "직업"
+        const val ABILITY = "능력"
+        const val JOBS = "직업들"
+        const val ABILITIES = "능력들"
+        const val TEAMS = "팀들"
+        const val PLAYER_ID = "참가자ID"
+        const val PLAYER_NAME = "참가자명"
+
+        const val GAMES = "게임수"
+        const val WINS = "승리수"
+        const val LOSSES = "패배수"
+        const val NO_CONTEST = "무효수"
+        const val WIN_RATE = "승률"
+        const val SURVIVALS = "생존수"
+        const val DEATHS = "사망수"
+        const val SURVIVAL_RATE = "생존율"
+
+        const val USES = "사용수"
+        const val SUCCESSES = "성공수"
+        const val FAILURES = "실패수"
+        const val UNKNOWN_RESULTS = "결과미확인수"
+        const val SUCCESS_RATE = "성공률"
+        const val RESULTS = "결과분포"
+    }
+
     fun generate(): GenerationResult {
         val previouslyProcessedArchiveIds = loadProcessedArchiveIds()
         val archiveFiles = archiveFiles()
@@ -93,7 +167,9 @@ object GameStatisticsManager {
         return runCatching {
             val root = json.parseToJsonElement(Files.readString(outputPath)) as? JsonObject
                 ?: return@runCatching emptySet()
-            val processedArchives = root.obj("processedArchives") ?: return@runCatching emptySet()
+            val processedArchives = root.obj(Key.PROCESSED_ARCHIVES)
+                ?: root.obj("processedArchives")
+                ?: return@runCatching emptySet()
             processedArchives.keys
         }.getOrDefault(emptySet())
     }
@@ -107,7 +183,7 @@ object GameStatisticsManager {
         val abilityUses = replayLogs.mapNotNull { parseAbilityUse(it) }
         val replayEventTypes = replayLogs
             .mapNotNull { (it as? JsonObject)?.string("type") }
-            .groupingBy { it.ifBlank { unknownValue } }
+            .groupingBy { replayLogTypeLabel(it.ifBlank { unknownValue }) }
             .eachCount()
 
         val archivedAt = root.string("archivedAt")
@@ -217,7 +293,7 @@ object GameStatisticsManager {
             archivedAt = archive.archivedAt,
             guildId = archive.guildId,
             guildName = archive.guildName,
-            endReason = archive.endReason,
+            endReason = endReasonLabel(archive.endReason),
             winningTeam = archive.winningTeam,
             playerCount = archive.players.size,
             initialPlayerCount = archive.initialPlayerCount,
@@ -281,45 +357,45 @@ object GameStatisticsManager {
         unreadableArchiveCount: Int,
     ): JsonObject {
         return buildJsonObject {
-            put("schemaVersion", schemaVersion)
-            put("generatedAt", Instant.now().toString())
-            put("sourceArchiveDirectory", archiveDir.toString())
-            put("outputFile", outputPath.toString())
-            put("sourceArchiveFileCount", sourceFileCount)
-            put("processedArchiveCount", state.processedArchives.size)
-            put("newArchiveCount", newArchiveCount)
-            put("duplicateArchiveFileCount", duplicateArchiveFileCount)
-            put("unreadableArchiveCount", unreadableArchiveCount)
-            put("overview", overviewJson(state.overview))
-            put("processedArchives", processedArchivesJson(state.processedArchives))
-            put("byTeam", bucketMapJson(state.byTeam))
-            put("byJob", bucketMapJson(state.byJob))
-            put("byDisplayedJob", bucketMapJson(state.byDisplayedJob))
-            put("byAbility", bucketMapJson(state.byAbility))
-            put("byPlayer", playerMapJson(state.byPlayer))
-            put("byJobAbility", jobAbilityJson(state.byJobAbility))
-            put("byPlayerJob", playerJobJson(state.byPlayerJob))
-            put("byPlayerAbility", playerAbilityJson(state.byPlayerAbility))
-            put("abilityUsage", buildJsonObject {
-                put("byAbility", usageMapJson(state.byUsedAbility))
-                put("byAbilityAndJob", usageByJobJson(state.byUsedAbilityByJob))
-                put("byAbilityAndPlayer", usageByPlayerJson(state.byUsedAbilityByPlayer))
+            put(Key.SCHEMA_VERSION, schemaVersion)
+            put(Key.GENERATED_AT, Instant.now().toString())
+            put(Key.SOURCE_ARCHIVE_DIRECTORY, archiveDir.toString())
+            put(Key.OUTPUT_FILE, outputPath.toString())
+            put(Key.SOURCE_ARCHIVE_FILE_COUNT, sourceFileCount)
+            put(Key.PROCESSED_ARCHIVE_COUNT, state.processedArchives.size)
+            put(Key.NEW_ARCHIVE_COUNT, newArchiveCount)
+            put(Key.DUPLICATE_ARCHIVE_FILE_COUNT, duplicateArchiveFileCount)
+            put(Key.UNREADABLE_ARCHIVE_COUNT, unreadableArchiveCount)
+            put(Key.OVERVIEW, overviewJson(state.overview))
+            put(Key.PROCESSED_ARCHIVES, processedArchivesJson(state.processedArchives))
+            put(Key.BY_TEAM, bucketMapJson(state.byTeam))
+            put(Key.BY_JOB, bucketMapJson(state.byJob))
+            put(Key.BY_DISPLAYED_JOB, bucketMapJson(state.byDisplayedJob))
+            put(Key.BY_ABILITY, bucketMapJson(state.byAbility))
+            put(Key.BY_PLAYER, playerMapJson(state.byPlayer))
+            put(Key.BY_JOB_ABILITY, jobAbilityJson(state.byJobAbility))
+            put(Key.BY_PLAYER_JOB, playerJobJson(state.byPlayerJob))
+            put(Key.BY_PLAYER_ABILITY, playerAbilityJson(state.byPlayerAbility))
+            put(Key.ABILITY_USAGE, buildJsonObject {
+                put(Key.BY_ABILITY_USAGE, usageMapJson(state.byUsedAbility))
+                put(Key.BY_ABILITY_AND_JOB_USAGE, usageByJobJson(state.byUsedAbilityByJob))
+                put(Key.BY_ABILITY_AND_PLAYER_USAGE, usageByPlayerJson(state.byUsedAbilityByPlayer))
             })
         }
     }
 
     private fun overviewJson(overview: OverviewStats): JsonObject {
         return buildJsonObject {
-            put("totalGames", overview.totalGames)
-            put("totalPlayerEntries", overview.totalPlayerEntries)
-            put("averageDayCount", rate(overview.totalDayCount, overview.totalGames))
-            put("averageInitialPlayerCount", rate(overview.totalInitialPlayerCount, overview.totalGames))
-            put("winningTeams", counterJson(overview.winningTeams))
-            put("endReasons", counterJson(overview.endReasons))
-            put("modes", counterJson(overview.modes))
-            put("initialPlayerCounts", counterJson(overview.initialPlayerCounts))
-            put("dayCounts", counterJson(overview.dayCounts))
-            put("replayEventTypes", counterJson(overview.replayEventTypes))
+            put(Key.TOTAL_GAMES, overview.totalGames)
+            put(Key.TOTAL_PLAYER_ENTRIES, overview.totalPlayerEntries)
+            put(Key.AVERAGE_DAY_COUNT, rate(overview.totalDayCount, overview.totalGames))
+            put(Key.AVERAGE_INITIAL_PLAYER_COUNT, rate(overview.totalInitialPlayerCount, overview.totalGames))
+            put(Key.WINNING_TEAMS, counterJson(overview.winningTeams))
+            put(Key.END_REASONS, counterJson(overview.endReasons))
+            put(Key.MODES, counterJson(overview.modes))
+            put(Key.INITIAL_PLAYER_COUNTS, counterJson(overview.initialPlayerCounts))
+            put(Key.DAY_COUNTS, counterJson(overview.dayCounts))
+            put(Key.REPLAY_EVENT_TYPES, counterJson(overview.replayEventTypes))
         }
     }
 
@@ -329,17 +405,17 @@ object GameStatisticsManager {
                 .sortedBy { it.value.archivedAt ?: it.value.fileName }
                 .forEach { (archiveId, record) ->
                     put(archiveId, buildJsonObject {
-                        put("fileName", record.fileName)
-                        putNullable("archivedAt", record.archivedAt)
-                        putNullable("guildId", record.guildId)
-                        putNullable("guildName", record.guildName)
-                        put("endReason", record.endReason)
-                        putNullable("winningTeam", record.winningTeam)
-                        put("playerCount", record.playerCount)
-                        put("initialPlayerCount", record.initialPlayerCount)
-                        put("dayCount", record.dayCount)
-                        put("isCrazyMode", record.isCrazyMode)
-                        put("replayLogCount", record.replayLogCount)
+                        put(Key.FILE_NAME, record.fileName)
+                        putNullable(Key.ARCHIVED_AT, record.archivedAt)
+                        putNullable(Key.GUILD_ID, record.guildId)
+                        putNullable(Key.GUILD_NAME, record.guildName)
+                        put(Key.END_REASON, record.endReason)
+                        putNullable(Key.WINNING_TEAM, record.winningTeam)
+                        put(Key.PLAYER_COUNT, record.playerCount)
+                        put(Key.INITIAL_PLAYER_COUNT, record.initialPlayerCount)
+                        put(Key.DAY_COUNT, record.dayCount)
+                        put(Key.IS_CRAZY_MODE, record.isCrazyMode)
+                        put(Key.REPLAY_LOG_COUNT, record.replayLogCount)
                     })
                 }
         }
@@ -351,11 +427,11 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<PlayerAggregate> { it.bucket.appearances }.thenBy { it.name })
                 .forEach { player ->
                     put(player.id, buildJsonObject {
-                        put("name", player.name)
+                        put(Key.NAME, player.name)
                         putBucket(player.bucket)
-                        put("jobs", bucketMapJson(player.jobs))
-                        put("abilities", bucketMapJson(player.abilities))
-                        put("teams", bucketMapJson(player.teams))
+                        put(Key.JOBS, bucketMapJson(player.jobs))
+                        put(Key.ABILITIES, bucketMapJson(player.abilities))
+                        put(Key.TEAMS, bucketMapJson(player.teams))
                     })
                 }
         }
@@ -367,8 +443,8 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<JobAbilityAggregate> { it.bucket.appearances }.thenBy { it.job }.thenBy { it.ability })
                 .forEach { combo ->
                     put("${combo.job} + ${combo.ability}", buildJsonObject {
-                        put("job", combo.job)
-                        put("ability", combo.ability)
+                        put(Key.JOB, combo.job)
+                        put(Key.ABILITY, combo.ability)
                         putBucket(combo.bucket)
                     })
                 }
@@ -381,9 +457,9 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<PlayerJobAggregate> { it.bucket.appearances }.thenBy { it.playerName }.thenBy { it.job })
                 .forEach { combo ->
                     put("${combo.playerName} (${combo.playerId}) + ${combo.job}", buildJsonObject {
-                        put("playerId", combo.playerId)
-                        put("playerName", combo.playerName)
-                        put("job", combo.job)
+                        put(Key.PLAYER_ID, combo.playerId)
+                        put(Key.PLAYER_NAME, combo.playerName)
+                        put(Key.JOB, combo.job)
                         putBucket(combo.bucket)
                     })
                 }
@@ -396,9 +472,9 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<PlayerAbilityAggregate> { it.bucket.appearances }.thenBy { it.playerName }.thenBy { it.ability })
                 .forEach { combo ->
                     put("${combo.playerName} (${combo.playerId}) + ${combo.ability}", buildJsonObject {
-                        put("playerId", combo.playerId)
-                        put("playerName", combo.playerName)
-                        put("ability", combo.ability)
+                        put(Key.PLAYER_ID, combo.playerId)
+                        put(Key.PLAYER_NAME, combo.playerName)
+                        put(Key.ABILITY, combo.ability)
                         putBucket(combo.bucket)
                     })
                 }
@@ -422,16 +498,16 @@ object GameStatisticsManager {
     }
 
     private fun JsonObjectBuilder.putBucket(bucket: StatBucket) {
-        put("games", bucket.appearances)
-        put("wins", bucket.wins)
-        put("losses", bucket.losses)
-        put("noContest", bucket.noContest)
-        put("winRate", percent(bucket.wins, bucket.wins + bucket.losses))
-        put("survivals", bucket.survivals)
-        put("deaths", bucket.deaths)
-        put("survivalRate", percent(bucket.survivals, bucket.appearances))
-        put("averageDayCount", rate(bucket.totalDayCount, bucket.appearances))
-        put("averageInitialPlayerCount", rate(bucket.totalInitialPlayerCount, bucket.appearances))
+        put(Key.GAMES, bucket.appearances)
+        put(Key.WINS, bucket.wins)
+        put(Key.LOSSES, bucket.losses)
+        put(Key.NO_CONTEST, bucket.noContest)
+        put(Key.WIN_RATE, percent(bucket.wins, bucket.wins + bucket.losses))
+        put(Key.SURVIVALS, bucket.survivals)
+        put(Key.DEATHS, bucket.deaths)
+        put(Key.SURVIVAL_RATE, percent(bucket.survivals, bucket.appearances))
+        put(Key.AVERAGE_DAY_COUNT, rate(bucket.totalDayCount, bucket.appearances))
+        put(Key.AVERAGE_INITIAL_PLAYER_COUNT, rate(bucket.totalInitialPlayerCount, bucket.appearances))
     }
 
     private fun usageMapJson(map: Map<String, UsageBucket>): JsonObject {
@@ -450,8 +526,8 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<AbilityJobUsageAggregate> { it.bucket.uses }.thenBy { it.ability }.thenBy { it.job })
                 .forEach { aggregate ->
                     put("${aggregate.ability} + ${aggregate.job}", buildJsonObject {
-                        put("ability", aggregate.ability)
-                        put("job", aggregate.job)
+                        put(Key.ABILITY, aggregate.ability)
+                        put(Key.JOB, aggregate.job)
                         putUsage(aggregate.bucket)
                     })
                 }
@@ -464,9 +540,9 @@ object GameStatisticsManager {
                 .sortedWith(compareByDescending<AbilityPlayerUsageAggregate> { it.bucket.uses }.thenBy { it.playerName }.thenBy { it.ability })
                 .forEach { aggregate ->
                     put("${aggregate.playerName} (${aggregate.playerId}) + ${aggregate.ability}", buildJsonObject {
-                        put("ability", aggregate.ability)
-                        put("playerId", aggregate.playerId)
-                        put("playerName", aggregate.playerName)
+                        put(Key.ABILITY, aggregate.ability)
+                        put(Key.PLAYER_ID, aggregate.playerId)
+                        put(Key.PLAYER_NAME, aggregate.playerName)
                         putUsage(aggregate.bucket)
                     })
                 }
@@ -480,12 +556,12 @@ object GameStatisticsManager {
     }
 
     private fun JsonObjectBuilder.putUsage(bucket: UsageBucket) {
-        put("uses", bucket.uses)
-        put("successes", bucket.successes)
-        put("failures", bucket.failures)
-        put("unknownResults", bucket.unknownResults)
-        put("successRate", percent(bucket.successes, bucket.successes + bucket.failures))
-        put("results", counterJson(bucket.results))
+        put(Key.USES, bucket.uses)
+        put(Key.SUCCESSES, bucket.successes)
+        put(Key.FAILURES, bucket.failures)
+        put(Key.UNKNOWN_RESULTS, bucket.unknownResults)
+        put(Key.SUCCESS_RATE, percent(bucket.successes, bucket.successes + bucket.failures))
+        put(Key.RESULTS, counterJson(bucket.results))
     }
 
     private fun counterJson(counter: Map<String, Int>): JsonObject {
@@ -504,6 +580,31 @@ object GameStatisticsManager {
         } else {
             put(key, value)
         }
+    }
+
+    private fun replayLogTypeLabel(type: String): String = when (type) {
+        "GAME_START" -> "게임시작"
+        "GAME_END" -> "게임종료"
+        "PHASE_START" -> "페이즈시작"
+        "CHAT_PUBLIC" -> "공개채팅"
+        "CHAT_MAFIA" -> "마피아채팅"
+        "CHAT_COUPLE" -> "연인채팅"
+        "CHAT_DEAD" -> "사망자채팅"
+        "ABILITY_USED" -> "능력사용"
+        "VOTE_CAST" -> "투표"
+        "PROS_CONS_VOTE" -> "찬반투표"
+        "DIRECT_MESSAGE" -> "개인DM"
+        "EPHEMERAL" -> "개인응답"
+        "SYSTEM_RESULT" -> "시스템결과"
+        "DEATH" -> "사망"
+        "REVIVE" -> "부활"
+        else -> type.ifBlank { unknownValue }
+    }
+
+    private fun endReasonLabel(reason: String): String = when (reason) {
+        "WIN_CONDITION_MET" -> "승리조건충족"
+        "FORCED_STOP" -> "강제종료"
+        else -> reason.ifBlank { unknownValue }
     }
 
     private fun MutableMap<String, StatBucket>.bucket(key: String): StatBucket {
@@ -676,9 +777,9 @@ object GameStatisticsManager {
             totalPlayerEntries += archive.players.size
             totalDayCount += archive.dayCount
             totalInitialPlayerCount += archive.initialPlayerCount
-            winningTeams.increment(archive.winningTeam ?: "NO_WINNER")
-            endReasons.increment(archive.endReason)
-            modes.increment(if (archive.isCrazyMode) "CRAZY" else "NORMAL")
+            winningTeams.increment(archive.winningTeam ?: "승리팀없음")
+            endReasons.increment(endReasonLabel(archive.endReason))
+            modes.increment(if (archive.isCrazyMode) "미치광이" else "일반")
             initialPlayerCounts.increment(archive.initialPlayerCount.toString())
             dayCounts.increment(archive.dayCount.toString())
         }
@@ -778,5 +879,5 @@ object GameStatisticsManager {
         NO_CONTEST,
     }
 
-    private const val unknownValue = "UNKNOWN"
+    private const val unknownValue = "알수없음"
 }
