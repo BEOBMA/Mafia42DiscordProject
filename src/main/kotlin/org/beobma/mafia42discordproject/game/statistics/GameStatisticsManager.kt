@@ -27,77 +27,78 @@ object GameStatisticsManager {
     private val outputPath: Path = outputDir.resolve("game-statistics.json")
 
     private object Key {
-        const val SCHEMA_VERSION = "스키마버전"
-        const val GENERATED_AT = "생성시각"
-        const val SOURCE_ARCHIVE_DIRECTORY = "원본아카이브폴더"
-        const val OUTPUT_FILE = "출력파일"
-        const val SOURCE_ARCHIVE_FILE_COUNT = "원본아카이브파일수"
-        const val PROCESSED_ARCHIVE_COUNT = "반영된아카이브수"
-        const val NEW_ARCHIVE_COUNT = "새로반영된아카이브수"
-        const val DUPLICATE_ARCHIVE_FILE_COUNT = "중복제외파일수"
-        const val UNREADABLE_ARCHIVE_COUNT = "읽기실패파일수"
-        const val OVERVIEW = "개요"
-        const val PROCESSED_ARCHIVES = "반영된아카이브"
-        const val BY_TEAM = "팀별통계"
-        const val BY_JOB = "직업별통계"
-        const val BY_DISPLAYED_JOB = "표시직업별통계"
-        const val BY_ABILITY = "능력별통계"
-        const val BY_PLAYER = "참가자별통계"
-        const val BY_JOB_ABILITY = "직업능력조합"
-        const val BY_PLAYER_JOB = "참가자직업통계"
-        const val BY_PLAYER_ABILITY = "참가자능력통계"
-        const val ABILITY_USAGE = "능력사용통계"
-        const val BY_ABILITY_USAGE = "능력별"
-        const val BY_ABILITY_AND_JOB_USAGE = "능력직업별"
-        const val BY_ABILITY_AND_PLAYER_USAGE = "능력참가자별"
+        const val SCHEMA_VERSION = "스키마 버전"
+        const val GENERATED_AT = "생성 시각"
+        const val SOURCE_ARCHIVE_DIRECTORY = "원본 아카이브 폴더"
+        const val OUTPUT_FILE = "출력 파일"
+        const val SOURCE_ARCHIVE_FILE_COUNT = "원본 아카이브 파일 수"
+        const val PROCESSED_ARCHIVE_COUNT = "반영된 아카이브 수"
+        const val NEW_ARCHIVE_COUNT = "새로 반영된 아카이브 수"
+        const val DUPLICATE_ARCHIVE_FILE_COUNT = "중복 제외 파일 수"
+        const val UNREADABLE_ARCHIVE_COUNT = "읽기 실패 파일 수"
 
-        const val TOTAL_GAMES = "전체게임수"
-        const val TOTAL_PLAYER_ENTRIES = "전체참가기록수"
-        const val AVERAGE_DAY_COUNT = "평균진행일차"
-        const val AVERAGE_INITIAL_PLAYER_COUNT = "평균시작인원"
-        const val WINNING_TEAMS = "승리팀분포"
-        const val END_REASONS = "종료사유분포"
-        const val MODES = "모드분포"
-        const val INITIAL_PLAYER_COUNTS = "시작인원분포"
-        const val DAY_COUNTS = "일차분포"
-        const val REPLAY_EVENT_TYPES = "리플레이이벤트분포"
+        const val OVERVIEW = "개요"
+        const val PROCESSED_ARCHIVES = "반영된 아카이브"
+        const val BY_TEAM = "팀별 통계"
+        const val BY_JOB = "직업별 통계"
+        const val BY_DISPLAYED_JOB = "표시 직업별 통계"
+        const val BY_ABILITY = "능력별 통계"
+        const val BY_PLAYER = "참가자별 통계"
+        const val BY_JOB_ABILITY = "직업 능력 조합"
+        const val BY_PLAYER_JOB = "참가자 직업 통계"
+        const val BY_PLAYER_ABILITY = "참가자 능력 통계"
+        const val ABILITY_USAGE = "능력 사용 통계"
+        const val BY_ABILITY_USAGE = "능력별"
+        const val BY_ABILITY_AND_JOB_USAGE = "능력·직업별"
+        const val BY_ABILITY_AND_PLAYER_USAGE = "능력·참가자별"
+
+        const val TOTAL_GAMES = "전체 게임 수"
+        const val TOTAL_PLAYER_ENTRIES = "전체 참가 기록 수"
+        const val AVERAGE_DAY_COUNT = "평균 진행 일차"
+        const val AVERAGE_INITIAL_PLAYER_COUNT = "평균 시작 인원"
+        const val WINNING_TEAMS = "승리 팀 분포"
+        const val END_REASONS = "종료 사유 분포"
+        const val MODES = "모드 분포"
+        const val INITIAL_PLAYER_COUNTS = "시작 인원 분포"
+        const val DAY_COUNTS = "일차 분포"
+        const val REPLAY_EVENT_TYPES = "리플레이 이벤트 분포"
 
         const val FILE_NAME = "파일명"
-        const val ARCHIVED_AT = "보관시각"
-        const val GUILD_ID = "길드ID"
+        const val ARCHIVED_AT = "보관 시각"
+        const val GUILD_ID = "길드 ID"
         const val GUILD_NAME = "길드명"
-        const val END_REASON = "종료사유"
-        const val WINNING_TEAM = "승리팀"
-        const val PLAYER_COUNT = "플레이어수"
-        const val INITIAL_PLAYER_COUNT = "시작인원"
-        const val DAY_COUNT = "진행일차"
-        const val IS_CRAZY_MODE = "미치광이모드"
-        const val REPLAY_LOG_COUNT = "리플레이로그수"
+        const val END_REASON = "종료 사유"
+        const val WINNING_TEAM = "승리 팀"
+        const val PLAYER_COUNT = "플레이어 수"
+        const val INITIAL_PLAYER_COUNT = "시작 인원"
+        const val DAY_COUNT = "진행 일차"
+        const val IS_CRAZY_MODE = "미치광이 모드"
+        const val REPLAY_LOG_COUNT = "리플레이 로그 수"
 
         const val NAME = "이름"
         const val JOB = "직업"
         const val ABILITY = "능력"
-        const val JOBS = "직업들"
-        const val ABILITIES = "능력들"
-        const val TEAMS = "팀들"
-        const val PLAYER_ID = "참가자ID"
+        const val JOBS = "직업 목록"
+        const val ABILITIES = "능력 목록"
+        const val TEAMS = "팀 목록"
+        const val PLAYER_ID = "참가자 ID"
         const val PLAYER_NAME = "참가자명"
 
-        const val GAMES = "게임수"
-        const val WINS = "승리수"
-        const val LOSSES = "패배수"
-        const val NO_CONTEST = "무효수"
+        const val GAMES = "게임 수"
+        const val WINS = "승리 수"
+        const val LOSSES = "패배 수"
+        const val NO_CONTEST = "무효 수"
         const val WIN_RATE = "승률"
-        const val SURVIVALS = "생존수"
-        const val DEATHS = "사망수"
+        const val SURVIVALS = "생존 수"
+        const val DEATHS = "사망 수"
         const val SURVIVAL_RATE = "생존율"
 
-        const val USES = "사용수"
-        const val SUCCESSES = "성공수"
-        const val FAILURES = "실패수"
-        const val UNKNOWN_RESULTS = "결과미확인수"
+        const val USES = "사용 수"
+        const val SUCCESSES = "성공 수"
+        const val FAILURES = "실패 수"
+        const val UNKNOWN_RESULTS = "결과 미확인 수"
         const val SUCCESS_RATE = "성공률"
-        const val RESULTS = "결과분포"
+        const val RESULTS = "결과 분포"
     }
 
     fun generate(): GenerationResult {
@@ -583,27 +584,27 @@ object GameStatisticsManager {
     }
 
     private fun replayLogTypeLabel(type: String): String = when (type) {
-        "GAME_START" -> "게임시작"
-        "GAME_END" -> "게임종료"
-        "PHASE_START" -> "페이즈시작"
-        "CHAT_PUBLIC" -> "공개채팅"
-        "CHAT_MAFIA" -> "마피아채팅"
-        "CHAT_COUPLE" -> "연인채팅"
-        "CHAT_DEAD" -> "사망자채팅"
-        "ABILITY_USED" -> "능력사용"
+        "GAME_START" -> "게임 시작"
+        "GAME_END" -> "게임 종료"
+        "PHASE_START" -> "페이즈 시작"
+        "CHAT_PUBLIC" -> "공개 채팅"
+        "CHAT_MAFIA" -> "마피아 채팅"
+        "CHAT_COUPLE" -> "연인 채팅"
+        "CHAT_DEAD" -> "사망자 채팅"
+        "ABILITY_USED" -> "능력 사용"
         "VOTE_CAST" -> "투표"
-        "PROS_CONS_VOTE" -> "찬반투표"
-        "DIRECT_MESSAGE" -> "개인DM"
-        "EPHEMERAL" -> "개인응답"
-        "SYSTEM_RESULT" -> "시스템결과"
+        "PROS_CONS_VOTE" -> "찬반 투표"
+        "DIRECT_MESSAGE" -> "개인 DM"
+        "EPHEMERAL" -> "개인 응답"
+        "SYSTEM_RESULT" -> "시스템 결과"
         "DEATH" -> "사망"
         "REVIVE" -> "부활"
         else -> type.ifBlank { unknownValue }
     }
 
     private fun endReasonLabel(reason: String): String = when (reason) {
-        "WIN_CONDITION_MET" -> "승리조건충족"
-        "FORCED_STOP" -> "강제종료"
+        "WIN_CONDITION_MET" -> "승리 조건 충족"
+        "FORCED_STOP" -> "강제 종료"
         else -> reason.ifBlank { unknownValue }
     }
 
@@ -777,7 +778,7 @@ object GameStatisticsManager {
             totalPlayerEntries += archive.players.size
             totalDayCount += archive.dayCount
             totalInitialPlayerCount += archive.initialPlayerCount
-            winningTeams.increment(archive.winningTeam ?: "승리팀없음")
+            winningTeams.increment(archive.winningTeam ?: "승리팀 없음")
             endReasons.increment(endReasonLabel(archive.endReason))
             modes.increment(if (archive.isCrazyMode) "미치광이" else "일반")
             initialPlayerCounts.increment(archive.initialPlayerCount.toString())
@@ -879,5 +880,5 @@ object GameStatisticsManager {
         NO_CONTEST,
     }
 
-    private const val unknownValue = "알수없음"
+    private const val unknownValue = "알 수 없음"
 }
