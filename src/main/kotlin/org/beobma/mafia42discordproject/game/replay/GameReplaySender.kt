@@ -7,11 +7,15 @@ import org.beobma.mafia42discordproject.game.Game
 
 object GameReplaySender {
     suspend fun sendReplay(game: Game, endReason: String, winningTeamName: String?) {
+        sendReplay(game, GameReplayRenderDataStore.snapshot(game, endReason, winningTeamName))
+    }
+
+    suspend fun sendReplay(game: Game, renderData: ReplayRenderData) {
         if (game.hasSentReplay) return
 
         runCatching {
             val mainChannel = game.mainChannel ?: return
-            val images = GameReplayImageRenderer.render(game, endReason, winningTeamName)
+            val images = GameReplayImageRenderer.render(renderData)
             images.forEachIndexed { index, image ->
                 mainChannel.createMessage {
                     content = if (images.size == 1) {

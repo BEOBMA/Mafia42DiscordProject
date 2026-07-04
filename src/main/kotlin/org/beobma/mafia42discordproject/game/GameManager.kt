@@ -39,6 +39,7 @@ import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.GameReplayMessenger
+import org.beobma.mafia42discordproject.game.replay.GameReplayRenderDataStore
 import org.beobma.mafia42discordproject.game.replay.GameReplaySender
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
@@ -48,6 +49,7 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
+import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Inspection
@@ -186,6 +188,13 @@ object GameManager {
         val selected: MutableList<Ability> = mutableListOf(),
         var currentOptions: List<Ability> = emptyList(),
         var completedRounds: Int = 0
+    )
+
+    private data class AbilityCommandGuide(
+        val abilityName: String,
+        val timing: String,
+        val command: String?,
+        val summary: String
     )
 
     suspend fun start(
@@ -1457,7 +1466,7 @@ object GameManager {
                             appendAbilityImages(this, displayJob.abilities)
                         }.trim()
                         if (ownedAbilityMessage.isNotBlank()) {
-                            GameReplayMessenger.sendTrackedDm(this@initializeExtraAbilitySelectionForPlayers, player, ownedAbilityMessage, "직업/능력 안내")
+                            dmChannel.createMessage(ownedAbilityMessage)
                         }
 
                         val cabalJob = job as? Cabal
@@ -1543,6 +1552,206 @@ object GameManager {
                 count += 1
             }
         return count
+    }
+
+    private fun buildFinalJobAbilityReplayMessage(player: PlayerData): String {
+        val job = player.job ?: return ""
+        val displayJob = getAbilitySelectionDisplayJob(player) ?: job
+        val builder = StringBuilder()
+        val appendedImageUrls = linkedSetOf<String>()
+
+        fun appendImage(imageUrl: String?) {
+            val normalized = imageUrl?.trim().orEmpty()
+            if (normalized.isBlank() || !appendedImageUrls.add(normalized)) return
+            builder.appendLine(normalized)
+        }
+
+        appendImage(displayJob.jobImage)
+        displayJob.abilities.forEach { ability -> appendImage(ability.image) }
+        job.extraAbilities.forEach { ability -> appendImage(ability.image) }
+
+        return builder.toString().trim()
+    }
+
+    private fun logFinalJobAbilityReplayMessages(game: Game) {
+        val shouldLog = synchronized(game) {
+            if (game.hasLoggedFinalJobAbilityReplay) {
+                false
+            } else {
+                game.hasLoggedFinalJobAbilityReplay = true
+                true
+            }
+        }
+        if (!shouldLog) return
+
+        game.playerDatas.forEach { player ->
+            val message = buildFinalJobAbilityReplayMessage(player)
+            if (message.isNotBlank()) {
+                GameReplayLogger.logDirectMessage(game, player, message, "직업/능력 안내")
+            }
+        }
+    }
+
+    private suspend fun sendAbilityCommandGuides(game: Game) = coroutineScope {
+        game.playerDatas.forEach { player ->
+            launch {
+                val message = buildAbilityCommandGuideMessage(player) ?: return@launch
+                runCatching {
+                    val dmChannel = player.member.getDmChannel()
+                    splitDiscordMessage(message).forEach { chunk ->
+                        dmChannel.createMessage(chunk)
+                    }
+                }.onFailure { error ->
+                    println("⚠️ ${player.member.effectiveName} 능력 사용 안내 DM 전송 실패: ${error.message}")
+                }
+            }
+        }
+    }
+
+    private fun buildAbilityCommandGuideMessage(player: PlayerData): String? {
+        val job = player.job ?: return null
+        val displayJob = getAbilitySelectionDisplayJob(player) ?: job
+        val guides = commandGuideAbilities(player)
+            .flatMap(::buildAbilityCommandGuides)
+            .distinctBy { "${it.abilityName}|${it.timing}|${it.command.orEmpty()}" }
+        if (guides.isEmpty()) return null
+
+        return buildString {
+            appendLine("능력 사용 안내")
+            appendLine("직업: ${displayJob.name}")
+            appendLine()
+            guides.forEach { guide ->
+                appendLine("[${guide.abilityName}]")
+                appendLine("시점: ${guide.timing}")
+                appendLine("명령어: ${guide.command ?: "없음 (자동/패시브 능력)"}")
+                appendLine("요약: ${guide.summary}")
+                appendLine()
+            }
+            append("슬래시 명령어 옵션 이름은 Discord 입력창의 자동완성을 따라 선택하면 됩니다.")
+        }.trim()
+    }
+
+    private fun splitDiscordMessage(message: String, maxLength: Int = 1900): List<String> {
+        if (message.length <= maxLength) return listOf(message)
+
+        val chunks = mutableListOf<String>()
+        var current = StringBuilder()
+        message.lineSequence().forEach { line ->
+            val nextLength = current.length + line.length + 1
+            if (current.isNotEmpty() && nextLength > maxLength) {
+                chunks += current.toString().trimEnd()
+                current = StringBuilder()
+            }
+
+            if (line.length > maxLength) {
+                line.chunked(maxLength).forEach { part ->
+                    if (current.isNotEmpty()) {
+                        chunks += current.toString().trimEnd()
+                        current = StringBuilder()
+                    }
+                    chunks += part
+                }
+            } else {
+                current.appendLine(line)
+            }
+        }
+        if (current.isNotBlank()) {
+            chunks += current.toString().trimEnd()
+        }
+        return chunks
+    }
+
+    private fun commandGuideAbilities(player: PlayerData): List<Ability> {
+        return (player.job as? MentalPatient)?.activeAbilitySourceAbilities()
+            ?: player.allAbilities
+    }
+
+    private fun buildAbilityCommandGuides(ability: Ability): List<AbilityCommandGuide> {
+        return when (ability) {
+            is Megaphone -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/확성기 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is SecretLetter -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/밀서 {대상} {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Will -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/유언 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Perjury -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "본투표",
+                    command = "/위증 {대상}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Password -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "상시 (마피아팀 전용, 보조 직업은 접선 후)",
+                    command = "/암구호 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is ActiveAbility -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = phaseLabel(ability.usablePhase),
+                    command = activeAbilityCommandUsage(ability),
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            else -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "자동 발동",
+                    command = null,
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+        }
+    }
+
+    private fun activeAbilityCommandUsage(ability: ActiveAbility): String {
+        return when (ability.name) {
+            "조회" -> "/사용 ${ability.name} {직업}"
+            "청부" -> "/사용 ${ability.name} {대상} {직업}"
+            "최면 해제" -> "/사용 ${ability.name}"
+            else -> "/사용 ${ability.name} {대상}"
+        }
+    }
+
+    private fun phaseLabel(phase: GamePhase): String = when (phase) {
+        GamePhase.DAY -> "낮"
+        GamePhase.NIGHT -> "밤"
+        GamePhase.DAWN -> "새벽"
+        GamePhase.VOTE -> "투표/최후 변론"
+        GamePhase.END -> "게임 종료"
+    }
+
+    private fun briefAbilitySummary(ability: Ability): String {
+        val normalized = ability.description
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (normalized.length <= 120) return normalized
+        return normalized.take(117).trimEnd() + "..."
     }
 
     private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
@@ -1763,7 +1972,6 @@ object GameManager {
             append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
         }.trim()
 
-        GameReplayLogger.logDirectMessage(game, player, content, "능력 선택 안내")
         dmChannel.createMessage {
             this.content = content
             actionRow {
@@ -1796,6 +2004,8 @@ object GameManager {
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
+        logFinalJobAbilityReplayMessages(game)
+        sendAbilityCommandGuides(game)
         notifyAdministratorInspection(game)
         notifyNurseOath(game)
         game.isRunning = true
@@ -1850,13 +2060,11 @@ object GameManager {
     ) {
         registerNextGameMafiaExecutionProtection(gameToStop)
         scheduleDelayedVoiceDisconnect(gameToStop)
+        gameToStop.isRunning = false
         if (gameToStop.replayLogs.none { it.type == ReplayLogType.GAME_END }) {
             GameReplayLogger.logGameEnd(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         }
-        GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
-        GameReplaySender.sendReplay(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
-        currentGame = null
-        currentGuild = null
+        releaseAllPlayerMutes(gameToStop)
 
         if (cancelLoopJob) {
             gameLoopJob?.cancelAndJoin()
@@ -1865,7 +2073,17 @@ object GameManager {
 
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
-        releaseAllPlayerMutes(gameToStop)
+
+        val replayRenderData = GameReplayRenderDataStore.snapshot(
+            game = gameToStop,
+            endReason = endReason,
+            winningTeamName = winningTeamName
+        )
+        GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
+        GameReplayRenderDataStore.save(replayRenderData)
+        GameReplaySender.sendReplay(gameToStop, replayRenderData)
+        currentGame = null
+        currentGuild = null
 
         gameToStop.mainChannel = null
         gameToStop.mafiaChannel = null

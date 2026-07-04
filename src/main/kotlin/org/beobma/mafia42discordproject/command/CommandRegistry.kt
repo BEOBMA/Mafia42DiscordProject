@@ -13,6 +13,7 @@ object CommandRegistry {
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         JobAssignmentSimulationCommand,
+        GameStatisticsCommand,
         JobInfoImageCommand,
         DebugCommand,
         ShamanRelayCommand,

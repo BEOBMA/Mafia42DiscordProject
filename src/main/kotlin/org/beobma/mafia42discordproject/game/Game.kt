@@ -64,6 +64,7 @@ data class Game(
     var voiceChannelId: Snowflake? = null
     var hasArchivedSnapshot: Boolean = false
     var hasSentReplay: Boolean = false
+    var hasLoggedFinalJobAbilityReplay: Boolean = false
     var replayStartedAtMillis: Long = System.currentTimeMillis()
     var nextReplaySequence: Long = 1L
     val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
