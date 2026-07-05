@@ -5,6 +5,8 @@ object CommandRegistry {
         PingCommand,
         PlayCommand,
         HelloCommand,
+        ReadyCommand,
+        SpectateCommand,
         GameStartCommand,
         GameStopCommand,
         AbilityUseCommand,

@@ -150,13 +150,45 @@ object GameLoopManager {
     }
 
     suspend fun prepareGameChannels(game: Game) {
+        val mainChannel = game.mainChannel ?: return
         val mafiaChannel = game.mafiaChannel ?: return
         val coupleChannel = game.coupleChannel ?: return
         val deadChannel = game.deadChannel ?: return
 
+        updateMainChannelSpectatorPermissions(game, mainChannel)
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
         updateCoupleChannelPermissions(game, coupleChannel, isNight = false)
         updateDeadChannelPermissions(game, deadChannel)
+        muteSpectators(game)
+    }
+
+    private suspend fun updateMainChannelSpectatorPermissions(game: Game, mainChannel: TextChannel) {
+        if (game.playerDatas.isEmpty() && game.spectatorMembers.isEmpty()) return
+
+        mainChannel.edit {
+            game.playerDatas.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    denied = Permissions()
+                }
+            }
+
+            game.spectatorMembers.forEach { spectator ->
+                addMemberOverwrite(spectator.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(Permission.SendMessages)
+                }
+            }
+        }
+    }
+
+    private suspend fun muteSpectators(game: Game) {
+        game.spectatorMembers.forEach { spectator ->
+            runCatching {
+                spectator.edit {
+                    muted = true
+                }
+            }
+        }
     }
 
     suspend fun clearTimeThread() {
@@ -402,6 +434,7 @@ object GameLoopManager {
                 }
             }
         }
+        muteSpectators(game)
         applyHostessSeductionStates(game)
 
         mainChannel.edit {
@@ -829,6 +862,13 @@ object GameLoopManager {
                     }
                 }
             }
+
+            game.spectatorMembers.forEach { spectator ->
+                addMemberOverwrite(spectator.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(Permission.SendMessages)
+                }
+            }
         }
 
         game.playerDatas.forEach { player ->
@@ -839,6 +879,7 @@ object GameLoopManager {
                 }
             }
         }
+        muteSpectators(game)
 
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = false)
         updateCoupleChannelPermissions(game, coupleChannel, isNight = false)
@@ -905,6 +946,13 @@ object GameLoopManager {
                             Permission.SendMessages
                         )
                     }
+                }
+            }
+
+            game.spectatorMembers.forEach { spectator ->
+                addMemberOverwrite(spectator.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
                 }
             }
         }
@@ -1374,6 +1422,13 @@ object GameLoopManager {
                     }
                 }
             }
+
+            game.spectatorMembers.forEach { spectator ->
+                addMemberOverwrite(spectator.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                }
+            }
         }
     }
 
@@ -1415,6 +1470,13 @@ object GameLoopManager {
                     }
                 }
             }
+
+            game.spectatorMembers.forEach { spectator ->
+                addMemberOverwrite(spectator.id) {
+                    allowed = Permissions(Permission.ViewChannel)
+                    denied = Permissions(Permission.ReadMessageHistory, Permission.SendMessages)
+                }
+            }
         }
     }
 
@@ -1428,6 +1490,7 @@ object GameLoopManager {
         game.currentProsConsVotes.clear()
         game.hostessFirstVoteTargetByDay.clear()
         game.defenseTargetId = null
+        muteSpectators(game)
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
 
@@ -1881,6 +1944,7 @@ object GameLoopManager {
                 }
             }
         }
+        muteSpectators(game)
     }
 
     suspend fun startProsConsVotePhase(game: Game, target: PlayerData) {
@@ -1900,6 +1964,7 @@ object GameLoopManager {
                 }
             }
         }
+        muteSpectators(game)
 
         mainChannel.createMessage {
             actionRow {

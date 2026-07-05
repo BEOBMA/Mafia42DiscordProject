@@ -2,6 +2,7 @@ package org.beobma.mafia42discordproject.game
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
+import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
@@ -47,6 +48,7 @@ data class Game(
     var isRunning: Boolean = false,
 ) {
     private val playerById: MutableMap<Snowflake, PlayerData> = mutableMapOf()
+    private val spectatorById: MutableMap<Snowflake, Member> = mutableMapOf()
 
     init {
         rebuildPlayerIndex()
@@ -62,6 +64,7 @@ data class Game(
     var coupleChannel: TextChannel? = null
     var deadChannel: TextChannel? = null
     var voiceChannelId: Snowflake? = null
+    var spectatorMembers: MutableList<Member> = mutableListOf()
     var hasArchivedSnapshot: Boolean = false
     var hasSentReplay: Boolean = false
     var hasLoggedFinalJobAbilityReplay: Boolean = false
@@ -120,10 +123,22 @@ data class Game(
         rebuildPlayerIndex()
     }
 
+    fun replaceSpectators(spectators: MutableList<Member>) {
+        spectatorMembers = spectators
+        rebuildSpectatorIndex()
+    }
+
     fun rebuildPlayerIndex() {
         playerById.clear()
         playerDatas.forEach { player ->
             playerById[player.member.id] = player
+        }
+    }
+
+    fun rebuildSpectatorIndex() {
+        spectatorById.clear()
+        spectatorMembers.forEach { spectator ->
+            spectatorById[spectator.id] = spectator
         }
     }
 
@@ -143,4 +158,20 @@ data class Game(
 
         return fallbackPlayer
     }
+
+    fun getSpectator(userId: Snowflake): Member? {
+        val indexedSpectator = spectatorById[userId]
+        if (indexedSpectator != null) {
+            return indexedSpectator
+        }
+
+        val fallbackSpectator = spectatorMembers.firstOrNull { spectator -> spectator.id == userId }
+        if (fallbackSpectator != null) {
+            spectatorById[userId] = fallbackSpectator
+        }
+
+        return fallbackSpectator
+    }
+
+    fun isSpectator(userId: Snowflake): Boolean = getSpectator(userId) != null
 }

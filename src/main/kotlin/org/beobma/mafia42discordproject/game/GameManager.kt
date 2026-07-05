@@ -7,6 +7,7 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.entity.Guild
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.TextChannel
@@ -57,6 +58,7 @@ object GameManager {
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
     private val nextGameMafiaExecutionProtectedTargets: MutableMap<Snowflake, Snowflake> = ConcurrentHashMap()
+    private val lobbySelections: MutableMap<LobbyKey, MutableMap<Snowflake, LobbyParticipation>> = ConcurrentHashMap()
 
     private const val FULL_GAME_PLAYER_COUNT = 8
     private const val EXTENDED_ROLE_RULE_START_COUNT = 9
@@ -88,6 +90,28 @@ object GameManager {
     private const val CITIZEN_JOB_NAME = "시민"
     private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
+
+    private enum class LobbyParticipation {
+        READY,
+        SPECTATOR
+    }
+
+    private data class LobbyKey(
+        val guildId: Snowflake,
+        val voiceChannelId: Snowflake
+    )
+
+    private data class VoiceLobbyMembers(
+        val allVoiceMembers: List<Member>,
+        val readyMembers: List<Member>,
+        val spectatorMembers: List<Member>,
+        val undecidedMembers: List<Member>
+    )
+
+    data class LobbyParticipationResult(
+        val isSuccess: Boolean,
+        val message: String
+    )
 
     enum class GameStartMode(
         val optionValue: String,
@@ -182,6 +206,107 @@ object GameManager {
         game.start(event, mode)
     }
 
+    suspend fun markReady(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return markLobbyParticipation(guild, member, LobbyParticipation.READY)
+    }
+
+    suspend fun markReady(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return markLobbyParticipation(guild, member, LobbyParticipation.READY)
+    }
+
+    suspend fun markSpectator(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return markLobbyParticipation(guild, member, LobbyParticipation.SPECTATOR)
+    }
+
+    suspend fun markSpectator(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return markLobbyParticipation(guild, member, LobbyParticipation.SPECTATOR)
+    }
+
+    private suspend fun markLobbyParticipation(
+        guild: Guild,
+        member: Member,
+        participation: LobbyParticipation
+    ): LobbyParticipationResult {
+        if (currentGame != null) {
+            return LobbyParticipationResult(false, "게임이 진행 중일 때는 준비/관전 상태를 변경할 수 없습니다.")
+        }
+
+        val voiceChannelId = member.getVoiceStateOrNull()?.channelId
+            ?: return LobbyParticipationResult(false, "먼저 음성채널에 접속한 뒤 사용해 주세요.")
+
+        clearLobbySelectionForMember(guild.id, member.id)
+        val key = LobbyKey(guild.id, voiceChannelId)
+        val selections = lobbySelections.getOrPut(key) { ConcurrentHashMap() }
+        selections[member.id] = participation
+
+        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
+        val action = when (participation) {
+            LobbyParticipation.READY -> "플레이어로 준비했습니다."
+            LobbyParticipation.SPECTATOR -> "관전자로 등록했습니다."
+        }
+
+        return LobbyParticipationResult(
+            true,
+            buildString {
+                appendLine(action)
+                append("현재 선택: 플레이어 ${lobbyMembers.readyMembers.size}명, 관전자 ${lobbyMembers.spectatorMembers.size}명, 미선택 ${lobbyMembers.undecidedMembers.size}명")
+                if (lobbyMembers.undecidedMembers.isNotEmpty()) {
+                    appendLine()
+                    appendLine("아직 선택하지 않은 인원:")
+                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
+                }
+            }
+        )
+    }
+
+    private suspend fun collectVoiceLobbyMembers(guild: Guild, voiceChannelId: Snowflake): VoiceLobbyMembers {
+        val membersInSameVoice = guild.members
+            .filter { guildMember ->
+                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
+            }
+            .filterNot { it.isBot }
+            .toList()
+        val selections = lobbySelections[LobbyKey(guild.id, voiceChannelId)].orEmpty()
+
+        return VoiceLobbyMembers(
+            allVoiceMembers = membersInSameVoice,
+            readyMembers = membersInSameVoice.filter { member -> selections[member.id] == LobbyParticipation.READY },
+            spectatorMembers = membersInSameVoice.filter { member -> selections[member.id] == LobbyParticipation.SPECTATOR },
+            undecidedMembers = membersInSameVoice.filter { member -> selections[member.id] == null }
+        )
+    }
+
+    private fun clearLobbySelectionForMember(guildId: Snowflake, memberId: Snowflake) {
+        lobbySelections
+            .filterKeys { key -> key.guildId == guildId }
+            .values
+            .forEach { selections -> selections.remove(memberId) }
+        removeEmptyLobbySelections()
+    }
+
+    private fun clearLobbySelections(guildId: Snowflake, voiceChannelId: Snowflake) {
+        lobbySelections.remove(LobbyKey(guildId, voiceChannelId))
+    }
+
+    private fun removeEmptyLobbySelections() {
+        lobbySelections
+            .filterValues { selections -> selections.isEmpty() }
+            .keys
+            .forEach { key -> lobbySelections.remove(key) }
+    }
+
     private suspend fun Game.start(
         event: GuildChatInputCommandInteractionCreateEvent,
         mode: GameStartMode
@@ -194,8 +319,8 @@ object GameManager {
 
         val deferredResponse = interaction.deferPublicResponse()
 
-        val guild = interaction.guild
-        val commandSender = interaction.user
+        val guild = interaction.getGuild()
+        val commandSender = interaction.user.asMember(guild.id)
         val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
             deferredResponse.respond {
                 content = "현재 음성채널에 들어가 있지 않습니다."
@@ -209,20 +334,36 @@ object GameManager {
             return
         }
 
-        val membersInSameVoice = guild.members
-            .filter { guildMember ->
-                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
-            }
-            .filterNot { it.isBot }
-            .toList()
-        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
+        if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             deferredResponse.respond {
-                content = "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+                content = buildString {
+                    appendLine("음성채널의 모든 사람이 `/준비` 또는 `/관전` 중 하나를 먼저 선택해야 합니다.")
+                    appendLine("아직 선택하지 않은 인원:")
+                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
+                }
             }
             return
         }
 
-        val membersWithoutPreference = membersInSameVoice.filter { member ->
+        val playerMembers = lobbyMembers.readyMembers
+        val spectatorMembers = lobbyMembers.spectatorMembers
+
+        if (playerMembers.isEmpty()) {
+            deferredResponse.respond {
+                content = "플레이어로 준비한 사람이 없어 게임을 시작할 수 없습니다."
+            }
+            return
+        }
+
+        if (playerMembers.size > MAX_GAME_PLAYER_COUNT) {
+            deferredResponse.respond {
+                content = "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 플레이어: ${playerMembers.size}명"
+            }
+            return
+        }
+
+        val membersWithoutPreference = playerMembers.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
         }
 
@@ -240,12 +381,13 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.replacePlayers(playerMembers.map(::PlayerData).toMutableList())
+        this.replaceSpectators(spectatorMembers.toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
 
-        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
         applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
@@ -256,14 +398,22 @@ object GameManager {
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted()
+        clearLobbySelections(guild.id, voiceChannelId)
 
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("플레이어 수: ${playerMembers.size}")
+                appendLine("관전자 수: ${spectatorMembers.size}")
                 appendLine("모드: ${mode.displayName}")
                 appendLine()
-                append(DiscordMessageManager.mentions(membersInSameVoice))
+                appendLine("플레이어")
+                appendLine(DiscordMessageManager.mentions(playerMembers))
+                if (spectatorMembers.isNotEmpty()) {
+                    appendLine()
+                    appendLine("관전자")
+                    append(DiscordMessageManager.mentions(spectatorMembers))
+                }
             }
         }
     }
@@ -281,19 +431,34 @@ object GameManager {
             return
         }
 
-        val membersInSameVoice = guild.members
-            .filter { guildMember ->
-                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
-            }
-            .toList()
-        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
+        if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             event.message.channel.createMessage(
-                "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+                buildString {
+                    appendLine("음성채널의 모든 사람이 `!준비` 또는 `!관전` 중 하나를 먼저 선택해야 합니다.")
+                    appendLine("아직 선택하지 않은 인원:")
+                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
+                }
             )
             return
         }
 
-        val membersWithoutPreference = membersInSameVoice.filter { member ->
+        val playerMembers = lobbyMembers.readyMembers
+        val spectatorMembers = lobbyMembers.spectatorMembers
+
+        if (playerMembers.isEmpty()) {
+            event.message.channel.createMessage("플레이어로 준비한 사람이 없어 게임을 시작할 수 없습니다.")
+            return
+        }
+
+        if (playerMembers.size > MAX_GAME_PLAYER_COUNT) {
+            event.message.channel.createMessage(
+                "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 플레이어: ${playerMembers.size}명"
+            )
+            return
+        }
+
+        val membersWithoutPreference = playerMembers.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
         }
 
@@ -311,12 +476,13 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.replacePlayers(playerMembers.map(::PlayerData).toMutableList())
+        this.replaceSpectators(spectatorMembers.toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
 
-        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
         applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
@@ -327,13 +493,21 @@ object GameManager {
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted()
+        clearLobbySelections(guild.id, voiceChannelId)
 
         event.message.channel.createMessage(
             buildString {
-                appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("플레이어 수: ${playerMembers.size}")
+                appendLine("관전자 수: ${spectatorMembers.size}")
                 appendLine("모드: ${mode.displayName}")
                 appendLine()
-                append(DiscordMessageManager.mentions(membersInSameVoice))
+                appendLine("플레이어")
+                appendLine(DiscordMessageManager.mentions(playerMembers))
+                if (spectatorMembers.isNotEmpty()) {
+                    appendLine()
+                    appendLine("관전자")
+                    append(DiscordMessageManager.mentions(spectatorMembers))
+                }
             }
         )
     }
@@ -1758,6 +1932,7 @@ object GameManager {
         gameToStop.mafiaChannel = null
         gameToStop.coupleChannel = null
         gameToStop.deadChannel = null
+        gameToStop.replaceSpectators(mutableListOf())
     }
 
     private fun registerNextGameMafiaExecutionProtection(game: Game) {
@@ -1780,6 +1955,13 @@ object GameManager {
         game.playerDatas.forEach { player ->
             runCatching {
                 player.member.edit {
+                    muted = false
+                }
+            }
+        }
+        game.spectatorMembers.forEach { spectator ->
+            runCatching {
+                spectator.edit {
                     muted = false
                 }
             }
@@ -1830,6 +2012,14 @@ object GameManager {
     suspend fun enforceDeadPlayerChatRestriction(event: MessageCreateEvent): Boolean {
         val game = currentGame ?: return false
         val member = event.member ?: return false
+        if (game.isSpectator(member.id)) {
+            if (isGameTextChannelOrThread(game, event)) {
+                runCatching { event.message.delete("관전자 채팅 차단") }
+                return true
+            }
+            return false
+        }
+
         val player = game.getPlayer(member.id) ?: return false
         if (!GameLoopManager.isMadScientistDistortionHidden(player) && !player.state.isDead) return false
 
@@ -1858,6 +2048,20 @@ object GameManager {
 
         runCatching { event.message.delete("왜곡 상태 채팅 차단") }
         return true
+    }
+
+    private suspend fun isGameTextChannelOrThread(game: Game, event: MessageCreateEvent): Boolean {
+        val channelId = event.message.channelId
+        val parentChannelId = runCatching { event.message.getChannel().data.parentId }
+            .getOrNull()
+        val gameChannelIds: Set<Snowflake> = setOf(
+            game.mainChannel?.id ?: Snowflake(GAME_MAIN_CHANNEL_ID),
+            game.mafiaChannel?.id ?: Snowflake(GAME_MAFIA_CHANNEL_ID),
+            game.coupleChannel?.id ?: Snowflake(GAME_COUPLE_CHANNEL_ID),
+            game.deadChannel?.id ?: Snowflake(GAME_DEAD_CHANNEL_ID)
+        )
+
+        return channelId in gameChannelIds || gameChannelIds.any { channel -> channel == parentChannelId }
     }
 
     suspend fun recordReplayChat(event: MessageCreateEvent) {

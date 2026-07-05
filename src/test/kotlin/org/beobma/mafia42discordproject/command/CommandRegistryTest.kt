@@ -26,6 +26,8 @@ class CommandRegistryTest {
     fun findLooksUpAliasesCaseInsensitively() {
         assertSame(BestJobCommand, CommandRegistry.find("bestjob"))
         assertSame(BestJobCommand, CommandRegistry.find(" BESTJOB "))
+        assertSame(ReadyCommand, CommandRegistry.find("준비"))
+        assertSame(SpectateCommand, CommandRegistry.find("관전"))
     }
 
     @Test

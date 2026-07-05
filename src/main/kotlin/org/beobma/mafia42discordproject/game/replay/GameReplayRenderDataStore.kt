@@ -200,55 +200,6 @@ object GameReplayRenderDataStore {
         })
     }
 
-    private fun parsePlayers(playersJson: JsonArray?): List<ReplayRenderPlayer> {
-        return playersJson?.mapNotNull { element ->
-            val player = element.jsonObject
-            ReplayRenderPlayer(
-                id = player.string("id"),
-                name = player.string("name") ?: return@mapNotNull null,
-                jobName = player.string("jobName") ?: player.string("job"),
-                isDead = player.boolean("isDead")
-                    ?: player["state"]?.jsonObject?.boolean("isDead")
-                    ?: false
-            )
-        } ?: emptyList()
-    }
-
-    private fun parseLogs(logsJson: JsonArray?): List<ReplayRenderLogEntry> {
-        return logsJson?.mapNotNull { element ->
-            val entry = element.jsonObject
-            ReplayRenderLogEntry(
-                sequence = entry.long("sequence") ?: return@mapNotNull null,
-                timestampMillis = entry.long("timestampMillis") ?: 0L,
-                dayCount = entry.int("dayCount") ?: 0,
-                phase = entry.enumValue("phase", GamePhase.DAY),
-                type = entry.enumValue("type", ReplayLogType.SYSTEM_RESULT),
-                actorId = entry.string("actorId"),
-                actorName = entry.string("actorName"),
-                actorJobName = entry.string("actorJobName"),
-                recipients = parseRecipients(entry["recipients"]?.jsonArray),
-                visibility = entry.enumValue("visibility", ReplayVisibility.PUBLIC),
-                title = entry.string("title").orEmpty(),
-                body = entry.string("body").orEmpty(),
-                imageUrls = entry["imageUrls"]?.jsonArray
-                    ?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                    ?: emptyList(),
-                relatedEventId = entry.string("relatedEventId")
-            )
-        }?.sortedBy { it.sequence } ?: emptyList()
-    }
-
-    private fun parseRecipients(recipientsJson: JsonArray?): List<ReplayRenderRecipient> {
-        return recipientsJson?.mapNotNull { element ->
-            val recipient = element.jsonObject
-            ReplayRenderRecipient(
-                id = recipient.string("id"),
-                name = recipient.string("name") ?: return@mapNotNull null,
-                scope = recipient.enumValue("scope", ReplayVisibility.PUBLIC)
-            )
-        } ?: emptyList()
-    }
-
     private fun JsonObjectBuilder.putNullable(key: String, value: String?) {
         if (value == null) {
             put(key, JsonNull)
@@ -259,15 +210,4 @@ object GameReplayRenderDataStore {
 
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
-    private fun JsonObject.long(key: String): Long? = this[key]?.jsonPrimitive?.longOrNull
-
-    private fun JsonObject.int(key: String): Int? = this[key]?.jsonPrimitive?.intOrNull
-
-    private fun JsonObject.boolean(key: String): Boolean? = this[key]?.jsonPrimitive?.booleanOrNull
-
-    private inline fun <reified T : Enum<T>> JsonObject.enumValue(key: String, default: T): T {
-        return string(key)?.let { raw ->
-            runCatching { enumValueOf<T>(raw) }.getOrNull()
-        } ?: default
-    }
 }
