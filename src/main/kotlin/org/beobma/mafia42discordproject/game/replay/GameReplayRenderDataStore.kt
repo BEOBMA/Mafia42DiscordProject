@@ -207,7 +207,4 @@ object GameReplayRenderDataStore {
         }
         put(key, value)
     }
-
-    private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
-
 }
