@@ -22,7 +22,7 @@ object ShamanedRelayCommand : DiscordCommand {
             channelId = event.interaction.channelId,
             message = message
         )
-        DiscordMessageManager.respondEphemeral(event, result.message)
+        DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = !result.isSuccess)
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {

@@ -17,7 +17,7 @@ object MegaphoneCommand : DiscordCommand {
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val message = event.interaction.command.strings[MESSAGE_OPTION_NAME].orEmpty()
         val result = GameManager.useMegaphone(event.interaction.user.id, message)
-        DiscordMessageManager.respondEphemeral(event, result.message)
+        DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = !result.isSuccess)
     }
 
     override suspend fun registerGlobal(kord: Kord) {

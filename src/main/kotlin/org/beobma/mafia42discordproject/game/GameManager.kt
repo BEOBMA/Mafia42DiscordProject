@@ -1874,21 +1874,24 @@ object GameManager {
         if (!GameLoopManager.isMadScientistDistortionHidden(player) && !player.state.isDead) return false
 
         val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
+        val replayContent = replayMessageContent(event)
 
         if (isDeadChannel && player.state.isDead) {
             GameReplayLogger.logChat(
                 game = game,
                 actor = player,
-                body = event.message.content,
-                visibility = ReplayVisibility.DEAD_CHANNEL
+                body = replayContent,
+                visibility = ReplayVisibility.DEAD_CHANNEL,
+                recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
+                recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
             )
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
-                chat = event.message.content
+                chat = replayContent
             )
             dispatchDeceasedChatEvent(game, deceasedChatEvent)
-            return false
+            return true
         }
 
         if (player.state.isDead) {
@@ -1918,7 +1921,7 @@ object GameManager {
         val game = currentGame ?: return
         val member = event.member ?: return
         val player = game.getPlayer(member.id) ?: return
-        val content = event.message.content.trim()
+        val content = replayMessageContent(event)
         if (content.isBlank()) return
 
         val channelId = event.message.channelId
@@ -1939,8 +1942,64 @@ object GameManager {
             game = game,
             actor = player,
             body = content,
-            visibility = visibility
+            visibility = visibility,
+            recipients = replayRecipientsFor(game, visibility),
+            recipientDescription = replayRecipientDescription(game, visibility)
         )
+    }
+
+    private fun replayMessageContent(event: MessageCreateEvent): String {
+        val text = event.message.content.trim()
+        val attachments = event.message.attachments.map { attachment ->
+            val filename = attachment.filename.takeIf { it.isNotBlank() } ?: "첨부파일"
+            val url = attachment.url.takeIf { it.isNotBlank() }
+            if (url == null) filename else "$filename $url"
+        }
+
+        return (listOf(text).filter(String::isNotBlank) + attachments)
+            .joinToString("\n")
+            .trim()
+    }
+
+    private fun replayRecipientsFor(game: Game, visibility: ReplayVisibility): List<ReplayRecipient> {
+        val players = when (visibility) {
+            ReplayVisibility.PUBLIC -> game.playerDatas
+            ReplayVisibility.MAFIA_CHANNEL -> game.playerDatas
+                .filter { !it.state.isDead }
+                .filter { it.job is Mafia || hasContactedMafiaTeam(game, it) }
+            ReplayVisibility.COUPLE_CHANNEL -> game.playerDatas
+                .filter { !it.state.isDead && it.job is Couple }
+            ReplayVisibility.DEAD_CHANNEL -> game.playerDatas
+                .filter { it.state.isDead || it.job is Shaman }
+            else -> emptyList()
+        }
+
+        return players.map { player -> GameReplayLogger.recipient(player, visibility) }
+    }
+
+    private fun replayRecipientDescription(game: Game, visibility: ReplayVisibility): String {
+        val label = when (visibility) {
+            ReplayVisibility.PUBLIC -> "공개 채널"
+            ReplayVisibility.MAFIA_CHANNEL -> "마피아 채널"
+            ReplayVisibility.COUPLE_CHANNEL -> "연인 채널"
+            ReplayVisibility.DEAD_CHANNEL -> "사망자 채널"
+            ReplayVisibility.DIRECT_MESSAGE -> "DM"
+            ReplayVisibility.EPHEMERAL -> "개인 응답"
+            ReplayVisibility.SYSTEM_INTERNAL -> "시스템"
+        }
+        val names = replayRecipientsFor(game, visibility).joinToString(", ") { it.name }
+        return if (names.isBlank()) label else "$label ($names)"
+    }
+
+    private fun replayCommunicationBody(sender: PlayerData, recipientDescription: String, message: String): String {
+        val content = message.trim().ifBlank { "(내용 없음)" }
+        return "보낸 사람: ${sender.member.effectiveName}\n받은 사람/곳: $recipientDescription\n내용: $content"
+    }
+
+    private fun replayCommunicationBody(sender: PlayerData, recipients: List<PlayerData>, message: String): String {
+        val recipientDescription = recipients.joinToString(", ") { it.member.effectiveName }
+            .ifBlank { "없음" }
+        return replayCommunicationBody(sender, recipientDescription, message)
     }
 
     suspend fun handleSpiritCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
@@ -2011,6 +2070,15 @@ object GameManager {
                 description = "${sender.member.effectiveName}: $message"
             }
         }
+        GameReplayLogger.logChat(
+            game = game,
+            actor = sender,
+            body = message,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "확성기",
+            recipients = replayRecipientsFor(game, ReplayVisibility.PUBLIC),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.PUBLIC)
+        )
         game.usedMegaphonePlayerIds += sender.member.id
         game.megaphoneUsedTonight = true
         return SpiritRelayResult(true, "확성기 메시지를 전송했습니다.")
@@ -2026,7 +2094,7 @@ object GameManager {
         if (target.member.id == sender.member.id) return SpiritRelayResult(false, "자기 자신에게는 밀서를 보낼 수 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
 
-        val formatted = "${sender.member.effectiveName} To ${target.member.effectiveName}\n$message"
+        val formatted = replayCommunicationBody(sender, listOf(target), message)
         GameReplayLogger.logSystem(
             game = game,
             title = "밀서 작성",
@@ -2061,7 +2129,7 @@ object GameManager {
         GameReplayLogger.logSystem(
             game = game,
             title = "유언 작성",
-            body = message,
+            body = replayCommunicationBody(sender, "본인", message),
             visibility = ReplayVisibility.DIRECT_MESSAGE,
             actor = sender,
             recipients = listOf(GameReplayLogger.recipient(sender, ReplayVisibility.DIRECT_MESSAGE))
@@ -2102,8 +2170,11 @@ object GameManager {
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
-            body = relayMessage,
-            visibility = ReplayVisibility.MAFIA_CHANNEL
+            body = message,
+            visibility = ReplayVisibility.MAFIA_CHANNEL,
+            title = "암구호",
+            recipients = replayRecipientsFor(game, ReplayVisibility.MAFIA_CHANNEL),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.MAFIA_CHANNEL)
         )
         mafiaChannel.createMessage(relayMessage)
         return SpiritRelayResult(true, "암구호 메시지를 전송했습니다.")
@@ -2144,8 +2215,11 @@ object GameManager {
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
-            body = relayMessage,
-            visibility = ReplayVisibility.DEAD_CHANNEL
+            body = message,
+            visibility = ReplayVisibility.DEAD_CHANNEL,
+            title = "접신",
+            recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
         )
         runCatching {
             deadChannel.createMessage(relayMessage)
@@ -2164,7 +2238,18 @@ object GameManager {
         if (channelId != Snowflake(GAME_DEAD_CHANNEL_ID)) return SpiritRelayResult(false, "죽은 자들의 채널에서만 사용할 수 있습니다.")
         if (!sender.state.isDead || !sender.state.isShamaned) return SpiritRelayResult(false, "성불된 사망자만 사용할 수 있습니다.")
 
-        relayShamanedPlayerMessage(game, sender, message)
+        val manifestShamans = shamanedRelayRecipients(game)
+        GameReplayLogger.logChat(
+            game = game,
+            actor = sender,
+            body = message,
+            visibility = ReplayVisibility.DEAD_CHANNEL,
+            title = "강령",
+            recipients = manifestShamans.map { GameReplayLogger.recipient(it, ReplayVisibility.DIRECT_MESSAGE) },
+            recipientDescription = manifestShamans.joinToString(", ") { it.member.effectiveName }
+                .ifBlank { "수신자 없음" }
+        )
+        relayShamanedPlayerMessage(game, sender, message, manifestShamans)
         return SpiritRelayResult(true, "강령 메시지를 전달했습니다.")
     }
 
@@ -2253,19 +2338,26 @@ object GameManager {
         }
     }
 
-    private fun relayShamanedPlayerMessage(game: Game, sender: PlayerData, message: String) {
-        val manifestShamans = game.playerDatas
+    private fun shamanedRelayRecipients(game: Game): List<PlayerData> =
+        game.playerDatas
             .asSequence()
             .filter { !it.state.isDead }
             .filter { it.job is Shaman }
             .filter { player -> player.allAbilities.any { it is Manifesto } }
             .toList()
+
+    private fun relayShamanedPlayerMessage(
+        game: Game,
+        sender: PlayerData,
+        message: String,
+        manifestShamans: List<PlayerData> = shamanedRelayRecipients(game)
+    ) {
         if (manifestShamans.isEmpty()) return
 
         manifestShamans.forEach { shaman ->
             gameLoopScope.launch {
                 runCatching {
-                    val replayMessage = "[강령] ${sender.member.effectiveName}: $message"
+                    val replayMessage = replayCommunicationBody(sender, listOf(shaman), message)
                     GameReplayLogger.logDirectMessage(game, shaman, replayMessage, "강령")
                     shaman.member.getDmChannel().createMessage(replayMessage)
                 }

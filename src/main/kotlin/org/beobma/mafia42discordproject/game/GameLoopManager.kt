@@ -20,6 +20,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImageAndSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerCombinedMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.stopLoopingGameSound
 import org.beobma.mafia42discordproject.game.loop.*
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
@@ -194,8 +195,15 @@ object GameLoopManager {
         )
     }
 
-    private suspend fun runPhaseCountdown(game: Game, label: String, durationMillis: Long) {
+    private suspend fun runPhaseCountdown(
+        game: Game,
+        label: String,
+        durationMillis: Long,
+        midpointAction: (suspend () -> Unit)? = null
+    ) {
         val initialDuration = durationMillis.coerceAtLeast(0L)
+        val midpointAtMillis = System.currentTimeMillis() + initialDuration / 2
+        var midpointTriggered = midpointAction == null || initialDuration <= 0L
         synchronized(countdownLock) {
             activeCountdown = ActiveCountdown(
                 guildId = game.guild.id,
@@ -223,10 +231,21 @@ object GameLoopManager {
                 break
             }
 
+            if (!midpointTriggered && System.currentTimeMillis() >= midpointAtMillis) {
+                midpointTriggered = true
+                midpointAction?.invoke()
+            }
+
             delay(minOf(remainingMillis, 500L).milliseconds)
         }
 
+        if (!midpointTriggered) {
+            midpointTriggered = true
+            midpointAction?.invoke()
+        }
+
         updateTimeStatusMessageAtZero(game, label)
+        game.stopLoopingGameSound()
         synchronized(countdownLock) {
             activeCountdown = null
         }
@@ -350,7 +369,8 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png",
             message = "밤이 되었습니다.",
-            soundPath = NIGHT_START_SOUND_PATH
+            soundPath = NIGHT_START_SOUND_PATH,
+            loopSound = true
         )
         announceSourceMafiaCountAtNightStart(game)
         resolveHackerHacks(game)
@@ -693,6 +713,7 @@ object GameLoopManager {
                 target.state.isMadScientistDistortionHidden = false
                 target.state.madScientistAnalysisEligibleDay = null
                 target.state.hasUsedMadScientistAnalysis = false
+                game.pendingMadScientistRevivalAnnouncementIds -= target.member.id
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
             priestPlayer.job?.name?.let { game.publiclyRevealedJobNames += it }
@@ -770,7 +791,8 @@ object GameLoopManager {
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = SystemImage.DAY_START.imageUrl,
             message = "낮이 되었습니다.",
-            soundPath = DAY_START_SOUND_PATH
+            soundPath = DAY_START_SOUND_PATH,
+            loopSound = true
         )
         applyHostessSeductionStates(game)
         if (game.pendingDayStartDiscoveries.isNotEmpty()) {
@@ -995,6 +1017,16 @@ object GameLoopManager {
         applyPoliceAutopsy(game, victim)
         SpyAbility.applyAutopsyOnDeath(game, victim)
         applyImmediateDeathCommunicationState(game, victim)
+        sendDeadChannelDeathMention(game, victim)
+    }
+
+    private suspend fun sendDeadChannelDeathMention(game: Game, victim: PlayerData) {
+        val deadChannel = game.deadChannel ?: return
+        runCatching {
+            deadChannel.createMessage(mention(victim))
+        }.onFailure { error ->
+            println("Failed to send dead channel death mention for ${victim.member.id.value}: ${error.message}")
+        }
     }
 
     fun isMadScientistDistortionHidden(player: PlayerData): Boolean {
@@ -1010,7 +1042,6 @@ object GameLoopManager {
     }
 
     private suspend fun processMadScientistNightTransitions(game: Game) {
-        val mainChannel = game.mainChannel
         game.playerDatas.forEach { player ->
             if (player.job !is MadScientist) return@forEach
 
@@ -1019,13 +1050,7 @@ object GameLoopManager {
                 player.state.pendingMadScientistPublicRevealNight = null
                 player.state.isMadScientistDistortionHidden = false
                 game.publiclyRevealedJobNames += MadScientist().name
-                if (mainChannel != null) {
-                    game.sendMainChannelMessageWithImageAndSound(
-                        imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
-                        message = "${player.member.effectiveName}님이 부활하셨습니다!",
-                        soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
-                    )
-                }
+                queueMadScientistRevivalAnnouncement(game, player)
             }
 
             val reviveNight = player.state.pendingMadScientistRevivalNight
@@ -1060,15 +1085,31 @@ object GameLoopManager {
                 player.state.isMadScientistDistortionHidden = false
                 player.state.pendingMadScientistPublicRevealNight = null
                 game.publiclyRevealedJobNames += MadScientist().name
-                if (mainChannel != null) {
-                    game.sendMainChannelMessageWithImageAndSound(
-                        imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
-                        message = "${player.member.effectiveName}님이 부활하셨습니다!",
-                        soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
-                    )
-                }
+                queueMadScientistRevivalAnnouncement(game, player)
             }
         }
+    }
+
+    private fun queueMadScientistRevivalAnnouncement(game: Game, player: PlayerData) {
+        game.pendingMadScientistRevivalAnnouncementIds += player.member.id
+    }
+
+    private suspend fun announcePendingMadScientistRevivals(game: Game) {
+        if (game.currentPhase != GamePhase.NIGHT) return
+        val announcementIds = game.pendingMadScientistRevivalAnnouncementIds.toList()
+        if (announcementIds.isEmpty()) return
+        game.pendingMadScientistRevivalAnnouncementIds.clear()
+
+        announcementIds
+            .mapNotNull { playerId -> game.getPlayer(playerId) }
+            .filter { player -> !player.state.isDead && player.job is MadScientist }
+            .forEach { player ->
+                game.sendMainChannelMessageWithImageAndSound(
+                    imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
+                    message = "${player.member.effectiveName}님이 부활하셨습니다!",
+                    soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
+                )
+            }
     }
 
     private suspend fun handleMadScientistDeath(game: Game, victim: PlayerData, isLynch: Boolean) {
@@ -1085,6 +1126,7 @@ object GameLoopManager {
 
         victim.state.isMadScientistDistortionHidden = false
         victim.state.pendingMadScientistPublicRevealNight = null
+        game.pendingMadScientistRevivalAnnouncementIds -= victim.member.id
 
         if (!victim.state.hasContactedMafiaOnDeath) {
             victim.state.hasContactedMafiaOnDeath = true
@@ -1435,7 +1477,8 @@ object GameLoopManager {
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png",
             message = "투표 시간입니다. 의심되는 사람을 투표하세요.",
             soundPath = VOTE_PHASE_SOUND_PATH,
-            soundVolume = 50
+            soundVolume = 50,
+            loopSound = true
         )
         mainChannel.createMessage {
             actionRow {
@@ -2464,7 +2507,12 @@ object GameLoopManager {
     suspend fun runGameLoop(game: Game) {
         while (game.isRunning) {
             startNightPhase(game)
-            runPhaseCountdown(game, "밤", NIGHT_DURATION_MS)
+            runPhaseCountdown(
+                game = game,
+                label = "밤",
+                durationMillis = NIGHT_DURATION_MS,
+                midpointAction = { announcePendingMadScientistRevivals(game) }
+            )
 
             val nightSummary = resolveNightPhase(game)
 

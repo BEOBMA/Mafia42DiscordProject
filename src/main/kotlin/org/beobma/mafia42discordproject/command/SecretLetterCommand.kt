@@ -29,7 +29,7 @@ object SecretLetterCommand : DiscordCommand {
             targetId = target.id,
             message = message
         )
-        DiscordMessageManager.respondEphemeral(event, result.message)
+        DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = !result.isSuccess)
     }
 
     override suspend fun registerGlobal(kord: Kord) {

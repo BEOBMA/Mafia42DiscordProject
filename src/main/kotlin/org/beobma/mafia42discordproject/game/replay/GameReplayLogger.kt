@@ -102,7 +102,10 @@ object GameReplayLogger {
         game: Game,
         actor: PlayerData,
         body: String,
-        visibility: ReplayVisibility
+        visibility: ReplayVisibility,
+        title: String = chatTitle(visibility),
+        recipients: List<ReplayRecipient> = emptyList(),
+        recipientDescription: String? = null
     ) {
         val type = when (visibility) {
             ReplayVisibility.MAFIA_CHANNEL -> ReplayLogType.CHAT_MAFIA
@@ -110,14 +113,40 @@ object GameReplayLogger {
             ReplayVisibility.DEAD_CHANNEL -> ReplayLogType.CHAT_DEAD
             else -> ReplayLogType.CHAT_PUBLIC
         }
+        val destination = recipientDescription
+            ?: recipients.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name }
+            ?: visibilityDestination(visibility)
         log(
             game = game,
             type = type,
             visibility = visibility,
-            title = "채팅",
-            body = body,
-            actor = actor
+            title = title,
+            body = formatChatBody(actor, destination, body),
+            actor = actor,
+            recipients = recipients
         )
+    }
+
+    private fun chatTitle(visibility: ReplayVisibility): String = when (visibility) {
+        ReplayVisibility.MAFIA_CHANNEL -> "마피아 채팅"
+        ReplayVisibility.COUPLE_CHANNEL -> "연인 채팅"
+        ReplayVisibility.DEAD_CHANNEL -> "사망자 채팅"
+        else -> "공개 채팅"
+    }
+
+    private fun visibilityDestination(visibility: ReplayVisibility): String = when (visibility) {
+        ReplayVisibility.PUBLIC -> "공개 채널"
+        ReplayVisibility.MAFIA_CHANNEL -> "마피아 채널"
+        ReplayVisibility.COUPLE_CHANNEL -> "연인 채널"
+        ReplayVisibility.DEAD_CHANNEL -> "사망자 채널"
+        ReplayVisibility.DIRECT_MESSAGE -> "DM"
+        ReplayVisibility.EPHEMERAL -> "개인 응답"
+        ReplayVisibility.SYSTEM_INTERNAL -> "시스템"
+    }
+
+    private fun formatChatBody(actor: PlayerData, destination: String, body: String): String {
+        val content = body.trim().ifBlank { "(내용 없음)" }
+        return "보낸 사람: ${actor.member.effectiveName}\n받은 사람/곳: $destination\n내용: $content"
     }
 
     fun logDirectMessage(
