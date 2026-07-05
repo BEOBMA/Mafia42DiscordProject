@@ -2,14 +2,13 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
-import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GameLoopManager
+import org.beobma.mafia42discordproject.game.GameManager
 
 object DayTimeAdjustCommand : DiscordCommand {
     override val name: String = "daytime"
@@ -17,11 +16,11 @@ object DayTimeAdjustCommand : DiscordCommand {
     override val koreanName: String = "시간"
     override val aliases: Set<String> = setOf("시간")
 
-    private const val actionOptionName = "action"
-    private const val increaseValue = "increase"
-    private const val decreaseValue = "decrease"
-    private const val increaseKoValue = "증가"
-    private const val decreaseKoValue = "감소"
+    private const val ACTION_OPTION_NAME = "action"
+    private const val INCREASE_VALUE = "increase"
+    private const val DECREASE_VALUE = "decrease"
+    private const val INCREASE_KO_VALUE = "증가"
+    private const val DECREASE_KO_VALUE = "감소"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val interaction = event.interaction
@@ -31,15 +30,15 @@ object DayTimeAdjustCommand : DiscordCommand {
             return
         }
 
-        val action = interaction.command.strings[actionOptionName]
+        val action = interaction.command.strings[ACTION_OPTION_NAME]
         if (action == null) {
             DiscordMessageManager.respondEphemeral(event, "사용법: /daytime action:<increase|decrease>")
             return
         }
 
         val isIncrease = when (action) {
-            increaseValue, increaseKoValue -> true
-            decreaseValue, decreaseKoValue -> false
+            INCREASE_VALUE, INCREASE_KO_VALUE -> true
+            DECREASE_VALUE, DECREASE_KO_VALUE -> false
             else -> null
         }
         val result = when (isIncrease) {
@@ -70,12 +69,12 @@ object DayTimeAdjustCommand : DiscordCommand {
         }
 
         val action = args.firstOrNull()?.lowercase()
-        if (action !in setOf("up", "down", increaseValue, decreaseValue, increaseKoValue, decreaseKoValue)) {
+        if (action !in setOf("up", "down", INCREASE_VALUE, DECREASE_VALUE, INCREASE_KO_VALUE, DECREASE_KO_VALUE)) {
             event.message.channel.createMessage("사용법: !daytime <up|down>")
             return
         }
 
-        val isIncrease = action == "up" || action == increaseValue || action == increaseKoValue
+        val isIncrease = action == "up" || action == INCREASE_VALUE || action == INCREASE_KO_VALUE
         val result = GameLoopManager.adjustDayTimeByPlayer(game, actorId, isIncrease)
         event.message.channel.createMessage(result.message)
         if (result.isSuccess) {
@@ -86,12 +85,12 @@ object DayTimeAdjustCommand : DiscordCommand {
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
-        string(actionOptionName, "increase: +15초, decrease: -15초") {
+        string(ACTION_OPTION_NAME, "increase: +15초, decrease: -15초") {
             required = true
-            choice("increase (+15초)", increaseValue)
-            choice("decrease (-15초)", decreaseValue)
-            choice("증가 (+15초)", increaseKoValue)
-            choice("감소 (-15초)", decreaseKoValue)
+            choice("increase (+15초)", INCREASE_VALUE)
+            choice("decrease (-15초)", DECREASE_VALUE)
+            choice("증가 (+15초)", INCREASE_KO_VALUE)
+            choice("감소 (-15초)", DECREASE_KO_VALUE)
         }
     }
 

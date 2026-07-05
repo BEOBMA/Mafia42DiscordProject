@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

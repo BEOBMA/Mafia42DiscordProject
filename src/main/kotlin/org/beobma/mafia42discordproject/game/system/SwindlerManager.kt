@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.system
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -84,11 +83,11 @@ object SwindlerManager {
         val discovererJobName = discoverer.job?.name ?: "알 수 없음"
         dmScope.launch {
             runCatching {
-                val replayMessage = "${discoverer.member.effectiveName}님의 직업은 ${discovererJobName}"
+                val replayMessage = "${discoverer.member.effectiveName}님의 직업은 $discovererJobName"
                 GameManager.getCurrentGameFor(target.member.id)?.let { game ->
                     GameReplayLogger.logDirectMessage(game, target, replayMessage, "함정 결과")
                 }
-                target.member.getDmChannel().createMessage("${discoverer.member.effectiveName}님의 직업은 ${discovererJobName}")
+                target.member.getDmChannel().createMessage("${discoverer.member.effectiveName}님의 직업은 $discovererJobName")
             }
         }
     }

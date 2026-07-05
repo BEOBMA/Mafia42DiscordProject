@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -23,11 +22,11 @@ object JobPreferenceCommand : DiscordCommand {
     override val koreanName: String = "직업선호"
     override val aliases: Set<String> = setOf("직업선호", "직업선호설정")
 
-    private const val maxAutoCompleteChoices = 25
-    private const val assistantOption = "보조계열"
-    private const val policeOption = "경찰계열"
+    private const val MAX_AUTO_COMPLETE_CHOICES = 25
+    private const val ASSISTANT_OPTION = "보조계열"
+    private const val POLICE_OPTION = "경찰계열"
     private val specialOptions = (1..5).map { "특수직업$it" }
-    private val optionNames = listOf(assistantOption, policeOption) + specialOptions
+    private val optionNames = listOf(ASSISTANT_OPTION, POLICE_OPTION) + specialOptions
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
@@ -54,7 +53,7 @@ object JobPreferenceCommand : DiscordCommand {
             .asSequence()
             .map(Job::name)
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
+            .take(MAX_AUTO_COMPLETE_CHOICES)
             .toList()
 
         event.interaction.suggestString {
@@ -157,8 +156,8 @@ object JobPreferenceCommand : DiscordCommand {
     }
 
     private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {
-        assistantOption -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
-        policeOption -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" || it.name == "자경단원" }
+        ASSISTANT_OPTION -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
+        POLICE_OPTION -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" || it.name == "자경단원" }
         in specialOptions -> JobManager.getAll().filter {
             it.name != "경찰" &&
                 it.name != "요원" &&
@@ -171,19 +170,19 @@ object JobPreferenceCommand : DiscordCommand {
     }
 
     private fun getOptionDisplayName(optionName: String): String = when (optionName) {
-        assistantOption -> "보조계열"
-        policeOption -> "경찰계열"
+        ASSISTANT_OPTION -> "보조계열"
+        POLICE_OPTION -> "경찰계열"
         in specialOptions -> "특수직업"
         else -> optionName
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerJobOptions() {
-        string(assistantOption, "보조계열") {
+        string(ASSISTANT_OPTION, "보조계열") {
             required = true
             autocomplete = true
         }
 
-        string(policeOption, "경찰계열") {
+        string(POLICE_OPTION, "경찰계열") {
             required = true
             autocomplete = true
         }

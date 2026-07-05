@@ -1,17 +1,7 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.swindler
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import org.beobma.mafia42discordproject.game.Game
-import org.beobma.mafia42discordproject.game.GamePhase
-import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
-import org.beobma.mafia42discordproject.job.definition.Definition
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
-import org.beobma.mafia42discordproject.job.evil.list.Swindler
 
 class SwindlerAbility : JobUniqueAbility, PassiveAbility {
     override val name: String = "교섭"

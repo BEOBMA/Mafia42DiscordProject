@@ -14,7 +14,6 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("dev.kord:kord-core:0.18.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("dev.schlaubi.lavakord:kord:9.2.0")
     implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
 }

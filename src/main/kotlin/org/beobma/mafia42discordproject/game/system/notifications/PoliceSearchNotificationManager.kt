@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.system.notifications
 
-import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.SystemImage

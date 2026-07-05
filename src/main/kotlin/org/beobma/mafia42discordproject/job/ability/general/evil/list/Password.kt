@@ -1,7 +1,6 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list
 
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.CommonAbility
 import org.beobma.mafia42discordproject.job.ability.EvilCommonAbility
 
 class Password : Ability, EvilCommonAbility {

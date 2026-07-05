@@ -14,12 +14,12 @@ object PlayCommand : DiscordCommand {
     override val description: String = "로컬 오디오 파일 경로로 음악을 재생합니다."
     override val koreanName: String = "재생"
 
-    private const val pathOption = "path"
+    private const val PATH_OPTION = "path"
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            string(pathOption, "재생할 로컬 파일 경로") {
+            string(PATH_OPTION, "재생할 로컬 파일 경로") {
                 required = true
             }
         }
@@ -28,7 +28,7 @@ object PlayCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            string(pathOption, "재생할 로컬 파일 경로") {
+            string(PATH_OPTION, "재생할 로컬 파일 경로") {
                 required = true
             }
         }
@@ -45,7 +45,7 @@ object PlayCommand : DiscordCommand {
             return
         }
 
-        val filePath = event.interaction.command.strings[pathOption]?.trim().orEmpty()
+        val filePath = event.interaction.command.strings[PATH_OPTION]?.trim().orEmpty()
         if (filePath.isBlank()) {
             DiscordMessageManager.respondEphemeral(event, "재생할 로컬 파일 경로를 입력해 주세요.")
             return

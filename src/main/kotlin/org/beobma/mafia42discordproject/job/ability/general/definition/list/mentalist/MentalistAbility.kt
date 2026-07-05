@@ -95,9 +95,7 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
 
         val profiledTarget = if (Random.nextBoolean()) initialTarget else lastTarget
         val usedTargetId = game.abilityTargetByUserThisPhase[profiledTarget.member.id]
-        if (usedTargetId == null) {
-            return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님의 능력 사용 대상을 확인할 수 없습니다."
-        }
+            ?: return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님의 능력 사용 대상을 확인할 수 없습니다."
 
         val usedTargetPlayerName = game.getPlayer(usedTargetId)?.member?.effectiveName ?: "알 수 없음"
         return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님은 ${usedTargetPlayerName}님에게 능력을 사용했습니다."

@@ -25,6 +25,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlin.time.Duration.Companion.milliseconds
 
 object LavalinkManager {
     private const val DEFAULT_VOLUME = 100
@@ -46,8 +47,6 @@ object LavalinkManager {
     private val voiceServerUpdates = ConcurrentHashMap<String, VoiceServerPayload>()
     private val voiceStates = ConcurrentHashMap<String, VoiceStatePayload>()
 
-    fun isReady(): Boolean = initialized
-
     fun initialize(kord: Kord) {
         host = System.getenv("LAVALINK_HOST") ?: error("LAVALINK_HOST 환경 변수가 설정되지 않았습니다.")
         port = System.getenv("LAVALINK_PORT")?.toIntOrNull()
@@ -61,7 +60,7 @@ object LavalinkManager {
         println("✅ Lavalink(v4) 연결 초기화 완료: host=$host, port=$port, secure=$secure")
     }
 
-    suspend fun handleVoiceStateUpdate(event: VoiceStateUpdateEvent, kord: Kord) {
+    fun handleVoiceStateUpdate(event: VoiceStateUpdateEvent, kord: Kord) {
         if (event.state.userId != kord.selfId) return
 
         val guildId = event.state.guildId.toString()
@@ -220,9 +219,9 @@ object LavalinkManager {
     }
 
     private suspend fun waitForVoiceHandshake(guildId: String): Boolean {
-        return withTimeoutOrNull(5_000) {
+        return withTimeoutOrNull(5_000.milliseconds) {
             while (voiceStates[guildId] == null || voiceServerUpdates[guildId] == null) {
-                delay(50)
+                delay(50.milliseconds)
             }
             true
         } ?: false
@@ -288,6 +287,7 @@ object LavalinkManager {
         val trimmed = source.trim()
         if (trimmed.isBlank()) return null
 
+        @Suppress("HttpUrlsUsage")
         if (
             trimmed.startsWith("http://") ||
             trimmed.startsWith("https://") ||

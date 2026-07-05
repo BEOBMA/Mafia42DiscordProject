@@ -1,18 +1,7 @@
 package org.beobma.mafia42discordproject.game.statistics
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
+import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -20,7 +9,7 @@ import java.time.Instant
 import kotlin.math.round
 
 object GameStatisticsManager {
-    private const val schemaVersion = 1
+    private const val SCHEMA_VERSION = 1
     private val json = Json { prettyPrint = true }
     private val archiveDir: Path = Path.of("data", "game-archives")
     private val outputDir: Path = Path.of("data", "statistics")
@@ -135,7 +124,7 @@ object GameStatisticsManager {
         if (!Files.exists(outputDir)) {
             Files.createDirectories(outputDir)
         }
-        Files.writeString(outputPath, json.encodeToString(JsonObject.serializer(), output))
+        AtomicTextFileWriter.write(outputPath, json.encodeToString(JsonObject.serializer(), output))
 
         return GenerationResult(
             outputPath = outputPath,
@@ -184,18 +173,18 @@ object GameStatisticsManager {
         val abilityUses = replayLogs.mapNotNull { parseAbilityUse(it) }
         val replayEventTypes = replayLogs
             .mapNotNull { (it as? JsonObject)?.string("type") }
-            .groupingBy { replayLogTypeLabel(it.ifBlank { unknownValue }) }
+            .groupingBy { replayLogTypeLabel(it.ifBlank { UNKNOWN_VALUE }) }
             .eachCount()
 
         val archivedAt = root.string("archivedAt")
         val guildId = root.string("guildId")
-        val endReason = root.string("endReason") ?: unknownValue
+        val endReason = root.string("endReason") ?: UNKNOWN_VALUE
         val winningTeam = root.string("winningTeam")
         val dayCount = root.int("dayCount") ?: 0
         val initialPlayerCount = root.int("initialPlayerCount") ?: players.size
 
         val replaySignature = replayLogs
-            .mapNotNull { it as? JsonObject }
+            .filterIsInstance<JsonObject>()
             .joinToString(";") { log ->
                 listOf(
                     log.string("sequence").orEmpty(),
@@ -242,9 +231,9 @@ object GameStatisticsManager {
         return ArchivePlayer(
             id = id,
             name = name,
-            job = obj.string("job") ?: unknownValue,
+            job = obj.string("job") ?: UNKNOWN_VALUE,
             displayedJob = obj.string("displayedJob"),
-            team = obj.string("team") ?: unknownValue,
+            team = obj.string("team") ?: UNKNOWN_VALUE,
             abilities = obj.array("abilities")
                 .orEmpty()
                 .mapNotNull { it.jsonPrimitive.contentOrNull }
@@ -267,8 +256,8 @@ object GameStatisticsManager {
 
         return ArchiveAbilityUse(
             actorId = obj.string("actorId"),
-            actorName = obj.string("actorName") ?: unknownValue,
-            actorJobName = obj.string("actorJobName") ?: unknownValue,
+            actorName = obj.string("actorName") ?: UNKNOWN_VALUE,
+            actorJobName = obj.string("actorJobName") ?: UNKNOWN_VALUE,
             abilityName = abilityName,
             result = result,
         )
@@ -309,8 +298,8 @@ object GameStatisticsManager {
         archive.players.forEach { player ->
             val outcome = player.outcome(archive.winningTeam)
             val survived = !player.isDead
-            val job = player.job.ifBlank { unknownValue }
-            val team = player.team.ifBlank { unknownValue }
+            val job = player.job.ifBlank { UNKNOWN_VALUE }
+            val team = player.team.ifBlank { UNKNOWN_VALUE }
 
             byTeam.bucket(team).record(outcome, survived, archive)
             byJob.bucket(job).record(outcome, survived, archive)
@@ -358,7 +347,7 @@ object GameStatisticsManager {
         unreadableArchiveCount: Int,
     ): JsonObject {
         return buildJsonObject {
-            put(Key.SCHEMA_VERSION, schemaVersion)
+            put(Key.SCHEMA_VERSION, SCHEMA_VERSION)
             put(Key.GENERATED_AT, Instant.now().toString())
             put(Key.SOURCE_ARCHIVE_DIRECTORY, archiveDir.toString())
             put(Key.OUTPUT_FILE, outputPath.toString())
@@ -599,21 +588,21 @@ object GameStatisticsManager {
         "SYSTEM_RESULT" -> "시스템 결과"
         "DEATH" -> "사망"
         "REVIVE" -> "부활"
-        else -> type.ifBlank { unknownValue }
+        else -> type.ifBlank { UNKNOWN_VALUE }
     }
 
     private fun endReasonLabel(reason: String): String = when (reason) {
         "WIN_CONDITION_MET" -> "승리 조건 충족"
         "FORCED_STOP" -> "강제 종료"
-        else -> reason.ifBlank { unknownValue }
+        else -> reason.ifBlank { UNKNOWN_VALUE }
     }
 
     private fun MutableMap<String, StatBucket>.bucket(key: String): StatBucket {
-        return getOrPut(key.ifBlank { unknownValue }) { StatBucket() }
+        return getOrPut(key.ifBlank { UNKNOWN_VALUE }) { StatBucket() }
     }
 
     private fun MutableMap<String, Int>.increment(key: String, amount: Int = 1) {
-        val normalized = key.ifBlank { unknownValue }
+        val normalized = key.ifBlank { UNKNOWN_VALUE }
         this[normalized] = (this[normalized] ?: 0) + amount
     }
 
@@ -645,7 +634,7 @@ object GameStatisticsManager {
     }
 
     private fun MutableMap<String, UsageBucket>.usage(ability: String): UsageBucket {
-        return getOrPut(ability.ifBlank { unknownValue }) { UsageBucket() }
+        return getOrPut(ability.ifBlank { UNKNOWN_VALUE }) { UsageBucket() }
     }
 
     private fun MutableMap<String, AbilityJobUsageAggregate>.usage(
@@ -851,7 +840,7 @@ object GameStatisticsManager {
     ) {
         fun record(result: String?) {
             uses++
-            val normalizedResult = result?.takeIf { it.isNotBlank() } ?: unknownValue
+            val normalizedResult = result?.takeIf { it.isNotBlank() } ?: UNKNOWN_VALUE
             results.increment(normalizedResult)
             when {
                 normalizedResult.contains("성공", ignoreCase = true) -> successes++
@@ -880,5 +869,5 @@ object GameStatisticsManager {
         NO_CONTEST,
     }
 
-    private const val unknownValue = "알 수 없음"
+    private const val UNKNOWN_VALUE = "알 수 없음"
 }

@@ -6,9 +6,6 @@ import io.ktor.utils.io.ByteReadChannel
 import org.beobma.mafia42discordproject.game.Game
 
 object GameReplaySender {
-    suspend fun sendReplay(game: Game, endReason: String, winningTeamName: String?) {
-        sendReplay(game, GameReplayRenderDataStore.snapshot(game, endReason, winningTeamName))
-    }
 
     suspend fun sendReplay(game: Game, renderData: ReplayRenderData) {
         if (game.hasSentReplay) return

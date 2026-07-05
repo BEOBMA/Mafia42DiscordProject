@@ -4,7 +4,6 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
-import org.beobma.mafia42discordproject.job.evil.list.Hostess
 import kotlin.reflect.KClass
 
 class Intuition : Ability, JobSpecificExtraAbility {

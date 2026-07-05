@@ -11,7 +11,6 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.event.user.VoiceStateUpdateEvent
 import dev.kord.core.on
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
@@ -25,6 +24,8 @@ import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
+
+private val messageTokenRegex = Regex("\\s+")
 
 @OptIn(KordPreview::class)
 suspend fun main() {
@@ -59,7 +60,7 @@ suspend fun main() {
             return@on
         }
 
-        val tokens = content.removePrefix("!").trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        val tokens = content.removePrefix("!").trim().split(messageTokenRegex).filter { it.isNotBlank() }
         if (tokens.isEmpty()) return@on
 
         val commandName = tokens.first().lowercase()
@@ -123,8 +124,7 @@ private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>
 
 private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
     val existingCommand = kord.getGlobalApplicationCommands()
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-        .firstOrNull()
+        .firstOrNull { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
 
     if (existingCommand != null) {
         val deleteResult = runCatching { existingCommand.delete() }
@@ -146,8 +146,7 @@ private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCom
 
 private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
     val existingCommand = kord.getGuildApplicationCommands(guildId)
-        .filter { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-        .firstOrNull()
+        .firstOrNull { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
 
     if (existingCommand != null) {
         val deleteResult = runCatching { existingCommand.delete() }

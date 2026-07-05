@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.system
 
-import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 
@@ -66,33 +65,31 @@ object JobDiscoveryNotificationManager {
 
     private fun buildDiscovererNotificationMessage(event: GameEvent.JobDiscovered): String {
         return buildString {
-            when {
-                event.sourceAbilityName == "도굴" -> {
+            when (event.sourceAbilityName) {
+                "도굴" -> {
                     append("${event.revealedJob.name} 직업을 획득하였습니다.")
                     event.note?.takeIf { it.isNotBlank() }?.let { note ->
                         appendLine()
                         append(note)
                     }
                 }
-
-                event.sourceAbilityName == "수습" -> {
+                "수습" -> {
                     append("${event.target.member.effectiveName}님의 직업은 ${event.revealedJob.name}입니다.")
                 }
-
-                event.sourceAbilityName == "특종" && event.resolvedAt == DiscoveryStep.NIGHT -> {
+                "특종" if event.resolvedAt == DiscoveryStep.NIGHT -> {
                     append("${event.target.member.effectiveName}의 직업은 ${event.revealedJob.name}")
                     appendLine()
                     append(REPORTER_NIGHT_IMAGE_URL)
                 }
-                event.sourceAbilityName == "해킹" -> {
+                "해킹" -> {
                     append("해킹 완료. ${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
                     appendLine()
                     append(HACKER_SUCCESS_IMAGE_URL)
                 }
-                event.sourceAbilityName == "암시" -> {
+                "암시" -> {
                     append("${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
                 }
-                event.sourceAbilityName == "이슈" -> {
+                "이슈" -> {
                     if (event.triggeredByTact) {
                         append("${event.target.member.effectiveName}님이 당신의 정체를 알아냈습니다!")
                         appendLine()
@@ -101,7 +98,6 @@ object JobDiscoveryNotificationManager {
                         append("(${event.target.member.effectiveName})님이 (${event.revealedJob.name})이라는 정보를 공유받았습니다.")
                     }
                 }
-
                 else -> {
                     append("당신은 ${event.target.member.effectiveName}님의 직업이 [${event.revealedJob.name}](인) 것을 알아냈습니다.")
 

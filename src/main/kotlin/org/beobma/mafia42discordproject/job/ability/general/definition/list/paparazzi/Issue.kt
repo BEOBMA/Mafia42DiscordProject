@@ -12,12 +12,9 @@ import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
-import org.beobma.mafia42discordproject.job.definition.list.Paparazzi
-import kotlin.reflect.KClass
 
 class Issue : Ability, JobUniqueAbility, PassiveAbility {
     override val name: String = "이슈"

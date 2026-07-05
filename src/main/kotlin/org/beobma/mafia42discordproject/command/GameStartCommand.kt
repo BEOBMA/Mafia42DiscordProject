@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
@@ -14,10 +13,10 @@ object GameStartCommand : DiscordCommand {
     override val koreanName: String = "게임시작"
     override val aliases: Set<String> = setOf("게임시작", "시작")
 
-    private const val modeOptionName = "mode"
+    private const val MODE_OPTION_NAME = "mode"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val mode = GameManager.GameStartMode.parse(event.interaction.command.strings[modeOptionName])
+        val mode = GameManager.GameStartMode.parse(event.interaction.command.strings[MODE_OPTION_NAME])
             ?: GameManager.GameStartMode.NORMAL
         GameManager.start(event, mode)
     }
@@ -33,7 +32,7 @@ object GameStartCommand : DiscordCommand {
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
-        string(modeOptionName, "게임 모드") {
+        string(MODE_OPTION_NAME, "게임 모드") {
             required = false
             choice("일반", GameManager.GameStartMode.NORMAL.optionValue)
             choice("미치광이", GameManager.GameStartMode.MADNESS.optionValue)

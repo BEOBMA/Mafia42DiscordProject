@@ -10,7 +10,6 @@ import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.mercenary.Tracking
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
 
 class MercenaryAbility : ActiveAbility, JobUniqueAbility {

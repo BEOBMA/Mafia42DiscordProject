@@ -1,23 +1,9 @@
 package org.beobma.mafia42discordproject.game.replay
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
+import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
@@ -117,17 +103,12 @@ object GameReplayRenderDataStore {
             val guildPart = data.guildId?.takeIf { it.isNotBlank() } ?: "unknown-guild"
             val fileName = "replay-${fileNameFormatter.format(Instant.ofEpochMilli(data.generatedAtMillis))}-$guildPart.json"
             val outputPath = renderDataDir.resolve(fileName)
-            Files.writeString(outputPath, json.encodeToString(JsonObject.serializer(), toJson(data)))
+            AtomicTextFileWriter.write(outputPath, json.encodeToString(JsonObject.serializer(), toJson(data)))
             println("[GameReplayRenderDataStore] 리플레이 렌더 데이터 저장 완료: $outputPath")
             outputPath
         }.onFailure { error ->
             println("[GameReplayRenderDataStore] 리플레이 렌더 데이터 저장 실패: ${error.message}")
         }.getOrNull()
-    }
-
-    fun load(path: Path): ReplayRenderData {
-        val root = json.parseToJsonElement(Files.readString(path)).jsonObject
-        return fromJson(root)
     }
 
     private fun ReplayLogEntry.toRenderLogEntry(): ReplayRenderLogEntry {
@@ -171,33 +152,6 @@ object GameReplayRenderDataStore {
             putPlayers(data.players)
             putLogs("logs", data.logs)
         }
-    }
-
-    private fun fromJson(root: JsonObject): ReplayRenderData {
-        val logs = parseLogs(root["logs"]?.jsonArray ?: root["replayLogs"]?.jsonArray)
-        val archivedAtMillis = root.string("archivedAt")?.let { raw ->
-            runCatching { Instant.parse(raw).toEpochMilli() }.getOrNull()
-        }
-        val generatedAtMillis = root.long("generatedAtMillis")
-            ?: archivedAtMillis
-            ?: System.currentTimeMillis()
-        val replayStartedAtMillis = root.long("replayStartedAtMillis")
-            ?: logs.firstOrNull()?.timestampMillis
-            ?: generatedAtMillis
-
-        return ReplayRenderData(
-            schemaVersion = root.int("schemaVersion") ?: 0,
-            generatedAtMillis = generatedAtMillis,
-            endReason = root.string("endReason") ?: "UNKNOWN",
-            winningTeamName = root.string("winningTeamName") ?: root.string("winningTeam"),
-            guildId = root.string("guildId"),
-            guildName = root.string("guildName"),
-            replayStartedAtMillis = replayStartedAtMillis,
-            dayCount = root.int("dayCount") ?: logs.maxOfOrNull { it.dayCount } ?: 0,
-            initialPlayerCount = root.int("initialPlayerCount") ?: 0,
-            players = parsePlayers(root["players"]?.jsonArray),
-            logs = logs
-        )
     }
 
     private fun JsonObjectBuilder.putPlayers(players: List<ReplayRenderPlayer>) {
@@ -246,7 +200,7 @@ object GameReplayRenderDataStore {
         })
     }
 
-    private fun parsePlayers(playersJson: kotlinx.serialization.json.JsonArray?): List<ReplayRenderPlayer> {
+    private fun parsePlayers(playersJson: JsonArray?): List<ReplayRenderPlayer> {
         return playersJson?.mapNotNull { element ->
             val player = element.jsonObject
             ReplayRenderPlayer(
@@ -260,7 +214,7 @@ object GameReplayRenderDataStore {
         } ?: emptyList()
     }
 
-    private fun parseLogs(logsJson: kotlinx.serialization.json.JsonArray?): List<ReplayRenderLogEntry> {
+    private fun parseLogs(logsJson: JsonArray?): List<ReplayRenderLogEntry> {
         return logsJson?.mapNotNull { element ->
             val entry = element.jsonObject
             ReplayRenderLogEntry(
@@ -284,7 +238,7 @@ object GameReplayRenderDataStore {
         }?.sortedBy { it.sequence } ?: emptyList()
     }
 
-    private fun parseRecipients(recipientsJson: kotlinx.serialization.json.JsonArray?): List<ReplayRenderRecipient> {
+    private fun parseRecipients(recipientsJson: JsonArray?): List<ReplayRenderRecipient> {
         return recipientsJson?.mapNotNull { element ->
             val recipient = element.jsonObject
             ReplayRenderRecipient(

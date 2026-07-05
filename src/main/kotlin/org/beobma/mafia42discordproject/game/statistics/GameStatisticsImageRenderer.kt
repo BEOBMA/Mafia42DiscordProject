@@ -44,7 +44,6 @@ object GameStatisticsImageRenderer {
     private val muted = Color(178, 185, 196)
     private val accent = Color(223, 63, 63)
     private val gold = Color(235, 177, 58)
-    private val green = Color(78, 174, 122)
 
     private val titleFont = Font("SansSerif", Font.BOLD, 60)
     private val subtitleFont = Font("SansSerif", Font.BOLD, 32)
@@ -60,7 +59,25 @@ object GameStatisticsImageRenderer {
     data class RenderedStatisticsImage(
         val fileName: String,
         val bytes: ByteArray,
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as RenderedStatisticsImage
+
+            if (fileName != other.fileName) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = fileName.hashCode()
+            result = 31 * result + bytes.contentHashCode()
+            return result
+        }
+    }
 
     private data class Column(
         val title: String,
@@ -601,25 +618,17 @@ object GameStatisticsImageRenderer {
 
     private fun JsonObject?.survivalRate(): String = "${formatNumber(this?.doubleAny("생존율", "생존률", "survivalRate"))}%"
 
-    private fun JsonObject.obj(key: String): JsonObject? = this[key] as? JsonObject
-
     private fun JsonObject.objAny(vararg keys: String): JsonObject? {
         return keys.firstNotNullOfOrNull { key -> this[key] as? JsonObject }
     }
-
-    private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
     private fun JsonObject.stringAny(vararg keys: String): String? {
         return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.contentOrNull }
     }
 
-    private fun JsonObject.int(key: String): Int? = this[key]?.jsonPrimitive?.intOrNull
-
     private fun JsonObject.intAny(vararg keys: String): Int? {
         return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.intOrNull }
     }
-
-    private fun JsonObject.double(key: String): Double? = this[key]?.jsonPrimitive?.doubleOrNull
 
     private fun JsonObject.doubleAny(vararg keys: String): Double? {
         return keys.firstNotNullOfOrNull { key -> this[key]?.jsonPrimitive?.doubleOrNull }

@@ -20,7 +20,6 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImageAndSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerCombinedMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
-import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
@@ -36,8 +35,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.doct
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
@@ -45,7 +44,6 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Warrant
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.politician.PoliticianAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
@@ -71,6 +69,7 @@ import org.beobma.mafia42discordproject.job.ability.general.list.*
 import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.*
+import kotlin.time.Duration.Companion.milliseconds
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
@@ -255,7 +254,7 @@ object GameLoopManager {
                 break
             }
 
-            delay(minOf(remainingMillis, 500L))
+            delay(minOf(remainingMillis, 500L).milliseconds)
         }
 
         updateTimeStatusMessageAtZero(game, label)
@@ -636,7 +635,7 @@ object GameLoopManager {
             processPlayerDeath(game, victim, isLynch = false)
             revealBelongingsIfNeeded(game, victim)
         }
-        resolvePriestResurrection(game, summary)
+        resolvePriestResurrection(game)
         notifyPendingBeastmanTaming(game)
 
         announceCoupleSacrificeReveal(game, summary.deaths)
@@ -683,7 +682,7 @@ object GameLoopManager {
         game.coupleSacrificeMap.clear()
     }
 
-    private suspend fun resolvePriestResurrection(game: Game, summary: NightResolutionSummary) {
+    private suspend fun resolvePriestResurrection(game: Game) {
         game.playerDatas.forEach { priestPlayer ->
             val priestJob = priestPlayer.job as? Priest
             val thiefJob = priestPlayer.job as? Thief
@@ -758,9 +757,6 @@ object GameLoopManager {
             originalTarget.job?.name?.let(game.publiclyRevealedJobNames::add)
 
             val deadRole = (deadPlayer.job as? Couple)?.role
-            val originalRole = (originalTarget.job as? Couple)?.role.toDisplayName()
-            val deadJobName = deadPlayer.job?.name ?: "알 수 없음"
-            val originalJobName = originalTarget.job?.name ?: "알 수 없음"
 
             // 1. 성별에 따른 이미지 URL 선택
             val imageUrl = when (deadRole) {
@@ -781,15 +777,8 @@ object GameLoopManager {
         }
     }
 
-    private fun CoupleRole?.toDisplayName(): String = when (this) {
-        CoupleRole.MALE -> "남성"
-        CoupleRole.FEMALE -> "여성"
-        null -> "미정"
-    }
-
     suspend fun startDayPhase(
-        game: Game,
-        summary: NightResolutionSummary = game.lastNightSummary
+        game: Game
     ) {
         game.unwrittenRuleBlockedTargetIdTonight = null
         val mainChannel = game.mainChannel ?: return
@@ -920,10 +909,10 @@ object GameLoopManager {
             }
         }
 
-        notifyGodfatherContactInMafiaChannel(game, mafiaChannel)
+        notifyGodfatherContactInMafiaChannel(game)
     }
 
-    private suspend fun notifyGodfatherContactInMafiaChannel(game: Game, mafiaChannel: TextChannel) {
+    private suspend fun notifyGodfatherContactInMafiaChannel(game: Game) {
         game.playerDatas.forEach { player ->
             if (player.state.isDead) return@forEach
             if (player.job !is Godfather) return@forEach
@@ -1470,7 +1459,7 @@ object GameLoopManager {
             val refreshCount = (INITIAL_VOTE_REVEAL_DURATION_MS / refreshInterval).toInt()
 
             repeat(refreshCount) {
-                delay(refreshInterval)
+                delay(refreshInterval.milliseconds)
                 runCatching {
                     voteStatusMessage.edit {
                         content = buildMainVoteStatusContent(game, alivePlayers, isHidden = false)
@@ -1619,7 +1608,7 @@ object GameLoopManager {
         }
 
         if (weightedVoteTargets.isNotEmpty()) {
-            delay(1_000L)
+            delay(1_000L.milliseconds)
             val progressiveVoteCounts = mutableMapOf<PlayerData, Int>()
             val tallyMessage = mainChannel.createMessage {
                 content = buildFinalVoteTallyContent(alivePlayers, progressiveVoteCounts)
@@ -1636,7 +1625,7 @@ object GameLoopManager {
                         )
                     }
                 }
-                delay(FINAL_VOTE_TALLY_STEP_MS)
+                delay(FINAL_VOTE_TALLY_STEP_MS.milliseconds)
             }
         }
 
@@ -2352,7 +2341,6 @@ object GameLoopManager {
     }
 
     private suspend fun resolveMartyrNightExplosions(game: Game, playersToDie: MutableSet<PlayerData>) {
-        val mainChannel = game.mainChannel
 
         game.playerDatas.forEach { player ->
             val martyr = player.job as? Martyr
@@ -2488,7 +2476,7 @@ object GameLoopManager {
                 break
             }
 
-            startDayPhase(game, nightSummary)
+            startDayPhase(game)
             val discussionMillis = game.playerDatas.count { !it.state.isDead } * 15_000L
             runPhaseCountdown(game, "낮", discussionMillis)
 
@@ -3126,7 +3114,7 @@ object GameLoopManager {
         }
     }
 
-    private suspend fun resolveNursePrescriptions(game: Game) {
+    private fun resolveNursePrescriptions(game: Game) {
         val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
         val doctorJob = doctorPlayer.job as? Doctor ?: return
 
@@ -3531,53 +3519,4 @@ object GameLoopManager {
         }
     }
 
-    private fun resolvePoliceSearches(game: Game) {
-        game.playerDatas.forEach { player ->
-            val policeJob = player.job as? Police ?: return@forEach
-            val targetId = policeJob.currentSearchTarget ?: return@forEach
-            val target = game.getPlayer(targetId) ?: run {
-                policeJob.currentSearchTarget = null
-                return@forEach
-            }
-
-            val isRepeatedSearch = targetId in policeJob.searchedTargets
-            game.nightEvents += GameEvent.PoliceSearchResolved(
-                police = player,
-                target = target,
-                isMafia = target.job is Mafia,
-                isRepeatedSearch = isRepeatedSearch
-            )
-
-            val warrant = player.allAbilities.filterIsInstance<Warrant>().firstOrNull()
-            if (warrant?.shouldRevealJob(targetId, policeJob.searchedTargets) == true) {
-                val actualJob = target.job
-                if (actualJob != null) {
-                    game.nightEvents += GameEvent.PoliceJobRevealed(
-                        police = player,
-                        target = target,
-                        actualJob = actualJob,
-                        revealedJob = actualJob,
-                        resolvedAt = DiscoveryStep.NIGHT
-                    )
-                }
-            }
-
-            policeJob.searchedTargets += targetId
-            policeJob.currentSearchTarget = null
-        }
-    }
-
-    private fun applyInnateNightDefense(game: Game, target: PlayerData, attackEvent: AttackEvent) {
-        // 1. 피격 직전(BeforeAttackEvaluated) 이벤트를 생성합니다.
-        val event = GameEvent.BeforeAttackEvaluated(attackEvent)
-
-        // 2. 타겟이 가진 패시브 능력들에게 이벤트를 전파하여 '방탄' 등이 스스로 방어(healTier 상승)하도록 합니다.
-        target.allAbilities
-            .filterIsInstance<PassiveAbility>()
-            .filterNot { FrogCurseManager.shouldSuppressPassive(target) }
-            .sortedByDescending(PassiveAbility::priority)
-            .forEach { passive ->
-                passive.onEventObserved(game, target, event)
-            }
-    }
 }

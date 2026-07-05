@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -14,14 +13,14 @@ object JobAssignmentSimulationCommand : DiscordCommand {
     override val description: String = "가상 플레이어 8명의 직업 배정을 N회 시뮬레이션합니다."
     override val aliases: Set<String> = setOf("jobsim", "직업시뮬레이션")
 
-    private const val countOption = "횟수"
-    private const val minSimulationCount = 1
-    private const val maxSimulationCount = 30
-    private const val maxMessageLength = 1800
+    private const val COUNT_OPTION = "횟수"
+    private const val MIN_SIMULATION_COUNT = 1
+    private const val MAX_SIMULATION_COUNT = 30
+    private const val MAX_MESSAGE_LENGTH = 1800
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
-            string(countOption, "시뮬레이션 반복 횟수 (1~30)") {
+            string(COUNT_OPTION, "시뮬레이션 반복 횟수 (1~30)") {
                 required = true
             }
         }
@@ -29,14 +28,14 @@ object JobAssignmentSimulationCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
-            string(countOption, "시뮬레이션 반복 횟수 (1~30)") {
+            string(COUNT_OPTION, "시뮬레이션 반복 횟수 (1~30)") {
                 required = true
             }
         }
     }
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val rawCount = event.interaction.command.strings[countOption]
+        val rawCount = event.interaction.command.strings[COUNT_OPTION]
         val validation = validateCount(rawCount)
         if (validation.errorMessage != null) {
             event.interaction.deferEphemeralResponse().respond {
@@ -83,8 +82,8 @@ object JobAssignmentSimulationCommand : DiscordCommand {
         val parsed = rawCount?.toIntOrNull()
             ?: return CountValidation(errorMessage = "횟수는 숫자로 입력해 주세요. 예: `/직업시뮬 횟수:10`, `!직업시뮬 10`")
 
-        if (parsed !in minSimulationCount..maxSimulationCount) {
-            return CountValidation(errorMessage = "횟수는 $minSimulationCount 이상 $maxSimulationCount 이하로 입력해 주세요.")
+        if (parsed !in MIN_SIMULATION_COUNT..MAX_SIMULATION_COUNT) {
+            return CountValidation(errorMessage = "횟수는 $MIN_SIMULATION_COUNT 이상 $MAX_SIMULATION_COUNT 이하로 입력해 주세요.")
         }
         return CountValidation(value = parsed)
     }
@@ -111,7 +110,7 @@ object JobAssignmentSimulationCommand : DiscordCommand {
     }
 
     private fun chunkMessages(message: String): List<String> {
-        if (message.length <= maxMessageLength) return listOf(message)
+        if (message.length <= MAX_MESSAGE_LENGTH) return listOf(message)
 
         val chunks = mutableListOf<String>()
         val lines = message.lines()
@@ -119,12 +118,12 @@ object JobAssignmentSimulationCommand : DiscordCommand {
 
         lines.forEach { line ->
             val candidate = if (buffer.isEmpty()) line else "${buffer}\n$line"
-            if (candidate.length > maxMessageLength && buffer.isNotEmpty()) {
+            if (candidate.length > MAX_MESSAGE_LENGTH && buffer.isNotEmpty()) {
                 chunks += buffer.toString()
                 buffer.clear()
                 buffer.append(line)
-            } else if (candidate.length > maxMessageLength) {
-                val sliced = line.chunked(maxMessageLength)
+            } else if (candidate.length > MAX_MESSAGE_LENGTH) {
+                val sliced = line.chunked(MAX_MESSAGE_LENGTH)
                 chunks += sliced.dropLast(1)
                 buffer.clear()
                 buffer.append(sliced.last())

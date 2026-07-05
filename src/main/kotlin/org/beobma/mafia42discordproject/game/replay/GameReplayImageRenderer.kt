@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.replay
 
-import org.beobma.mafia42discordproject.game.Game
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Font
@@ -10,8 +9,6 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URI
-import java.nio.file.Files
-import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,8 +55,27 @@ object GameReplayImageRenderer {
 
     data class RenderedReplayImage(
         val fileName: String,
+
         val bytes: ByteArray
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as RenderedReplayImage
+
+            if (fileName != other.fileName) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = fileName.hashCode()
+            result = 31 * result + bytes.contentHashCode()
+            return result
+        }
+    }
 
     private data class RenderBlock(
         val entry: ReplayRenderLogEntry?,
@@ -83,26 +99,6 @@ object GameReplayImageRenderer {
 
     init {
         ImageIO.scanForPlugins()
-    }
-
-    fun render(game: Game, endReason: String, winningTeamName: String?): List<RenderedReplayImage> {
-        return render(GameReplayRenderDataStore.snapshot(game, endReason, winningTeamName))
-    }
-
-    fun render(dataPath: Path): List<RenderedReplayImage> {
-        return render(GameReplayRenderDataStore.load(dataPath))
-    }
-
-    fun renderToFiles(dataPath: Path, outputDir: Path): List<Path> {
-        if (!Files.exists(outputDir)) {
-            Files.createDirectories(outputDir)
-        }
-
-        return render(dataPath).map { image ->
-            outputDir.resolve(image.fileName).also { outputPath ->
-                Files.write(outputPath, image.bytes)
-            }
-        }
     }
 
     fun render(data: ReplayRenderData): List<RenderedReplayImage> {

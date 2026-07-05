@@ -4,8 +4,6 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.definition.list.Politician
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import kotlin.reflect.KClass
 
 class Dictatorship : Ability, JobSpecificExtraAbility {

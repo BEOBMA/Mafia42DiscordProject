@@ -4,13 +4,6 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
-import org.beobma.mafia42discordproject.job.definition.list.Detective
-import org.beobma.mafia42discordproject.job.definition.list.Gangster
-import org.beobma.mafia42discordproject.job.definition.list.Ghoul
-import org.beobma.mafia42discordproject.job.definition.list.Martyr
-import org.beobma.mafia42discordproject.job.definition.list.Nurse
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import kotlin.reflect.KClass
 
 class Identification : Ability, JobSpecificExtraAbility {

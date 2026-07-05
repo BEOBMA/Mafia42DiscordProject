@@ -12,10 +12,10 @@ object WillCommand : DiscordCommand {
     override val description: String = "밤에 유언을 작성합니다."
     override val koreanName: String = "유언"
     override val aliases: Set<String> = setOf("유언")
-    private const val messageOptionName = "message"
+    private const val MESSAGE_OPTION_NAME = "message"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val message = event.interaction.command.strings[messageOptionName].orEmpty()
+        val message = event.interaction.command.strings[MESSAGE_OPTION_NAME].orEmpty()
         val result = GameManager.writeWill(event.interaction.user.id, message)
         DiscordMessageManager.respondEphemeral(event, result.message)
     }
@@ -23,7 +23,7 @@ object WillCommand : DiscordCommand {
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            string(messageOptionName, "유언 내용") {
+            string(MESSAGE_OPTION_NAME, "유언 내용") {
                 required = true
             }
         }
@@ -32,7 +32,7 @@ object WillCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            string(messageOptionName, "유언 내용") {
+            string(MESSAGE_OPTION_NAME, "유언 내용") {
                 required = true
             }
         }

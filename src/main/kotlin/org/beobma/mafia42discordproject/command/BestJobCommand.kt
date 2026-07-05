@@ -2,7 +2,6 @@ package org.beobma.mafia42discordproject.command
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -19,12 +18,12 @@ object BestJobCommand : DiscordCommand {
     override val description: String = "최선호 직업 1개를 설정해 직업 배정 확률을 높입니다."
     override val aliases: Set<String> = setOf("bestjob")
 
-    private const val jobOption = "직업"
-    private const val maxAutoCompleteChoices = 25
+    private const val JOB_OPTION = "직업"
+    private const val MAX_AUTO_COMPLETE_CHOICES = 25
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
-            string(jobOption, "최선호로 설정할 직업") {
+            string(JOB_OPTION, "최선호로 설정할 직업") {
                 required = true
                 autocomplete = true
             }
@@ -33,7 +32,7 @@ object BestJobCommand : DiscordCommand {
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
-            string(jobOption, "최선호로 설정할 직업") {
+            string(JOB_OPTION, "최선호로 설정할 직업") {
                 required = true
                 autocomplete = true
             }
@@ -48,7 +47,7 @@ object BestJobCommand : DiscordCommand {
         val suggestions = allowedJobs
             .asSequence()
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
+            .take(MAX_AUTO_COMPLETE_CHOICES)
             .toList()
 
         event.interaction.suggestString {
@@ -60,7 +59,7 @@ object BestJobCommand : DiscordCommand {
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val userId = event.interaction.user.id
-        val selectedJobName = event.interaction.command.strings[jobOption]
+        val selectedJobName = event.interaction.command.strings[JOB_OPTION]
 
         val result = saveBestJob(userId, selectedJobName)
         DiscordMessageManager.respondEphemeral(event, result.message)

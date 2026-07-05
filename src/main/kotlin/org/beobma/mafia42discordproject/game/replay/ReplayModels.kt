@@ -18,7 +18,6 @@ enum class ReplayLogType {
     EPHEMERAL,
     SYSTEM_RESULT,
     DEATH,
-    REVIVE
 }
 
 enum class ReplayVisibility {

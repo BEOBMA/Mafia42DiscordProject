@@ -1,13 +1,11 @@
 package org.beobma.mafia42discordproject.discord
 
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
@@ -55,10 +53,6 @@ object DiscordMessageManager {
             visibility = ReplayVisibility.PUBLIC
         )
         mainChannel.createMessage(content)
-    }
-
-    suspend fun Game.sendMainChannerImage(imageLink: String) {
-        sendMainChannerCombinedMessage(imageLink)
     }
 
     suspend fun Game.sendMainChannelMessageWithImage(imageLink: String, message: String) {

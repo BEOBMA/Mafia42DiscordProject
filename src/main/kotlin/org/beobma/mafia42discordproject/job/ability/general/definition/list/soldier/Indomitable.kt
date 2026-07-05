@@ -3,7 +3,6 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.sol
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import kotlin.reflect.KClass
 
