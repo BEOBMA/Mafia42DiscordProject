@@ -17,13 +17,23 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
+import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuide
+import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
+import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
+import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
+import org.beobma.mafia42discordproject.game.assignment.AssignmentPlayer
+import org.beobma.mafia42discordproject.game.assignment.AssignmentTrace
+import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
+import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
+import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
+import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
+import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
+import org.beobma.mafia42discordproject.game.lobby.LobbySelectionManager
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -58,19 +68,12 @@ object GameManager {
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
     private val nextGameMafiaExecutionProtectedTargets: MutableMap<Snowflake, Snowflake> = ConcurrentHashMap()
-    private val lobbySelections: MutableMap<LobbyKey, MutableMap<Snowflake, LobbyParticipation>> = ConcurrentHashMap()
+    private val lobbySelectionManager = LobbySelectionManager()
 
     private const val FULL_GAME_PLAYER_COUNT = 8
     private const val EXTENDED_ROLE_RULE_START_COUNT = 9
     private const val MAX_GAME_PLAYER_COUNT = 20
 
-    private data class RequiredRoleCounts(
-        val mafiaCount: Int,
-        val assistantCount: Int,
-        val doctorCount: Int,
-        val policeCount: Int,
-        val citizenCount: Int = 0
-    )
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
@@ -91,88 +94,11 @@ object GameManager {
     private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
-    private enum class LobbyParticipation {
-        READY,
-        SPECTATOR
-    }
-
-    private data class LobbyKey(
-        val guildId: Snowflake,
-        val voiceChannelId: Snowflake
-    )
-
-    private data class VoiceLobbyMembers(
-        val allVoiceMembers: List<Member>,
-        val readyMembers: List<Member>,
-        val spectatorMembers: List<Member>,
-        val undecidedMembers: List<Member>
-    )
-
-    data class LobbyParticipationResult(
-        val isSuccess: Boolean,
-        val message: String
-    )
-
-    enum class GameStartMode(
-        val optionValue: String,
-        val displayName: String
-    ) {
-        NORMAL("일반", "일반"),
-        MADNESS("미치광이", "미치광이");
-
-        companion object {
-            fun parse(raw: String?): GameStartMode? {
-                val normalized = raw?.trim()?.lowercase() ?: return NORMAL
-                return when (normalized) {
-                    "", "일반", "normal" -> NORMAL
-                    "미치광이", "madness", "crazy", "mad" -> MADNESS
-                    else -> null
-                }
-            }
-        }
-    }
-
-    data class SpiritRelayResult(
-        val isSuccess: Boolean,
-        val message: String
-    )
-
     private val policeJobNames = setOf("경찰", "요원", "자경단원")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false
     private var abilitySelectionPendingUserIds: MutableSet<Snowflake> = mutableSetOf()
-
-    private data class AssignmentPlayer(
-        val memberId: Snowflake? = null,
-        val name: String,
-        val preferences: List<Job>,
-        val bestJob: Job? = null,
-        var assignedJob: Job? = null
-    )
-
-    private data class AssignmentTrace(
-        val lines: MutableList<String> = mutableListOf()
-    ) {
-        fun add(message: String) {
-            lines += message
-        }
-    }
-
-    private data class AbilitySelectionSession(
-        val playerJob: Job,
-        val availablePool: MutableList<Ability>,
-        val selected: MutableList<Ability> = mutableListOf(),
-        var currentOptions: List<Ability> = emptyList(),
-        var completedRounds: Int = 0
-    )
-
-    private data class AbilityCommandGuide(
-        val abilityName: String,
-        val timing: String,
-        val command: String?,
-        val summary: String
-    )
 
     suspend fun start(
         event: GuildChatInputCommandInteractionCreateEvent,
@@ -243,68 +169,7 @@ object GameManager {
             return LobbyParticipationResult(false, "게임이 진행 중일 때는 준비/관전 상태를 변경할 수 없습니다.")
         }
 
-        val voiceChannelId = member.getVoiceStateOrNull()?.channelId
-            ?: return LobbyParticipationResult(false, "먼저 음성채널에 접속한 뒤 사용해 주세요.")
-
-        clearLobbySelectionForMember(guild.id, member.id)
-        val key = LobbyKey(guild.id, voiceChannelId)
-        val selections = lobbySelections.getOrPut(key) { ConcurrentHashMap() }
-        selections[member.id] = participation
-
-        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
-        val action = when (participation) {
-            LobbyParticipation.READY -> "플레이어로 준비했습니다."
-            LobbyParticipation.SPECTATOR -> "관전자로 등록했습니다."
-        }
-
-        return LobbyParticipationResult(
-            true,
-            buildString {
-                appendLine(action)
-                append("현재 선택: 플레이어 ${lobbyMembers.readyMembers.size}명, 관전자 ${lobbyMembers.spectatorMembers.size}명, 미선택 ${lobbyMembers.undecidedMembers.size}명")
-                if (lobbyMembers.undecidedMembers.isNotEmpty()) {
-                    appendLine()
-                    appendLine("아직 선택하지 않은 인원:")
-                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
-                }
-            }
-        )
-    }
-
-    private suspend fun collectVoiceLobbyMembers(guild: Guild, voiceChannelId: Snowflake): VoiceLobbyMembers {
-        val membersInSameVoice = guild.members
-            .filter { guildMember ->
-                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
-            }
-            .filterNot { it.isBot }
-            .toList()
-        val selections = lobbySelections[LobbyKey(guild.id, voiceChannelId)].orEmpty()
-
-        return VoiceLobbyMembers(
-            allVoiceMembers = membersInSameVoice,
-            readyMembers = membersInSameVoice.filter { member -> selections[member.id] == LobbyParticipation.READY },
-            spectatorMembers = membersInSameVoice.filter { member -> selections[member.id] == LobbyParticipation.SPECTATOR },
-            undecidedMembers = membersInSameVoice.filter { member -> selections[member.id] == null }
-        )
-    }
-
-    private fun clearLobbySelectionForMember(guildId: Snowflake, memberId: Snowflake) {
-        lobbySelections
-            .filterKeys { key -> key.guildId == guildId }
-            .values
-            .forEach { selections -> selections.remove(memberId) }
-        removeEmptyLobbySelections()
-    }
-
-    private fun clearLobbySelections(guildId: Snowflake, voiceChannelId: Snowflake) {
-        lobbySelections.remove(LobbyKey(guildId, voiceChannelId))
-    }
-
-    private fun removeEmptyLobbySelections() {
-        lobbySelections
-            .filterValues { selections -> selections.isEmpty() }
-            .keys
-            .forEach { key -> lobbySelections.remove(key) }
+        return lobbySelectionManager.markParticipation(guild, member, participation)
     }
 
     private suspend fun Game.start(
@@ -334,7 +199,7 @@ object GameManager {
             return
         }
 
-        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
+        val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             deferredResponse.respond {
                 content = buildString {
@@ -398,7 +263,7 @@ object GameManager {
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted()
-        clearLobbySelections(guild.id, voiceChannelId)
+        lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
 
         deferredResponse.respond {
             content = buildString {
@@ -431,7 +296,7 @@ object GameManager {
             return
         }
 
-        val lobbyMembers = collectVoiceLobbyMembers(guild, voiceChannelId)
+        val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             event.message.channel.createMessage(
                 buildString {
@@ -493,7 +358,7 @@ object GameManager {
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
         tryStartGameLoopWhenAbilitySelectionCompleted()
-        clearLobbySelections(guild.id, voiceChannelId)
+        lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
 
         event.message.channel.createMessage(
             buildString {
@@ -834,11 +699,6 @@ object GameManager {
                 }
             }
     }
-
-    data class JobAssignmentSimulationResult(
-        val lines: List<String>,
-        val assignedJobCountByName: Map<String, Int>
-    )
 
     fun simulateJobAssignmentForVirtualPlayers(repeatCount: Int, playerCount: Int = FULL_GAME_PLAYER_COUNT): JobAssignmentSimulationResult {
         require(repeatCount > 0) { "repeatCount는 1 이상이어야 합니다." }
@@ -1754,11 +1614,6 @@ object GameManager {
         }
     }
 
-    data class AbilityPickButtonPayload(
-        val ownerUserId: Snowflake,
-        val pickNumber: Int
-    )
-
     fun parseAbilityPickButtonId(componentId: String): AbilityPickButtonPayload? {
         val prefix = "ability_pick_"
         if (!componentId.startsWith(prefix)) return null
@@ -1829,11 +1684,6 @@ object GameManager {
 
     fun getCurrentGameFor(userId: Snowflake): Game? =
         currentGame?.takeIf { game -> game.getPlayer(userId) != null }
-
-    data class AbilitySelectionSnapshot(
-        val guideMessage: String,
-        val optionCount: Int
-    )
 
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true

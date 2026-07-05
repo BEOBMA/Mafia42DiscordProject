@@ -20,6 +20,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannelMessageWithImageAndSound
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerCombinedMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
+import org.beobma.mafia42discordproject.game.loop.*
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
@@ -73,76 +74,12 @@ import kotlin.time.Duration.Companion.milliseconds
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
-    private const val PROS_CONS_VOTE_COMPONENT_ID_PREFIX = "pros_cons_vote_select"
-    private const val NIGHT_DURATION_MS = 60_000L
-    private const val DAWN_DURATION_MS = 5_000L
-    private const val VOTE_DURATION_MS = 30_000L
-    private const val INITIAL_VOTE_REVEAL_DURATION_MS = 5_000L
-    private const val FINAL_VOTE_TALLY_STEP_MS = 500L
-    private const val DEFENSE_DURATION_MS = 15_000L
-    private const val PROS_CONS_VOTE_DURATION_MS = 10_000L
-    private const val DAY_TIME_ADJUSTMENT_MS = 20_000L
-    private const val TIME_THREAD_NAME = "시간"
-    private const val PROBATION_DISCOVERY_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(22).webp"
-    private const val NURSE_DOCTOR_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(35).webp"
-    private const val BELONGINGS_REVEAL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(48).webp"
-    private const val ESCAPE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(34).webp"
-    private const val ESCAPE_DEATH_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(8).webp"
-    private const val INNOCENCE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(32).webp"
-    private const val BEASTMAN_ATTACK_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(53).webp"
-    private const val BEASTMAN_TAMED_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(57).webp"
-    private const val BEASTMAN_ROAR_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(53).webp"
-    private const val VIGILANTE_EXECUTION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(21).webp"
-    private const val GODFATHER_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(17).webp"
-    private const val GODFATHER_EXECUTION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(13).webp"
-    private const val HITMAN_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(27).webp"
-    private const val HOSTESS_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(45).webp"
-    private const val MAD_SCIENTIST_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(5).webp"
-    private const val SPY_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(30).webp"
-    private const val THIEF_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(26).webp"
-    private const val WITCH_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(12).webp"
-    private const val SWINDLER_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(25).webp"
-    private const val SPY_ASSASSIN_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(29).webp"
-    private const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(1).webp"
-
-    private const val SOUND_BASE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/sound"
-    private const val NIGHT_START_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(5).mp3"
-    private const val DAY_START_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(3).mp3"
-    private const val VOTE_PHASE_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(13).mp3"
-    private const val JUDGE_VERDICT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(46).webp"
-    private const val MAFIA_EXECUTION_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(4).mp3"
-    private const val MAD_SCIENTIST_REVIVE_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(1).mp3"
-    private const val SOLDIER_BULLETPROOF_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(2).mp3"
-    private const val PRIEST_RESURRECTION_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(9).mp3"
-    private const val COUPLE_SACRIFICE_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(8).mp3"
-    private const val DOCTOR_HEAL_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(7).mp3"
-    private const val POLITICIAN_SURVIVAL_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(10).mp3"
-    private const val TERRORIST_EXPLOSION_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(12).mp3"
-    private const val TERRORIST_NIGHT_MAFIA_BOMB_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(24).webp"
-    private const val TERRORIST_NIGHT_EXPLOSION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(16).webp"
-    private const val TERRORIST_VOTE_EXPLOSION_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(31).webp"
-    private const val REPORTER_SCOOP_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(14).mp3"
-    private const val CABAL_SPECIAL_WIN_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(6).mp3"
-
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
     private val countdownLock = Any()
     private var activeCountdown: ActiveCountdown? = null
     private val cabalNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val votePresentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    data class DayTimeAdjustmentResult(
-        val isSuccess: Boolean,
-        val message: String
-    )
-
-    private data class ActiveCountdown(
-        val guildId: Snowflake,
-        val phase: GamePhase,
-        val label: String,
-        var endAtMillis: Long,
-        var forceFinished: Boolean = false
-    )
 
     fun resetTimeThreadState() {
         timeThreadChannel = null

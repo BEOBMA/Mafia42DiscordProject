@@ -7,6 +7,7 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.string
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
 
 object JobAssignmentSimulationCommand : DiscordCommand {
     override val name: String = "직업시뮬"
@@ -88,7 +89,7 @@ object JobAssignmentSimulationCommand : DiscordCommand {
         return CountValidation(value = parsed)
     }
 
-    private fun buildReport(count: Int, result: GameManager.JobAssignmentSimulationResult): String {
+    private fun buildReport(count: Int, result: JobAssignmentSimulationResult): String {
         val totalAssignments = count * 8
         val summary = result.assignedJobCountByName.entries.joinToString("\n") { (jobName, assignedCount) ->
             val ratio = assignedCount * 100.0 / totalAssignments.toDouble()

@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.loop.DayTimeAdjustmentResult
 
 object DayTimeAdjustCommand : DiscordCommand {
     override val name: String = "daytime"
@@ -44,7 +45,7 @@ object DayTimeAdjustCommand : DiscordCommand {
         val result = when (isIncrease) {
             true -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = true)
             false -> GameLoopManager.adjustDayTimeByPlayer(game, interaction.user.id, isIncrease = false)
-            else -> GameLoopManager.DayTimeAdjustmentResult(false, "잘못된 action 값입니다.")
+            else -> DayTimeAdjustmentResult(false, "잘못된 action 값입니다.")
         }
 
         DiscordMessageManager.respondEphemeral(event, result.message)
