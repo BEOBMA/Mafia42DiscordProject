@@ -2,16 +2,13 @@ package org.beobma.mafia42discordproject.game.system
 
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.ReporterAssets
 
 object JobDiscoveryNotificationManager {
     private const val HACKER_SUCCESS_IMAGE_URL =
         "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(6).webp"
     private const val HACKER_SYNC_IMAGE_URL =
         "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(11).png"
-    private const val REPORTER_NIGHT_IMAGE_URL =
-        "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(6).png"
-    private const val REPORTER_DAY_IMAGE_URL =
-        "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(14).webp"
 
     suspend fun notifyDiscoveredTargets(events: List<GameEvent>, game: org.beobma.mafia42discordproject.game.Game? = null) {
         events.filterIsInstance<GameEvent.JobDiscovered>()
@@ -27,7 +24,7 @@ object JobDiscoveryNotificationManager {
                     }
                     runCatching {
                         val message = if (event.sourceAbilityName == "특종") {
-                            "특종입니다! ${event.target.member.effectiveName}님이 ${event.revealedJob.name}(이)라는 소식입니다!\n$REPORTER_DAY_IMAGE_URL"
+                            "특종입니다! ${event.target.member.effectiveName}님이 ${event.revealedJob.name}(이)라는 소식입니다!\n${event.imageUrl ?: ReporterAssets.PUBLIC_SCOOP_ARTICLE_IMAGE_URL}"
                         } else {
                             "📢 [직업 공개] ${event.target.member.effectiveName}님의 직업은 [${event.revealedJob.name}] 입니다!"
                         }
@@ -80,9 +77,9 @@ object JobDiscoveryNotificationManager {
                     append("그 사람의 직업은 ${event.revealedJob.name}.")
                 }
                 "특종" if event.resolvedAt == DiscoveryStep.NIGHT -> {
-                    append("${event.target.member.effectiveName}의 직업은 ${event.revealedJob.name}")
+                    append("특종입니다! ${event.target.member.effectiveName}님이 ${event.revealedJob.name}(이)라는 소식입니다!")
                     appendLine()
-                    append(REPORTER_NIGHT_IMAGE_URL)
+                    append(event.imageUrl ?: ReporterAssets.PRIVATE_SCOOP_RESULT_IMAGE_URL)
                 }
                 "해킹" -> {
                     append("해킹 완료. ${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")

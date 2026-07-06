@@ -28,6 +28,8 @@ import org.beobma.mafia42discordproject.game.replay.ReplayLogType
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.game.system.*
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
+import org.beobma.mafia42discordproject.job.Job
+import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Belongings
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Source
@@ -53,6 +55,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.prop
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.Obituary
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.ReporterAssets
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.soldier.MentalStrength
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Terminal
@@ -1062,6 +1065,8 @@ object GameLoopManager {
             if (revealNight != null && revealNight <= game.dayCount) {
                 player.state.pendingMadScientistPublicRevealNight = null
                 player.state.isMadScientistDistortionHidden = false
+                player.state.isJobPubliclyRevealed = true
+                game.publiclyRevealedAbilityTargetIds += player.member.id
                 game.publiclyRevealedJobNames += MadScientist().name
                 queueMadScientistRevivalAnnouncement(game, player)
             }
@@ -1097,6 +1102,7 @@ object GameLoopManager {
             } else {
                 player.state.isMadScientistDistortionHidden = false
                 player.state.pendingMadScientistPublicRevealNight = null
+                player.state.isJobPubliclyRevealed = true
                 game.publiclyRevealedJobNames += MadScientist().name
                 queueMadScientistRevivalAnnouncement(game, player)
             }
@@ -2527,7 +2533,10 @@ object GameLoopManager {
                 game = game,
                 label = "밤",
                 durationMillis = NIGHT_DURATION_MS,
-                midpointAction = { announcePendingMadScientistRevivals(game) }
+                midpointAction = {
+                    announcePendingMadScientistRevivals(game)
+                    publishReporterArticles(game, publishAtNightMidpoint = true)
+                }
             )
 
             val nightSummary = resolveNightPhase(game)
@@ -3397,29 +3406,25 @@ object GameLoopManager {
 
             val targetId = reporter.selectedTargetId ?: return@forEach
             val target = game.getPlayer(targetId) ?: return@forEach
-            val targetJob = target.job ?: return@forEach
+            val actualJob = reporter.discoveredActualJobName
+                ?.let(JobManager::findByName)
+                ?: target.job
+                ?: return@forEach
 
-            game.nightEvents += GameEvent.JobDiscovered(
-                discoverer = player,
-                target = target,
-                actualJob = targetJob,
-                revealedJob = targetJob,
-                sourceAbilityName = "특종",
-                resolvedAt = DiscoveryStep.NIGHT,
-                notifyTarget = false
-            )
-
-            val hasBreakingNews = player.allAbilities.any { it is BreakingNews }
-            val targetExecutedTonight = game.nightAttacks.values.any { attack ->
-                attack.attacker.member.id == target.member.id
+            if (reporter.discoveredJobName == null) {
+                reporter.discoveredJobName = (FrogCurseManager.displayedJob(target) ?: actualJob).name
             }
-            val isEmbargoBypassed = hasBreakingNews && targetExecutedTonight
-            reporter.articlePublishDay = if (game.dayCount == 1 && !isEmbargoBypassed) {
-                2
-            } else {
-                game.dayCount
-            }
+            reporter.discoveredActualJobName = actualJob.name
+            reporter.discoveredImageUrl = ReporterAssets.PUBLIC_SCOOP_ARTICLE_IMAGE_URL
+            scheduleReporterArticle(game, player, reporter, actualJob)
         }
+    }
+
+    private fun scheduleReporterArticle(game: Game, player: PlayerData, reporter: Reporter, actualJob: Job) {
+        reporter.articlePublishDay = if (game.dayCount == 1) 2 else game.dayCount
+        reporter.articlePublishAtNightMidpoint = game.dayCount == 1 &&
+            player.allAbilities.any { it is BreakingNews } &&
+            actualJob is Mafia
     }
 
     private fun cacheReporterDiscoveryResults(events: List<GameEvent>) {
@@ -3430,16 +3435,18 @@ object GameLoopManager {
             }
             .forEach { event ->
                 val reporter = event.discoverer.job as? Reporter ?: return@forEach
+                reporter.discoveredActualJobName = event.actualJob.name
                 reporter.discoveredJobName = event.revealedJob.name
-                reporter.discoveredImageUrl = event.imageUrl ?: event.revealedJob.jobImage
+                reporter.discoveredImageUrl = ReporterAssets.PUBLIC_SCOOP_ARTICLE_IMAGE_URL
             }
     }
 
-    private suspend fun publishReporterArticles(game: Game) {
+    private suspend fun publishReporterArticles(game: Game, publishAtNightMidpoint: Boolean = false) {
         game.playerDatas.forEach { player ->
             val reporter = player.job as? Reporter ?: return@forEach
             if (player.state.isDead) return@forEach
             if (reporter.hasPublishedArticle) return@forEach
+            if (reporter.articlePublishAtNightMidpoint != publishAtNightMidpoint) return@forEach
 
             val discoveredJobName = reporter.discoveredJobName ?: return@forEach
             val targetId = reporter.selectedTargetId ?: return@forEach
@@ -3458,21 +3465,26 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val discoveredJob = org.beobma.mafia42discordproject.job.JobManager.findByName(discoveredJobName)
+            val actualJob = reporter.discoveredActualJobName
+                ?.let(JobManager::findByName)
                 ?: target.job
                 ?: return@forEach
+            val revealedJob = findReporterArticleJob(discoveredJobName, actualJob)
+            target.state.isJobPubliclyRevealed = true
+            game.publiclyRevealedAbilityTargetIds += target.member.id
+            game.publiclyRevealedJobNames += revealedJob.name
 
             val event = GameEvent.JobDiscovered(
                 discoverer = player,
                 target = target,
-                actualJob = discoveredJob,
-                revealedJob = discoveredJob,
+                actualJob = actualJob,
+                revealedJob = revealedJob,
                 sourceAbilityName = "특종",
                 resolvedAt = DiscoveryStep.DAY,
                 isPublicReveal = true,
                 notifyTarget = false
             ).apply {
-                imageUrl = reporter.discoveredImageUrl
+                imageUrl = reporter.discoveredImageUrl ?: ReporterAssets.PUBLIC_SCOOP_ARTICLE_IMAGE_URL
             }
 
             coroutineScope {
@@ -3482,6 +3494,10 @@ object GameLoopManager {
             game.publiclyRevealedJobNames += reporter.name
             reporter.hasPublishedArticle = true
         }
+    }
+
+    private fun findReporterArticleJob(jobName: String, fallback: Job): Job {
+        return JobManager.findByName(jobName) ?: if (jobName == Frog().name) Frog() else fallback
     }
 
     private fun applyMafiaExecutionFailureEffects(game: Game, mafiaAttack: AttackEvent) {

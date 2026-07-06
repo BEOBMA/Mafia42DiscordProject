@@ -9,6 +9,6 @@ import kotlin.reflect.KClass
 class Obituary : Ability, JobSpecificExtraAbility {
     override val name: String = "부고"
     override val description: String = "취재 대상이 사망하더라도 취재에 실패하지 않는다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(185).webp"
+    override val image: String = ReporterAssets.OBITUARY_ABILITY_IMAGE_URL
     override val targetJob: List<KClass<out Job>> = listOf(Reporter::class)
 }

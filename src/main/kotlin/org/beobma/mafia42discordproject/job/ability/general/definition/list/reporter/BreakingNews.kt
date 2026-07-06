@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 class BreakingNews : Ability, JobSpecificExtraAbility {
     override val name: String = "속보"
-    override val description: String = "취재 대상이 밤 동안 처형을 했을 경우, 엠바고를 무시하고 기사를 낸다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(156).webp"
+    override val description: String = "취재 대상이 마피아라면 두 번째 밤이 될 때 기사를 낼 수 있다."
+    override val image: String = ReporterAssets.BREAKING_NEWS_ABILITY_IMAGE_URL
     override val targetJob: List<KClass<out Job>> = listOf(Reporter::class)
 }
