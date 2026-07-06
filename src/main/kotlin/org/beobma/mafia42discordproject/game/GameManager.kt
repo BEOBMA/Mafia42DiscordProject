@@ -111,7 +111,7 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
-        game.isCrazyMode = mode == GameStartMode.MADNESS
+        game.mode = mode
 
         game.start(event, mode)
     }
@@ -126,7 +126,7 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
-        game.isCrazyMode = mode == GameStartMode.MADNESS
+        game.mode = mode
 
         // 기존 로직 실행
         game.start(event, mode)

@@ -1899,7 +1899,7 @@ object GameLoopManager {
         GameReplayLogger.logPhase(game, "${target.member.effectiveName} 최후 변론")
         (target.job as? Martyr)?.defenseBombTargetId = null
         game.sendMainChannelMessageWithImage(
-            imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(44).webp",
+            imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(1).png",
             message = "${target.member.effectiveName}의 최후의 변론"
         )
 

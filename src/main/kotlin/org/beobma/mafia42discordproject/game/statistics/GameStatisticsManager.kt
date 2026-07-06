@@ -1,6 +1,7 @@
 package org.beobma.mafia42discordproject.game.statistics
 
 import kotlinx.serialization.json.*
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
@@ -61,7 +62,7 @@ object GameStatisticsManager {
         const val PLAYER_COUNT = "플레이어 수"
         const val INITIAL_PLAYER_COUNT = "시작 인원"
         const val DAY_COUNT = "진행 일차"
-        const val IS_CRAZY_MODE = "미치광이 모드"
+        const val MODE_TYPE = "모드 타입"
         const val REPLAY_LOG_COUNT = "리플레이 로그 수"
 
         const val NAME = "이름"
@@ -182,6 +183,8 @@ object GameStatisticsManager {
         val winningTeam = root.string("winningTeam")
         val dayCount = root.int("dayCount") ?: 0
         val initialPlayerCount = root.int("initialPlayerCount") ?: players.size
+        val modeType = readModeType(root)
+        val modeDisplayName = readModeDisplayName(root, modeType)
 
         val replaySignature = replayLogs
             .filterIsInstance<JsonObject>()
@@ -198,6 +201,7 @@ object GameStatisticsManager {
             guildId.orEmpty(),
             endReason,
             winningTeam.orEmpty(),
+            modeType,
             initialPlayerCount.toString(),
             dayCount.toString(),
             players.joinToString(",") { "${it.id}:${it.job}:${it.team}" },
@@ -215,12 +219,40 @@ object GameStatisticsManager {
             guildName = root.string("guildName"),
             dayCount = dayCount,
             initialPlayerCount = initialPlayerCount,
-            isCrazyMode = root.boolean("isCrazyMode") ?: false,
+            modeType = modeType,
+            modeDisplayName = modeDisplayName,
             players = players,
             replayLogCount = replayLogs.size,
             replayEventTypes = replayEventTypes,
             abilityUses = abilityUses,
         )
+    }
+
+    private fun readModeType(root: JsonObject): String {
+        val archivedModeType = root.string("modeType")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        if (archivedModeType != null) {
+            return normalizeModeType(archivedModeType)
+        }
+
+        val legacyIsCrazyMode = root.boolean("isCrazyMode") ?: false
+        return if (legacyIsCrazyMode) {
+            GameStartMode.MADNESS.typeName
+        } else {
+            GameStartMode.NORMAL.typeName
+        }
+    }
+
+    private fun readModeDisplayName(root: JsonObject, modeType: String): String {
+        return root.string("modeDisplayName")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: GameStartMode.displayNameForType(modeType)
+    }
+
+    private fun normalizeModeType(raw: String): String {
+        return GameStartMode.fromType(raw)?.typeName ?: raw
     }
 
     private fun parsePlayer(element: JsonElement): ArchivePlayer? {
@@ -288,7 +320,7 @@ object GameStatisticsManager {
             playerCount = archive.players.size,
             initialPlayerCount = archive.initialPlayerCount,
             dayCount = archive.dayCount,
-            isCrazyMode = archive.isCrazyMode,
+            modeType = archive.modeType,
             replayLogCount = archive.replayLogCount,
         )
 
@@ -404,7 +436,7 @@ object GameStatisticsManager {
                         put(Key.PLAYER_COUNT, record.playerCount)
                         put(Key.INITIAL_PLAYER_COUNT, record.initialPlayerCount)
                         put(Key.DAY_COUNT, record.dayCount)
-                        put(Key.IS_CRAZY_MODE, record.isCrazyMode)
+                        put(Key.MODE_TYPE, record.modeType)
                         put(Key.REPLAY_LOG_COUNT, record.replayLogCount)
                     })
                 }
@@ -711,7 +743,8 @@ object GameStatisticsManager {
         val guildName: String?,
         val dayCount: Int,
         val initialPlayerCount: Int,
-        val isCrazyMode: Boolean,
+        val modeType: String,
+        val modeDisplayName: String,
         val players: List<ArchivePlayer>,
         val replayLogCount: Int,
         val replayEventTypes: Map<String, Int>,
@@ -746,7 +779,7 @@ object GameStatisticsManager {
         val playerCount: Int,
         val initialPlayerCount: Int,
         val dayCount: Int,
-        val isCrazyMode: Boolean,
+        val modeType: String,
         val replayLogCount: Int,
     )
 
@@ -769,7 +802,7 @@ object GameStatisticsManager {
             totalInitialPlayerCount += archive.initialPlayerCount
             winningTeams.increment(archive.winningTeam ?: "승리팀 없음")
             endReasons.increment(endReasonLabel(archive.endReason))
-            modes.increment(if (archive.isCrazyMode) "미치광이" else "일반")
+            modes.increment(archive.modeDisplayName)
             initialPlayerCounts.increment(archive.initialPlayerCount.toString())
             dayCounts.increment(archive.dayCount.toString())
         }

@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.AttackEvent
@@ -56,7 +57,12 @@ data class Game(
 
     var dayCount: Int = 0
     var initialPlayerCount: Int = 0
-    var isCrazyMode: Boolean = false
+    var mode: GameStartMode = GameStartMode.NORMAL
+    var isCrazyMode: Boolean
+        get() = mode == GameStartMode.MADNESS
+        set(value) {
+            mode = if (value) GameStartMode.MADNESS else GameStartMode.NORMAL
+        }
     var nightPhaseStartedAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
