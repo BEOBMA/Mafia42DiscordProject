@@ -1,6 +1,7 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.agent
 
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.Job
@@ -22,6 +23,7 @@ class Humint : Ability, JobSpecificExtraAbility {
             if (target.allAbilities.none { it is Humint }) return
             val discoveredDay = targetAgentJob.discoveredCitizenTargetDayById[caster.member.id] ?: return
             if (discoveredDay >= game.dayCount) return
+            if (game.dayCount == discoveredDay + 1 && game.currentPhase == GamePhase.NIGHT) return
 
             val targetMessage = "${caster.member.effectiveName}님에게 당신의 정보를 공유했습니다!"
             val casterMessage = "요원 ${target.member.effectiveName}님이 자신의 정보를 전달 하였습니다."

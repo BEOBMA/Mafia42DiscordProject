@@ -34,6 +34,7 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Belongings
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.Source
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.agent.AgentOperation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.Calm
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
@@ -205,17 +206,22 @@ object GameLoopManager {
         game: Game,
         label: String,
         durationMillis: Long,
-        midpointAction: (suspend () -> Unit)? = null
+        midpointAction: (suspend () -> Unit)? = null,
+        beforeEndAction: (suspend () -> Unit)? = null,
+        beforeEndOffsetMillis: Long = 0L
     ) {
         val initialDuration = durationMillis.coerceAtLeast(0L)
-        val midpointAtMillis = System.currentTimeMillis() + initialDuration / 2
+        val now = System.currentTimeMillis()
+        val midpointAtMillis = now + initialDuration / 2
+        val beforeEndAtMillis = now + (initialDuration - beforeEndOffsetMillis).coerceAtLeast(0L)
         var midpointTriggered = midpointAction == null || initialDuration <= 0L
+        var beforeEndTriggered = beforeEndAction == null || initialDuration <= 0L
         synchronized(countdownLock) {
             activeCountdown = ActiveCountdown(
                 guildId = game.guild.id,
                 phase = game.currentPhase,
                 label = label,
-                endAtMillis = System.currentTimeMillis() + initialDuration
+                endAtMillis = now + initialDuration
             )
         }
 
@@ -242,12 +248,21 @@ object GameLoopManager {
                 midpointAction?.invoke()
             }
 
+            if (!beforeEndTriggered && System.currentTimeMillis() >= beforeEndAtMillis) {
+                beforeEndTriggered = true
+                beforeEndAction?.invoke()
+            }
+
             delay(minOf(remainingMillis, 500L).milliseconds)
         }
 
         if (!midpointTriggered) {
             midpointTriggered = true
             midpointAction?.invoke()
+        }
+        if (!beforeEndTriggered) {
+            beforeEndTriggered = true
+            beforeEndAction?.invoke()
         }
 
         updateTimeStatusMessageAtZero(game, label)
@@ -2536,7 +2551,11 @@ object GameLoopManager {
                 midpointAction = {
                     announcePendingMadScientistRevivals(game)
                     publishReporterArticles(game, publishAtNightMidpoint = true)
-                }
+                },
+                beforeEndAction = {
+                    AgentOperation.resolveNightEndOperations(game)
+                },
+                beforeEndOffsetMillis = 1_000L
             )
 
             val nightSummary = resolveNightPhase(game)
