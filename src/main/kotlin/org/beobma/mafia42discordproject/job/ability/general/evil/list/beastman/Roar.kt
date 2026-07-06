@@ -9,6 +9,6 @@ import kotlin.reflect.KClass
 class Roar : Ability, JobSpecificExtraAbility {
     override val name: String = "포효"
     override val description: String = "첫 번째 낮이 될 때 마피아에게 짐승인간의 포효가 들려 자신의 존재가 알려진다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(147).webp"
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/beastman_ability_3.webp"
     override val targetJob: List<KClass<out Job>> = listOf(Beastman::class)
 }

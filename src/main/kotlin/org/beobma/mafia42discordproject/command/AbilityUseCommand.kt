@@ -34,7 +34,6 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.fort
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
@@ -42,7 +41,6 @@ import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Mafi
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
-import org.beobma.mafia42discordproject.job.evil.list.Beastman
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 object AbilityUseCommand : DiscordCommand {
@@ -189,7 +187,7 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, message)
             return
         }
-        val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
+        val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
             null
@@ -222,9 +220,6 @@ object AbilityUseCommand : DiscordCommand {
         }
 
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
-            notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
-        }
-        if (result.isSuccess && selectedAbility is BeastmanAbility && target != null && caster.job is Beastman && caster.state.isTamed) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
         if (result.isSuccess && effectiveTarget != null) {
@@ -414,7 +409,7 @@ object AbilityUseCommand : DiscordCommand {
     private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {
         return when (selectedAbility) {
             is DoctorAbility -> "이미 사망한 플레이어는 치료할 수 없습니다."
-            is MafiaAbility, is GodfatherAbility, is BeastmanAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
+            is MafiaAbility, is GodfatherAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
             is NurseAbility -> "사망한 플레이어는 처방 대상으로 지정할 수 없습니다."
             is DetectiveAbility -> "사망한 플레이어는 추리 대상으로 지정할 수 없습니다."
             is SpyAbility -> "사망한 플레이어는 첩보 대상으로 지정할 수 없습니다."

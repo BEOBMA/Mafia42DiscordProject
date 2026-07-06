@@ -57,6 +57,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.sold
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Terminal
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.assistance.TheInformant
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Barbarism
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAgility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.Roar
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hostess.Deception
@@ -323,6 +325,7 @@ object GameLoopManager {
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
         game.nightEvents.clear()
+        game.pendingBeastmanTameIds.clear()
         game.pendingWitchCurseByCaster.clear()
         game.pendingOblivionCurseByCaster.clear()
         game.pendingDayStartDiscoveries.clear()
@@ -345,6 +348,7 @@ object GameLoopManager {
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
             }
+            (player.job as? Beastman)?.cravingTargetIdTonight = null
             (player.job as? Inspector)?.pendingInvestigationTargetId = null
             (player.job as? Detective)?.let {
                 DetectiveAbility.resetNightState(player)
@@ -420,6 +424,7 @@ object GameLoopManager {
     suspend fun resolveNightPhase(game: Game): NightResolutionSummary {
         val blockedAttacks = mutableListOf<AttackEvent>()
         val protectedMafiaExecutionBlockedAttacks = mutableSetOf<AttackEvent>()
+        val beastmanAgilityBlockedMafiaAttacks = mutableSetOf<AttackEvent>()
         val playersToDie = linkedSetOf<PlayerData>().apply {
             addAll(game.nightDeathCandidates)
         }
@@ -429,7 +434,6 @@ object GameLoopManager {
         resolveNursePrescriptions(game)
         resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
-        applyBeastmanExecutionOverride(game)
         val healedTargetsTonight = game.nightEvents
             .filterIsInstance<GameEvent.PlayerHealed>()
             .map { it.target }
@@ -446,8 +450,12 @@ object GameLoopManager {
                 return@forEach
             }
 
-            if (isExecutionImmuneBeastmanTarget(game, attackEvent)) {
+            if (isExecutionImmuneBeastmanTarget(attackEvent)) {
                 blockedAttacks += attackEvent
+                if (isMafiaTeamAttackKey(attackKey)) {
+                    beastmanAgilityBlockedMafiaAttacks += attackEvent
+                    tameBeastmanByBarbarismIfNeeded(game, target)
+                }
                 playersToDie.remove(target)
                 return@forEach
             }
@@ -519,6 +527,7 @@ object GameLoopManager {
             if (!atLeastOneMafiaExecutionSucceeded) {
                 failedAttacks.forEach { attack ->
                     if (attack in protectedMafiaExecutionBlockedAttacks) return@forEach
+                    if (attack in beastmanAgilityBlockedMafiaAttacks) return@forEach
                     if (!swindlerNegotiationBlockedExecution) {
                         applyMafiaExecutionFailureEffects(game, attack)
                     }
@@ -531,6 +540,7 @@ object GameLoopManager {
             game.mafiaAttackFailedPreviousNight = false
             game.mafiaExecutionSucceededLastNight = false
         }
+        resolveBeastmanCravingTaming(game, mafiaAttack, blockedAttacks, playersToDie)
         applyTravelCompanionPenalty(game, playersToDie, mafiaAttack)
         InspectorInvestigation.resolveNightInvestigations(game, playersToDie)
 
@@ -1265,47 +1275,50 @@ object GameLoopManager {
         }
     }
 
-    private fun applyBeastmanExecutionOverride(game: Game) {
-        val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
-        val selectedTarget = resolveOriginallySelectedMafiaTarget(game, mafiaAttack)
-
-        val triggeredBeastman = game.playerDatas.firstOrNull { player ->
-            !player.state.isDead &&
-                !player.state.isTamed &&
-                player.job is Beastman &&
-                selectedTarget.member.id in (player.job as Beastman).markedTargetIds
-        } ?: return
-
-        if (selectedTarget != mafiaAttack.target) {
-            game.nightDeathCandidates.remove(mafiaAttack.target)
-            game.coupleSacrificeMap.remove(mafiaAttack.target.member.id)
-        }
-
-        game.nightAttacks["MAFIA_TEAM"] = AttackEvent(
-            attacker = triggeredBeastman,
-            target = selectedTarget,
-            attackTier = AttackTier.ABSOLUTE
-        )
-        if (selectedTarget !in game.nightDeathCandidates) {
-            game.nightDeathCandidates += selectedTarget
-        }
-        game.pendingBeastmanTameIds += triggeredBeastman.member.id
-    }
-
     private fun resolveOriginallySelectedMafiaTarget(game: Game, mafiaAttack: AttackEvent): PlayerData {
         val selectedTargetId = game.coupleSacrificeMap[mafiaAttack.target.member.id] ?: return mafiaAttack.target
         return game.getPlayer(selectedTargetId) ?: mafiaAttack.target
     }
 
-    private fun isExecutionImmuneBeastmanTarget(game: Game, attackEvent: AttackEvent): Boolean {
+    private fun resolveBeastmanCravingTaming(
+        game: Game,
+        mafiaAttack: AttackEvent?,
+        blockedAttacks: List<AttackEvent>,
+        playersToDie: Set<PlayerData>
+    ) {
+        val executedTarget = mafiaAttack
+            ?.takeIf { it !in blockedAttacks }
+            ?.target
+            ?.takeIf { it in playersToDie }
+
+        game.playerDatas.forEach { player ->
+            val beastman = player.job as? Beastman ?: return@forEach
+            val cravingTargetId = beastman.cravingTargetIdTonight ?: return@forEach
+            beastman.cravingTargetIdTonight = null
+
+            if (executedTarget == null) return@forEach
+            if (player.state.isDead || player.state.isTamed || player in playersToDie) return@forEach
+            if (cravingTargetId != executedTarget.member.id) return@forEach
+
+            game.pendingBeastmanTameIds += player.member.id
+        }
+    }
+
+    private fun tameBeastmanByBarbarismIfNeeded(game: Game, target: PlayerData) {
+        if (target.state.isDead || target.state.isTamed) return
+        if (target.job !is Beastman) return
+        if (target.allAbilities.none { it is Barbarism }) return
+
+        game.pendingBeastmanTameIds += target.member.id
+    }
+
+    private fun isExecutionImmuneBeastmanTarget(attackEvent: AttackEvent): Boolean {
         if (attackEvent.target.job !is Beastman) return false
+        return attackEvent.target.allAbilities.any { it is BeastmanAgility }
+    }
 
-        val attackKey = game.nightAttacks.entries
-            .firstOrNull { (_, event) -> event == attackEvent }
-            ?.key
-            ?: return false
-
-        return attackKey == "MAFIA_TEAM" || attackKey.startsWith("MERCENARY_")
+    private fun isMafiaTeamAttackKey(attackKey: String): Boolean {
+        return attackKey == "MAFIA_TEAM" || attackKey.startsWith("GODFATHER_")
     }
 
     private suspend fun notifyPendingBeastmanTaming(game: Game) {
