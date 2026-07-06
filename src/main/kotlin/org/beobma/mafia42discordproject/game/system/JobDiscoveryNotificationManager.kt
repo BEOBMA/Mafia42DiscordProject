@@ -76,6 +76,9 @@ object JobDiscoveryNotificationManager {
                 "수습" -> {
                     append("${event.target.member.effectiveName}님의 직업은 ${event.revealedJob.name}입니다.")
                 }
+                "수사" -> {
+                    append("그 사람의 직업은 ${event.revealedJob.name}.")
+                }
                 "특종" if event.resolvedAt == DiscoveryStep.NIGHT -> {
                     append("${event.target.member.effectiveName}의 직업은 ${event.revealedJob.name}")
                     appendLine()
@@ -122,6 +125,15 @@ object JobDiscoveryNotificationManager {
         if (event.sourceAbilityName == "도굴") {
             return buildString {
                 append("도굴꾼 (${event.discoverer.member.effectiveName}) 님에게 도굴당해 직업이 시민으로 변경되었습니다.")
+                event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    appendLine()
+                    append(url)
+                }
+            }
+        }
+        if (event.sourceAbilityName == "수사") {
+            return buildString {
+                append("형사 ${event.discoverer.member.effectiveName}님이 조사를 마쳤습니다.")
                 event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
                     appendLine()
                     append(url)

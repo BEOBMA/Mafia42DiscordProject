@@ -25,6 +25,7 @@ object JobPreferenceCommand : DiscordCommand {
     private const val MAX_AUTO_COMPLETE_CHOICES = 25
     private const val ASSISTANT_OPTION = "보조계열"
     private const val POLICE_OPTION = "경찰계열"
+    private val policeJobNames = setOf("경찰", "형사", "요원", "자경단원")
     private val specialOptions = (1..5).map { "특수직업$it" }
     private val optionNames = listOf(ASSISTANT_OPTION, POLICE_OPTION) + specialOptions
 
@@ -157,11 +158,9 @@ object JobPreferenceCommand : DiscordCommand {
 
     private fun getAllowedJobsByOption(optionName: String): List<Job> = when (optionName) {
         ASSISTANT_OPTION -> JobManager.getAll().filter { it is Evil && it.name != "마피아" }
-        POLICE_OPTION -> JobManager.getAll().filter { it.name == "경찰" || it.name == "요원" || it.name == "자경단원" }
+        POLICE_OPTION -> JobManager.getAll().filter { it.name in policeJobNames }
         in specialOptions -> JobManager.getAll().filter {
-            it.name != "경찰" &&
-                it.name != "요원" &&
-                it.name != "자경단원" &&
+            it.name !in policeJobNames &&
                 it.name != "의사" &&
                 it.name != MentalPatient.JOB_NAME &&
                 it !is Evil

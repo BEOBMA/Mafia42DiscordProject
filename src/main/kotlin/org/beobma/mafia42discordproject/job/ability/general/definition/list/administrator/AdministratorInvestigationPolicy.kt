@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.adm
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Hypocrisy
 import org.beobma.mafia42discordproject.job.definition.list.Agent
+import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.Evil
@@ -13,6 +14,7 @@ import kotlin.reflect.KClass
 object AdministratorInvestigationPolicy {
     private val policeLineJobs: Set<KClass<out Job>> = setOf(
         Police::class,
+        Inspector::class,
         Agent::class,
         Vigilante::class
     )

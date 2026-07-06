@@ -12,6 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Ghoul
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
+import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Magician
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
@@ -95,6 +96,7 @@ object JobManager {
             "Citizen" to { Citizen() },
             "Doctor" to { Doctor() },
             "Police" to { Police() },
+            "Inspector" to { Inspector() },
             "Detective" to { Detective() },
             "Soldier" to { Soldier() },
             "Nurse" to { Nurse() },

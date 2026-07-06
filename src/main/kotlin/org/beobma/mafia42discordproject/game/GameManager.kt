@@ -88,13 +88,14 @@ object GameManager {
     private const val MAFIA_JOB_NAME = "마피아"
     private const val DOCTOR_JOB_NAME = "의사"
     private const val POLICE_JOB_NAME = "경찰"
+    private const val INSPECTOR_JOB_NAME = "형사"
     private const val AGENT_JOB_NAME = "요원"
     private const val NURSE_JOB_NAME = "간호사"
     private const val CITIZEN_JOB_NAME = "시민"
     private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
-    private val policeJobNames = setOf("경찰", "요원", "자경단원")
+    private val policeJobNames = setOf(POLICE_JOB_NAME, INSPECTOR_JOB_NAME, AGENT_JOB_NAME, "자경단원")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false

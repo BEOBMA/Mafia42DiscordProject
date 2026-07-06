@@ -10,6 +10,7 @@ import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.EvilCommonAbility
 import org.beobma.mafia42discordproject.job.definition.list.Agent
+import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.list.Villain
@@ -32,7 +33,8 @@ class Instructions : Ability, EvilCommonAbility {
             owner.state.hasReceivedInstructionsNoticeFirstDay = true
 
             val policePlayers = game.playerDatas.filter { target ->
-                !target.state.isDead && (target.job is Police || target.job is Agent || target.job is Vigilante)
+                !target.state.isDead &&
+                    (target.job is Police || target.job is Inspector || target.job is Agent || target.job is Vigilante)
             }
 
             notificationScope.launch {

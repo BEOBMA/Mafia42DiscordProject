@@ -37,6 +37,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.doct
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.gangster.TravelCompanion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.InspectorInvestigation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
@@ -344,6 +345,7 @@ object GameLoopManager {
                 policeJob.currentSearchTarget = null
                 policeJob.hasUsedSearchThisNight = false
             }
+            (player.job as? Inspector)?.pendingInvestigationTargetId = null
             (player.job as? Detective)?.let {
                 DetectiveAbility.resetNightState(player)
             }
@@ -530,6 +532,7 @@ object GameLoopManager {
             game.mafiaExecutionSucceededLastNight = false
         }
         applyTravelCompanionPenalty(game, playersToDie, mafiaAttack)
+        InspectorInvestigation.resolveNightInvestigations(game, playersToDie)
 
         playersToDie.forEach { victim ->
             game.nightEvents += GameEvent.PlayerDied(victim)
