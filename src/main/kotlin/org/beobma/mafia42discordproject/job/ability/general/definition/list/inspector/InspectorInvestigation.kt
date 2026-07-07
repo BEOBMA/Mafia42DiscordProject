@@ -76,9 +76,11 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
             revealedJob = revealedJob,
             sourceAbilityName = name,
             resolvedAt = DiscoveryStep.NIGHT,
-            notifyTarget = false
+            notifyTarget = false,
+            imageUrl = INSPECTOR_SUCCESS_IMAGE_URL
         )
         dispatchDiscoveryEvent(game, event)
+        game.pendingDayStartDiscoveries += event.copy(notifyTarget = true)
         return AbilityResult(true, "그 사람의 직업은 ${event.revealedJob.name}.")
     }
 

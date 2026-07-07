@@ -47,6 +47,6 @@ class SunCabalAbility : ActiveAbility, JobUniqueAbility {
         }
 
         cabal.selectedTargetId = effectiveTarget.member.id
-        return AbilityResult(true, "${target.member.effectiveName}님을 밀사 대상으로 지정했습니다. 낮 동안 자유롭게 변경할 수 있습니다.")
+        return AbilityResult(true, "밀사의 대상을 ${target.member.effectiveName}님으로 지정했습니다.")
     }
 }

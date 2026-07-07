@@ -663,6 +663,7 @@ object GameLoopManager {
 
         val processedDawnEvents = dispatchEvents(game)
         resolveSpyAssassin(game)
+        resolveCabalMoonInvestigation(game)
         resolveCabalSpecialWinReadiness(game)
         resolveProphetPioneerSpecialWinReadiness(game, summary)
         val dawnDeaths = (summary.deaths + poisonedVictims).distinct()
@@ -2605,9 +2606,9 @@ object GameLoopManager {
             if (sunCabal.role != CabalRole.SUN || sunPlayer.state.isDead) return@forEach
 
             val selectedTargetId = sunCabal.selectedTargetId ?: return@forEach
-            val selectedTarget = game.getPlayer(selectedTargetId)
+            val selectedTarget = game.getPlayer(selectedTargetId) ?: return@forEach
 
-            val isMoon = selectedTarget?.job is Cabal &&
+            val isMoon = selectedTarget.job is Cabal &&
                 (selectedTarget.job as? Cabal)?.role == CabalRole.MOON &&
                 selectedTarget.member.id == sunCabal.pairedPlayerId
 
@@ -2616,18 +2617,35 @@ object GameLoopManager {
                 sunCabal.hasFoundMoon = true
                 val moonCabal = selectedTarget.job as? Cabal
                 moonCabal?.wasFoundBySun = true
-                sendCabalDm(
-                    game,
-                    sunPlayer,
-                    "비밀결사 ${selectedTarget.member.effectiveName}님을 찾았습니다."
-                )
                 if (newlyFoundMoon) {
-                    sendCabalDm(game, selectedTarget, "비밀결사의 표식이 발견되었습니다.")
+                    notifyCabalMarkerFound(game, sunPlayer, selectedTarget)
                 }
-            } else {
-                sendCabalDm(game, sunPlayer, "밀사 결과: 아니다.")
             }
         }
+    }
+
+    private fun resolveCabalMoonInvestigation(game: Game) {
+        val cabalPlayers = game.playerDatas.filter { it.job is Cabal }
+        cabalPlayers.forEach { moonPlayer ->
+            val moonCabal = moonPlayer.job as? Cabal ?: return@forEach
+            if (moonCabal.role != CabalRole.MOON) return@forEach
+            if (moonCabal.hasFoundSun || !moonCabal.moonMarkedSunTonight) return@forEach
+
+            val selectedTargetId = moonCabal.selectedTargetId ?: return@forEach
+            val selectedTarget = game.getPlayer(selectedTargetId) ?: return@forEach
+            val isSun = selectedTarget.job is Cabal &&
+                (selectedTarget.job as? Cabal)?.role == CabalRole.SUN &&
+                selectedTarget.member.id == moonCabal.pairedPlayerId
+            if (!isSun) return@forEach
+
+            moonCabal.hasFoundSun = true
+            notifyCabalMarkerFound(game, moonPlayer, selectedTarget)
+        }
+    }
+
+    private fun notifyCabalMarkerFound(game: Game, first: PlayerData, second: PlayerData) {
+        sendCabalDm(game, first, "비밀결사의 표식을 발견했습니다.")
+        sendCabalDm(game, second, "비밀결사의 표식을 발견했습니다.")
     }
 
     private fun resolveCabalSpecialWinReadiness(game: Game) {
@@ -3318,8 +3336,12 @@ object GameLoopManager {
                     gangster.threatenedTargetIdsTonight.remove(targetId)
                     return@forEach
                 }
+                val shouldNotify = !target.state.isThreatened
                 target.state.isThreatened = true
                 game.activeThreatenedVoters[targetId] = player.member.id
+                if (shouldNotify) {
+                    notifyThreatenedByGangster(game, target)
+                }
             }
         }
         game.playerDatas.forEach { player ->
@@ -3331,8 +3353,22 @@ object GameLoopManager {
                     thief.stolenThreatenedTargetIdsTonight.remove(targetId)
                     return@forEach
                 }
+                val shouldNotify = !target.state.isThreatened
                 target.state.isThreatened = true
                 game.activeThreatenedVoters[targetId] = player.member.id
+                if (shouldNotify) {
+                    notifyThreatenedByGangster(game, target)
+                }
+            }
+        }
+    }
+
+    private fun notifyThreatenedByGangster(game: Game, target: PlayerData) {
+        cabalNotificationScope.launch {
+            runCatching {
+                val message = "누군가에게 협박받았습니다!"
+                GameReplayLogger.logDirectMessage(game, target, message, "협박")
+                target.member.getDmChannel().createMessage(message)
             }
         }
     }
