@@ -11,12 +11,28 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
+import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 
 object JobPreferenceManager {
+    private val store = JobPreferenceStore(
+        storagePath = Path.of("data", "job-preferences.json"),
+        resolveJob = JobManager::findByName
+    )
+
+    fun save(userId: ULong, jobs: List<Job>) = store.save(userId, jobs)
+
+    fun get(userId: ULong): List<Job>? = store.get(userId)
+
+    fun load() = store.load()
+}
+
+internal class JobPreferenceStore(
+    private val storagePath: Path,
+    private val resolveJob: (String) -> Job?
+) {
     private val preferencesByUserId: MutableMap<ULong, List<Job>> = mutableMapOf()
-    private val storagePath: Path = Path.of("data", "job-preferences.json")
     private val json = Json { prettyPrint = true }
 
     fun save(userId: ULong, jobs: List<Job>) {
@@ -34,7 +50,7 @@ object JobPreferenceManager {
         val raw = Files.readString(storagePath)
         val root = runCatching { json.parseToJsonElement(raw) }
             .getOrElse {
-                println("[JobPreferenceManager] 저장 파일 파싱 실패: ${it.message}")
+                println("[JobPreferenceManager] failed to parse preference file: ${it.message}")
                 return
             }
 
@@ -44,16 +60,16 @@ object JobPreferenceManager {
         jsonObject.forEach { (userIdText, jobsElement) ->
             val userId = userIdText.toULongOrNull()
             if (userId == null) {
-                println("[JobPreferenceManager] 잘못된 userId 키를 건너뜁니다: $userIdText")
+                println("[JobPreferenceManager] skipping invalid userId key: $userIdText")
                 return@forEach
             }
 
             val jobsArray = jobsElement as? JsonArray ?: return@forEach
             val jobs = jobsArray.mapNotNull { element ->
                 val name = element.jsonPrimitive.contentOrNull ?: return@mapNotNull null
-                JobManager.findByName(name).also {
-                    if (it == null) {
-                        println("[JobPreferenceManager] 알 수 없는 직업을 건너뜁니다: $name")
+                resolveJob(name).also { job ->
+                    if (job == null) {
+                        println("[JobPreferenceManager] skipping unknown job: $name")
                     }
                 }
             }.filter { job -> job.name != MentalPatient.JOB_NAME }
@@ -65,17 +81,14 @@ object JobPreferenceManager {
 
         preferencesByUserId.clear()
         preferencesByUserId.putAll(loaded)
-        println("[JobPreferenceManager] 선호 직업 ${loaded.size}건을 불러왔습니다.")
+        println("[JobPreferenceManager] loaded ${loaded.size} preference entries.")
     }
 
     private fun persist() {
-        val parent = storagePath.parent
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent)
-        }
+        val snapshot = preferencesByUserId.toMap()
 
         val root = buildJsonObject {
-            preferencesByUserId.entries
+            snapshot.entries
                 .sortedBy { it.key }
                 .forEach { (userId, jobs) ->
                     put(userId.toString(), buildJsonArray {
@@ -86,6 +99,6 @@ object JobPreferenceManager {
                 }
         }
 
-        Files.writeString(storagePath, json.encodeToString(JsonObject.serializer(), root))
+        AtomicTextFileWriter.write(storagePath, json.encodeToString(JsonObject.serializer(), root))
     }
 }

@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia
 
-import dev.kord.core.behavior.channel.createMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,7 +11,6 @@ import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.AssistanceCommonAbility
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.evil.Evil

@@ -1,7 +1,6 @@
 package org.beobma.mafia42discordproject.game.system
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.definition.list.Administrator

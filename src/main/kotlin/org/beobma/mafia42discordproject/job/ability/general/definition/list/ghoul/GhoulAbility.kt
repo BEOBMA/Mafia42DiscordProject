@@ -42,7 +42,7 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
         val newJob = JobManager.createByName(originalVictimJob.name) ?: return
 
         // 3. 도굴꾼 자신의 부가 능력은 항상 유지
-        val mergedExtras = LinkedHashMap<String, org.beobma.mafia42discordproject.job.ability.Ability>()
+        val mergedExtras = LinkedHashMap<String, Ability>()
         ownerExtras.forEach { ability -> mergedExtras.putIfAbsent(ability::class.qualifiedName ?: ability.name, ability) }
 
         // [계승]이 있으면 도굴 대상이 보유한 부가 능력까지 함께 계승
@@ -74,12 +74,12 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             revealedJob = originalVictimJob,
             sourceAbilityName = name,
             resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN,
-            note = buildStealNote(victim, originalVictimJob.name, inheritedExtraAbilityNames),
+            note = buildStealNote(originalVictimJob.name, inheritedExtraAbilityNames),
             imageUrl = SystemImage.GHOUL_GRAVE_ROBBING_SUCCESS.imageUrl
         )
     }
 
-    private fun buildStealNote(victim: PlayerData, originalJobName: String, inheritedExtraAbilityNames: List<String>): String {
+    private fun buildStealNote(originalJobName: String, inheritedExtraAbilityNames: List<String>): String {
         val inheritedPart = if (inheritedExtraAbilityNames.isNotEmpty()) {
             "${inheritedExtraAbilityNames.distinct().joinToString(", ")} 스킬을 계승 받았습니다."
         } else {

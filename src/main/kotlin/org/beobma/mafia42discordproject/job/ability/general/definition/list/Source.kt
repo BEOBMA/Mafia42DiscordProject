@@ -1,7 +1,6 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list
 
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.AssistanceCommonAbility
 import org.beobma.mafia42discordproject.job.ability.CitizenCommonAbility
 
 class Source : Ability, CitizenCommonAbility {

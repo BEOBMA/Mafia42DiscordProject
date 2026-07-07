@@ -13,8 +13,8 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 
 class BeastmanAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "갈망"
-    override val description: String = "밤에 선택한 플레이어가 마피아에게 처형되거나 자신이 마피아에게 선택되면 마피아에게 길들여진다. 길들여진 후 밤에 선택한 대상을 제거할 수 있다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(102).webp"
+    override val description: String = "밤에 선택한 플레이어가 마피아에게 처형되면 마피아에게 길들여진다. 길들여진 후 플레이어를 제거할 수 있다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/beastman_ability_1.webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -40,28 +40,24 @@ class BeastmanAbility : ActiveAbility, JobUniqueAbility {
         val beastman = caster.job as? Beastman
             ?: return AbilityResult(false, "짐승인간만 갈망을 사용할 수 있습니다.")
 
-        if (!caster.state.isTamed) {
-            val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-            if (effectiveTarget.member.id in beastman.markedTargetIds) {
-                return AbilityResult(true, "${target.member.effectiveName} 님에게 새긴 표식은 유지됩니다.")
-            }
-
-            val maxMarkCount = if (game.dayCount == 1 && caster.allAbilities.any { it is Barbarism }) 2 else 1
-            if (beastman.markedTargetIds.size >= maxMarkCount) {
-                return AbilityResult(false, "이미 표식을 새겼습니다. 기존 표식은 변경할 수 없습니다.")
-            }
-
-            beastman.markedTargetIds += effectiveTarget.member.id
-            return AbilityResult(true, "${target.member.effectiveName} 님에게 표식을 새겼습니다.")
-        }
-
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        val previousTarget = game.nightAttacks[MAFIA_EXECUTION_KEY]?.target
-        if (previousTarget != null && previousTarget != effectiveTarget) {
-            game.nightDeathCandidates.remove(previousTarget)
+        if (!caster.state.isTamed) {
+            beastman.cravingTargetIdTonight = effectiveTarget.member.id
+            return AbilityResult(true, "${target.member.effectiveName} 님을 갈망 대상으로 지정했습니다.")
         }
 
-        game.nightAttacks[MAFIA_EXECUTION_KEY] = AttackEvent(
+        val attackKey = "$BEASTMAN_ATTACK_KEY_PREFIX${caster.member.id.value}"
+        val previousTarget = game.nightAttacks[attackKey]?.target
+        if (previousTarget != null && previousTarget != effectiveTarget) {
+            val hasOtherAttack = game.nightAttacks.any { (otherKey, attack) ->
+                otherKey != attackKey && attack.target == previousTarget
+            }
+            if (!hasOtherAttack) {
+                game.nightDeathCandidates.remove(previousTarget)
+            }
+        }
+
+        game.nightAttacks[attackKey] = AttackEvent(
             attacker = caster,
             target = effectiveTarget,
             attackTier = AttackTier.ABSOLUTE
@@ -75,6 +71,12 @@ class BeastmanAbility : ActiveAbility, JobUniqueAbility {
     }
 
     companion object {
-        const val MAFIA_EXECUTION_KEY = "MAFIA_TEAM"
+        const val BEASTMAN_ATTACK_KEY_PREFIX = "BEASTMAN_"
     }
+}
+
+class BeastmanAgility : JobUniqueAbility {
+    override val name: String = "민첩"
+    override val description: String = "마피아의 공격으로부터 죽지 않는다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/beastman_ability_2.webp"
 }

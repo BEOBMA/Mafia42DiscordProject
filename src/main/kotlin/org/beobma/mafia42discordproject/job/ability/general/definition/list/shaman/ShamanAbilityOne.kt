@@ -1,32 +1,10 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.beobma.mafia42discordproject.game.Game
-import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
-import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 
 class ShamanAbilityOne : PassiveAbility, JobUniqueAbility {
     override val name: String = "접신"
-    override val description: String = "죽은 사람이 하는 채팅을 들을 수 있으며, 밤에 죽은 사람과 대화를 할 수 있다."
+    override val description: String = "밤에 죽은 사람과 대화를 할 수 있다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(49).webp"
-
-    override fun onDeceasedChat(game: Game, owner: PlayerData, event: GameEvent) {
-        val deceasedChatEvent = event as? GameEvent.DeceasedChat ?: return
-        if (owner.state.isDead) return
-
-        CoroutineScope(Dispatchers.Default).launch {
-            runCatching {
-                val senderName = deceasedChatEvent.chatSender.member.effectiveName
-                val dm = owner.member.getDmChannelOrNull() ?: owner.member.getDmChannel()
-                val message = "$senderName: ${deceasedChatEvent.chat}"
-                GameReplayLogger.logDirectMessage(game, owner, message, "접신")
-                dm.createMessage(message)
-            }
-        }
-    }
 }

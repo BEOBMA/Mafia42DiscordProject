@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.replay
 
-import org.beobma.mafia42discordproject.game.Game
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Font
@@ -56,11 +55,30 @@ object GameReplayImageRenderer {
 
     data class RenderedReplayImage(
         val fileName: String,
+
         val bytes: ByteArray
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as RenderedReplayImage
+
+            if (fileName != other.fileName) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = fileName.hashCode()
+            result = 31 * result + bytes.contentHashCode()
+            return result
+        }
+    }
 
     private data class RenderBlock(
-        val entry: ReplayLogEntry?,
+        val entry: ReplayRenderLogEntry?,
         val lines: List<String>,
         val images: List<RenderImage> = emptyList(),
         val height: Int,
@@ -73,37 +91,211 @@ object GameReplayImageRenderer {
         val height: Int
     )
 
+    private data class VoteChoice(
+        val groupTitle: String,
+        val voter: String,
+        val choice: String
+    )
+
     init {
         ImageIO.scanForPlugins()
     }
 
-    fun render(game: Game, endReason: String, winningTeamName: String?): List<RenderedReplayImage> {
-        val snapshotLogs = synchronized(game) { game.replayLogs.toList().sortedBy { it.sequence } }
-        val blocks = buildBlocks(snapshotLogs)
+    fun render(data: ReplayRenderData): List<RenderedReplayImage> {
+        val blocks = buildBlocks(combineVoteLogs(data.logs.sortedBy { it.sequence }))
         val pages = paginate(blocks, firstPageReservedHeight = HEADER_HEIGHT, nextPageReservedHeight = PAGE_HEADER_HEIGHT)
         val totalPages = pages.size.coerceAtLeast(1)
 
         return pages.mapIndexed { index, page ->
             val bytes = renderPage(
-                game = game,
+                data = data,
                 pageBlocks = page,
                 pageNumber = index + 1,
-                totalPages = totalPages,
-                endReason = endReason,
-                winningTeamName = winningTeamName
+                totalPages = totalPages
             )
             RenderedReplayImage("game-replay-${index + 1}.png", bytes)
         }.ifEmpty {
             listOf(
                 RenderedReplayImage(
                     "game-replay-1.png",
-                    renderPage(game, emptyList(), 1, 1, endReason, winningTeamName)
+                    renderPage(data, emptyList(), 1, 1)
                 )
             )
         }
     }
 
-    private fun buildBlocks(logs: List<ReplayLogEntry>): List<RenderBlock> {
+    private fun combineVoteLogs(logs: List<ReplayRenderLogEntry>): List<ReplayRenderLogEntry> {
+        val combined = mutableListOf<ReplayRenderLogEntry>()
+        val sectionEntries = mutableListOf<ReplayRenderLogEntry>()
+        var sectionTitle: String? = null
+
+        fun flushSection() {
+            if (sectionEntries.isEmpty()) return
+            combined += combineVoteLogsInSection(sectionEntries, sectionTitle)
+            sectionEntries.clear()
+        }
+
+        logs.forEach { entry ->
+            if (entry.type == ReplayLogType.PHASE_START) {
+                flushSection()
+                combined += entry
+                sectionTitle = entry.title
+            } else {
+                sectionEntries += entry
+            }
+        }
+
+        flushSection()
+        return combined
+    }
+
+    private fun combineVoteLogsInSection(
+        entries: List<ReplayRenderLogEntry>,
+        sectionTitle: String?
+    ): List<ReplayRenderLogEntry> {
+        val combined = mutableListOf<ReplayRenderLogEntry>()
+        val consumed = BooleanArray(entries.size)
+
+        entries.forEachIndexed { index, entry ->
+            if (consumed[index]) return@forEachIndexed
+
+            val isVoteLog = entry.type == ReplayLogType.VOTE_CAST || entry.type == ReplayLogType.PROS_CONS_VOTE
+            if (!isVoteLog) {
+                combined += entry
+                return@forEachIndexed
+            }
+
+            val group = mutableListOf<ReplayRenderLogEntry>()
+            entries.forEachIndexed { candidateIndex, candidate ->
+                if (!consumed[candidateIndex] && candidate.type == entry.type) {
+                    consumed[candidateIndex] = true
+                    group += candidate
+                }
+            }
+
+            combined += if (entry.type == ReplayLogType.VOTE_CAST) {
+                buildVoteCastSummary(group)
+            } else {
+                buildProsConsVoteSummary(group, sectionTitle)
+            }
+        }
+
+        return combined
+    }
+
+    private fun buildVoteCastSummary(entries: List<ReplayRenderLogEntry>): ReplayRenderLogEntry {
+        val finalChoicesByVoteKindAndVoter = linkedMapOf<String, VoteChoice>()
+        entries.forEach { entry ->
+            val parsed = parseVoteCast(entry.body)
+            val voter = parsed?.voter ?: entry.actorName ?: "알 수 없음"
+            val target = parsed?.choice ?: entry.body.ifBlank { "알 수 없음" }
+            val groupTitle = entry.title.ifBlank { "투표" }
+            finalChoicesByVoteKindAndVoter["$groupTitle\u0000$voter"] = VoteChoice(
+                groupTitle = groupTitle,
+                voter = voter,
+                choice = target
+            )
+        }
+
+        val finalChoices = finalChoicesByVoteKindAndVoter.values.toList()
+        val counts = finalChoices
+            .groupingBy { it.choice }
+            .eachCount()
+            .toList()
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+        val topCount = counts.firstOrNull()?.second ?: 0
+        val topTargets = counts
+            .filter { it.second == topCount && topCount > 0 }
+            .joinToString(", ") { it.first }
+            .ifBlank { "없음" }
+
+        val body = buildString {
+            appendLine("최다 득표 대상: $topTargets (${topCount}표)")
+            appendLine("득표 현황: ${formatCounts(counts, "표")}")
+            appendLine()
+            finalChoices.groupBy { it.groupTitle }.forEach { (title, choices) ->
+                appendLine(title)
+                choices.forEach { choice ->
+                    appendLine("${choice.voter} -> ${choice.choice}")
+                }
+            }
+        }.trim()
+
+        return entries.first().copy(
+            actorId = null,
+            actorName = null,
+            actorJobName = null,
+            recipients = emptyList(),
+            title = "투표 집계",
+            body = body,
+            imageUrls = emptyList()
+        )
+    }
+
+    private fun buildProsConsVoteSummary(
+        entries: List<ReplayRenderLogEntry>,
+        sectionTitle: String?
+    ): ReplayRenderLogEntry {
+        val finalChoicesByVoter = linkedMapOf<String, String>()
+        entries.forEach { entry ->
+            val parsed = parseProsConsVote(entry.body)
+            val voter = parsed?.first ?: entry.actorName ?: "알 수 없음"
+            val choice = parsed?.second ?: entry.body.ifBlank { "알 수 없음" }
+            finalChoicesByVoter[voter] = choice
+        }
+
+        val prosCount = finalChoicesByVoter.values.count { it == "찬성" }
+        val consCount = finalChoicesByVoter.values.count { it == "반대" }
+        val target = sectionTitle
+            ?.removeSuffix(" 찬반 투표")
+            ?.takeIf { it != sectionTitle && it.isNotBlank() }
+
+        val body = buildString {
+            if (target != null) {
+                appendLine("대상: $target")
+            }
+            appendLine("결과: 찬성 $prosCount : 반대 $consCount")
+            appendLine()
+            finalChoicesByVoter.forEach { (voter, choice) ->
+                appendLine("$voter: $choice")
+            }
+        }.trim()
+
+        return entries.first().copy(
+            actorId = null,
+            actorName = null,
+            actorJobName = null,
+            recipients = emptyList(),
+            title = "찬반 투표 집계",
+            body = body,
+            imageUrls = emptyList()
+        )
+    }
+
+    private fun parseVoteCast(body: String): VoteChoice? {
+        val parts = body.split("->", limit = 2)
+        if (parts.size != 2) return null
+        val voter = parts[0].trim()
+        val target = parts[1].trim()
+        if (voter.isBlank() || target.isBlank()) return null
+        return VoteChoice(groupTitle = "투표", voter = voter, choice = target)
+    }
+
+    private fun parseProsConsVote(body: String): Pair<String, String>? {
+        val parts = body.split(":", limit = 2)
+        if (parts.size != 2) return null
+        val voter = parts[0].trim()
+        val choice = parts[1].trim()
+        if (voter.isBlank() || choice.isBlank()) return null
+        return voter to choice
+    }
+
+    private fun formatCounts(counts: List<Pair<String, Int>>, suffix: String): String {
+        if (counts.isEmpty()) return "없음"
+        return counts.joinToString(", ") { (target, count) -> "$target ${count}$suffix" }
+    }
+
+    private fun buildBlocks(logs: List<ReplayRenderLogEntry>): List<RenderBlock> {
         val temp = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics().withHints()
         val blocks = mutableListOf<RenderBlock>()
         val imageCache = mutableMapOf<String, BufferedImage?>()
@@ -173,12 +365,10 @@ object GameReplayImageRenderer {
     }
 
     private fun renderPage(
-        game: Game,
+        data: ReplayRenderData,
         pageBlocks: List<RenderBlock>,
         pageNumber: Int,
-        totalPages: Int,
-        endReason: String,
-        winningTeamName: String?
+        totalPages: Int
     ): ByteArray {
         val contentHeight = pageBlocks.sumOf { it.height + CARD_GAP }
         val reservedHeight = if (pageNumber == 1) HEADER_HEIGHT else PAGE_HEADER_HEIGHT
@@ -190,7 +380,7 @@ object GameReplayImageRenderer {
         g.fillRect(0, 0, WIDTH, height)
 
         var y = if (pageNumber == 1) {
-            drawMainHeader(g, game, endReason, winningTeamName, pageNumber, totalPages)
+            drawMainHeader(g, data, pageNumber, totalPages)
             HEADER_HEIGHT
         } else {
             drawPageHeader(g, pageNumber, totalPages)
@@ -214,9 +404,7 @@ object GameReplayImageRenderer {
 
     private fun drawMainHeader(
         g: Graphics2D,
-        game: Game,
-        endReason: String,
-        winningTeamName: String?,
+        data: ReplayRenderData,
         pageNumber: Int,
         totalPages: Int
     ): Int {
@@ -234,17 +422,17 @@ object GameReplayImageRenderer {
 
         g.font = subtitleFont
         g.color = gold
-        g.drawString(winningTeamName ?: endReason, SIDE_PADDING, 166)
+        g.drawString(data.winningTeamName ?: data.endReason, SIDE_PADDING, 166)
 
         g.color = muted
-        val startedAt = timeFormatter.format(Instant.ofEpochMilli(game.replayStartedAtMillis))
+        val startedAt = timeFormatter.format(Instant.ofEpochMilli(data.replayStartedAtMillis))
         g.drawString("시작: $startedAt", SIDE_PADDING, 224)
-        g.drawString("인원: ${game.initialPlayerCount}명 / ${game.dayCount}일차 / 페이지 $pageNumber/$totalPages", SIDE_PADDING, 276)
+        g.drawString("인원: ${data.initialPlayerCount}명 / ${data.dayCount}일차 / 페이지 $pageNumber/$totalPages", SIDE_PADDING, 276)
 
-        val playerSummary = game.playerDatas.joinToString("   ") { player ->
-            val job = game.probationOriginalJobsByPlayer[player.member.id]?.name ?: player.job?.name ?: "?"
-            val state = if (player.state.isDead) "사망" else "생존"
-            "${player.member.effectiveName}($job/$state)"
+        val playerSummary = data.players.joinToString("   ") { player ->
+            val job = player.jobName ?: "?"
+            val state = if (player.isDead) "사망" else "생존"
+            "${player.name}($job/$state)"
         }
         g.font = smallFont
         g.color = Color(210, 214, 220)

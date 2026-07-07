@@ -1,13 +1,11 @@
 package org.beobma.mafia42discordproject.discord
 
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
@@ -57,15 +55,11 @@ object DiscordMessageManager {
         mainChannel.createMessage(content)
     }
 
-    suspend fun Game.sendMainChannerImage(imageLink: String) {
-        sendMainChannerCombinedMessage(imageLink)
-    }
-
     suspend fun Game.sendMainChannelMessageWithImage(imageLink: String, message: String) {
         sendMainChannerCombinedMessage(imageLink, message)
     }
 
-    suspend fun Game.playGameSound(soundPath: String, volume: Int = 100) {
+    suspend fun Game.playGameSound(soundPath: String, volume: Int = 100, loop: Boolean = false) {
         val voiceChannelId = this.voiceChannelId ?: return
         runCatching {
             LavalinkManager.play(
@@ -73,17 +67,31 @@ object DiscordMessageManager {
                 guildId = this.guild.id,
                 voiceChannelId = voiceChannelId,
                 source = soundPath,
-                volume = volume
+                volume = volume,
+                loop = loop
             )
         }.onFailure { error ->
             println("⚠️ 사운드 재생 실패: ${error.message}")
         }
     }
 
-    suspend fun Game.sendMainChannerMessageAndSound(msg: String, soundPath: String, soundVolume: Int = 100) {
+    suspend fun Game.stopLoopingGameSound() {
+        runCatching {
+            LavalinkManager.stopLooping(this.guild.id)
+        }.onFailure { error ->
+            println("⚠️ 반복 사운드 정지 실패: ${error.message}")
+        }
+    }
+
+    suspend fun Game.sendMainChannerMessageAndSound(
+        msg: String,
+        soundPath: String,
+        soundVolume: Int = 100,
+        loopSound: Boolean = false
+    ) {
         coroutineScope {
             launch { sendMainChannerCombinedMessage(msg) }
-            launch { playGameSound(soundPath, soundVolume) }
+            launch { playGameSound(soundPath, soundVolume, loop = loopSound) }
         }
     }
 
@@ -91,11 +99,12 @@ object DiscordMessageManager {
         imageLink: String,
         message: String,
         soundPath: String,
-        soundVolume: Int = 100
+        soundVolume: Int = 100,
+        loopSound: Boolean = false
     ) {
         coroutineScope {
             launch { sendMainChannelMessageWithImage(imageLink, message) }
-            launch { playGameSound(soundPath, soundVolume) }
+            launch { playGameSound(soundPath, soundVolume, loop = loopSound) }
         }
     }
 
@@ -107,10 +116,14 @@ object DiscordMessageManager {
         }
     }
 
-    suspend fun respondEphemeral(event: GuildChatInputCommandInteractionCreateEvent, content: String) {
+    suspend fun respondEphemeral(
+        event: GuildChatInputCommandInteractionCreateEvent,
+        content: String,
+        trackReplay: Boolean = true
+    ) {
         InteractionErrorHandler.runSafely("slash-ephemeral:${event.interaction.command.rootName}") {
             val responseContent = content.takeIf { it.isNotBlank() } ?: "처리했습니다."
-            if (event.interaction.command.rootName in replayTrackedEphemeralCommands) {
+            if (trackReplay && event.interaction.command.rootName in replayTrackedEphemeralCommands) {
                 val game = GameManager.getCurrentGameFor(event.interaction.user.id)
                 val recipient = game?.getPlayer(event.interaction.user.id)
                 if (game != null && recipient != null) {

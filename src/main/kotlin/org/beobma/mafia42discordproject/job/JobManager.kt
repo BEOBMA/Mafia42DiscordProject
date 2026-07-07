@@ -12,6 +12,7 @@ import org.beobma.mafia42discordproject.job.definition.list.Gangster
 import org.beobma.mafia42discordproject.job.definition.list.Ghoul
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
+import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Judge
 import org.beobma.mafia42discordproject.job.definition.list.Magician
 import org.beobma.mafia42discordproject.job.definition.list.Martyr
@@ -41,43 +42,45 @@ import org.beobma.mafia42discordproject.job.evil.list.Villain
 import org.beobma.mafia42discordproject.job.evil.list.Witch
 
 object JobManager {
+    private const val DEBUG_LOGS = false
+
     private val jobs = mutableListOf<Job>()
     private val jobsByName = mutableMapOf<String, Job>()
     private var jobsSnapshot: List<Job> = emptyList()
     private val jobFactories = mutableMapOf<String, () -> Job>()
 
     fun register(job: Job) {
-        println("[JobManager] register start name=${job.name}")
+        debugLog("[JobManager] register start name=${job.name}")
         require(jobs.none { it.name == job.name }) {
-            "이미 등록된 직업입니다: ${job.name}"
+            "Job is already registered: ${job.name}"
         }
         jobs.add(job)
         jobsByName[job.name] = job
         jobsSnapshot = jobs.toList()
-        println("[JobManager] register success name=${job.name}")
+        debugLog("[JobManager] register success name=${job.name}")
     }
 
     fun getAll(): List<Job> = jobsSnapshot
 
     fun findByName(name: String): Job? {
-        println("[JobManager] findByName start name=$name size=${jobs.size}")
+        debugLog("[JobManager] findByName start name=$name size=${jobs.size}")
         val result = jobsByName[name]
-        println("[JobManager] findByName end name=$name result=${result?.name}")
+        debugLog("[JobManager] findByName end name=$name result=${result?.name}")
         return result
     }
 
     fun createByName(name: String): Job? {
-        println("[JobManager] createByName start name=$name")
+        debugLog("[JobManager] createByName start name=$name")
         val factory = jobFactories[name]
         val job = factory?.invoke()
-        println("[JobManager] createByName end name=$name result=${job?.name}")
+        debugLog("[JobManager] createByName end name=$name result=${job?.name}")
         return job
     }
 
     fun registerAll() {
-        println("[JobManager] registerAll start")
+        debugLog("[JobManager] registerAll start")
 
-        listOf<Pair<String, () -> Job>>(
+        listOf(
             "Mafia" to { Mafia() },
             "Godfather" to { Godfather() },
             "Spy" to { Spy() },
@@ -93,6 +96,7 @@ object JobManager {
             "Citizen" to { Citizen() },
             "Doctor" to { Doctor() },
             "Police" to { Police() },
+            "Inspector" to { Inspector() },
             "Detective" to { Detective() },
             "Soldier" to { Soldier() },
             "Nurse" to { Nurse() },
@@ -124,22 +128,28 @@ object JobManager {
             registerFactory(job.name, className, factory)
         }
 
-        println("[JobManager] registerAll end")
+        debugLog("[JobManager] registerAll end")
     }
 
     private fun logCreate(name: String, block: () -> Job): Job {
-        println("[JobManager] create start class=$name")
+        debugLog("[JobManager] create start class=$name")
         val job = block()
-        println("[JobManager] create success class=$name jobName=${job.name}")
+        debugLog("[JobManager] create success class=$name jobName=${job.name}")
         return job
     }
 
     private fun registerFactory(name: String, className: String, factory: () -> Job) {
-        println("[JobManager] registerFactory start name=$name class=$className")
+        debugLog("[JobManager] registerFactory start name=$name class=$className")
         require(name !in jobFactories) {
-            "이미 등록된 직업 팩토리입니다: $name"
+            "Job factory is already registered: $name"
         }
         jobFactories[name] = factory
-        println("[JobManager] registerFactory success name=$name class=$className")
+        debugLog("[JobManager] registerFactory success name=$name class=$className")
+    }
+
+    private fun debugLog(message: String) {
+        if (DEBUG_LOGS) {
+            println(message)
+        }
     }
 }

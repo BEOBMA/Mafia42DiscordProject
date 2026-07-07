@@ -16,7 +16,11 @@ import java.net.http.WebSocket
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -25,6 +29,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlin.time.Duration.Companion.milliseconds
 
 object LavalinkManager {
     private const val DEFAULT_VOLUME = 100
@@ -32,6 +37,7 @@ object LavalinkManager {
 
     private val json = Json { ignoreUnknownKeys = true }
     private val httpClient: HttpClient = HttpClient.newHttpClient()
+    private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var ws: WebSocket? = null
     private var sessionId: String? = null
@@ -45,8 +51,8 @@ object LavalinkManager {
 
     private val voiceServerUpdates = ConcurrentHashMap<String, VoiceServerPayload>()
     private val voiceStates = ConcurrentHashMap<String, VoiceStatePayload>()
-
-    fun isReady(): Boolean = initialized
+    private val currentPlaybacks = ConcurrentHashMap<String, PlaybackState>()
+    private val loopingPlaybacks = ConcurrentHashMap<String, LoopingPlayback>()
 
     fun initialize(kord: Kord) {
         host = System.getenv("LAVALINK_HOST") ?: error("LAVALINK_HOST 환경 변수가 설정되지 않았습니다.")
@@ -61,7 +67,7 @@ object LavalinkManager {
         println("✅ Lavalink(v4) 연결 초기화 완료: host=$host, port=$port, secure=$secure")
     }
 
-    suspend fun handleVoiceStateUpdate(event: VoiceStateUpdateEvent, kord: Kord) {
+    fun handleVoiceStateUpdate(event: VoiceStateUpdateEvent, kord: Kord) {
         if (event.state.userId != kord.selfId) return
 
         val guildId = event.state.guildId.toString()
@@ -101,7 +107,8 @@ object LavalinkManager {
         guildId: Snowflake,
         voiceChannelId: Snowflake,
         source: String,
-        volume: Int = DEFAULT_VOLUME
+        volume: Int = DEFAULT_VOLUME,
+        loop: Boolean = false
     ): PlayResult {
         ensureInitialized()
 
@@ -162,11 +169,50 @@ object LavalinkManager {
             return PlayResult(false, "재생 요청 실패(status=${playResponse.statusCode()}): ${playResponse.body()}")
         }
 
+        val playbackState = PlaybackState(
+            guildId = guildId,
+            voiceChannelId = voiceChannelId,
+            source = source,
+            volume = volume,
+            encoded = selectedTrack.encoded
+        )
+        currentPlaybacks[guildIdString] = playbackState
+        if (loop) {
+            loopingPlaybacks[guildIdString] = LoopingPlayback(
+                kord = kord,
+                state = playbackState
+            )
+        } else {
+            loopingPlaybacks.remove(guildIdString)
+        }
+
         return PlayResult(true, "재생 성공")
+    }
+
+    suspend fun stopLooping(guildId: Snowflake) {
+        if (!initialized) return
+
+        val guildIdString = guildId.toString()
+        val loopingPlayback = loopingPlaybacks.remove(guildIdString) ?: return
+        val currentPlayback = currentPlaybacks[guildIdString]
+        if (currentPlayback?.encoded != loopingPlayback.state.encoded) return
+
+        val currentSessionId = sessionId ?: return
+        runCatching {
+            sendPatch(
+                url = "${baseHttpUrl()}/v4/sessions/$currentSessionId/players/${guildId.value}",
+                body = """{"encodedTrack":null}"""
+            )
+            currentPlaybacks.remove(guildIdString, currentPlayback)
+        }.onFailure { error ->
+            println("⚠️ Lavalink looping playback stop failed(guildId=${guildId.value}): ${error.message}")
+        }
     }
 
     suspend fun stop(kord: Kord, guildId: Snowflake) {
         if (!initialized) return
+        loopingPlaybacks.remove(guildId.toString())
+        currentPlaybacks.remove(guildId.toString())
 
         val currentSessionId = sessionId
         if (currentSessionId != null) {
@@ -220,9 +266,9 @@ object LavalinkManager {
     }
 
     private suspend fun waitForVoiceHandshake(guildId: String): Boolean {
-        return withTimeoutOrNull(5_000) {
+        return withTimeoutOrNull(5_000.milliseconds) {
             while (voiceStates[guildId] == null || voiceServerUpdates[guildId] == null) {
-                delay(50)
+                delay(50.milliseconds)
             }
             true
         } ?: false
@@ -288,6 +334,7 @@ object LavalinkManager {
         val trimmed = source.trim()
         if (trimmed.isBlank()) return null
 
+        @Suppress("HttpUrlsUsage")
         if (
             trimmed.startsWith("http://") ||
             trimmed.startsWith("https://") ||
@@ -362,6 +409,9 @@ object LavalinkManager {
 
                     "event" -> {
                         val type = jsonMessage.stringOrNull("type") ?: "unknown"
+                        if (type == "TrackEndEvent") {
+                            handleTrackEndEvent(jsonMessage)
+                        }
                         println("🎵 Lavalink event: type=$type payload=$message")
                     }
 
@@ -388,6 +438,36 @@ object LavalinkManager {
             println("❌ Lavalink websocket error: ${error.message}")
         }
     }
+
+    private fun handleTrackEndEvent(jsonMessage: JsonObject) {
+        val guildId = jsonMessage.stringOrNull("guildId") ?: return
+        val reason = jsonMessage.stringOrNull("reason").orEmpty()
+        val endedTrack = jsonMessage["track"]?.jsonObject?.stringOrNull("encoded") ?: return
+        val currentPlayback = currentPlaybacks[guildId]
+
+        if (currentPlayback?.encoded == endedTrack) {
+            currentPlaybacks.remove(guildId, currentPlayback)
+        }
+
+        if (reason != "FINISHED") return
+        val loopingPlayback = loopingPlaybacks[guildId] ?: return
+        if (loopingPlayback.state.encoded != endedTrack) return
+
+        playbackScope.launch {
+            val result = play(
+                kord = loopingPlayback.kord,
+                guildId = loopingPlayback.state.guildId,
+                voiceChannelId = loopingPlayback.state.voiceChannelId,
+                source = loopingPlayback.state.source,
+                volume = loopingPlayback.state.volume,
+                loop = true
+            )
+            if (!result.success) {
+                loopingPlaybacks.remove(guildId)
+                println("⚠️ Lavalink looping playback restart failed(guildId=$guildId): ${result.message}")
+            }
+        }
+    }
 }
 
 data class PlayResult(
@@ -409,6 +489,19 @@ private data class VoiceStatePayload(
 private data class LavalinkTrack(
     val encoded: String,
     val title: String
+)
+
+private data class PlaybackState(
+    val guildId: Snowflake,
+    val voiceChannelId: Snowflake,
+    val source: String,
+    val volume: Int,
+    val encoded: String
+)
+
+private data class LoopingPlayback(
+    val kord: Kord,
+    val state: PlaybackState
 )
 
 private fun JsonObject.stringOrNull(key: String): String? =

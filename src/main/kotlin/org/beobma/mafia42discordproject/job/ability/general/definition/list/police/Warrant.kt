@@ -4,7 +4,6 @@ import dev.kord.common.entity.Snowflake
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
-import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import kotlin.reflect.KClass
 

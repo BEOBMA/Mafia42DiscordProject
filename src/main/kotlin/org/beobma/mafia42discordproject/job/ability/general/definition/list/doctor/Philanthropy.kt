@@ -1,16 +1,17 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor
 
 import org.beobma.mafia42discordproject.game.Game
-import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
-import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.definition.list.Agent
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
+import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Police
+import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import kotlin.reflect.KClass
 
 class Philanthropy : PassiveAbility, JobSpecificExtraAbility {
@@ -23,7 +24,10 @@ class Philanthropy : PassiveAbility, JobSpecificExtraAbility {
         if (event is GameEvent.PlayerHealed && event.healer == owner) {
 
             val isTargetSelf = event.target == owner
-            val isTargetPolice = event.target.job is Police
+            val isTargetPolice = event.target.job is Police ||
+                event.target.job is Inspector ||
+                event.target.job is Agent ||
+                event.target.job is Vigilante
 
             // 박애 적용
             if (!isTargetSelf && !isTargetPolice) {

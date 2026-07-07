@@ -9,15 +9,47 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
+import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 
 object BestJobPreferenceManager {
-    private val bestJobByUserId: MutableMap<ULong, Job> = mutableMapOf()
-    private val storagePath: Path = Path.of("data", "best-job-preferences.json")
-    private val json = Json { prettyPrint = true }
+    private val store = BestJobPreferenceStore(
+        storagePath = Path.of("data", "best-job-preferences.json"),
+        resolveJob = JobManager::findByName
+    )
 
     private val fixedCandidateJobNames = setOf("의사", "마피아")
+
+    fun save(userId: ULong, job: Job) = store.save(userId, job)
+
+    fun get(userId: ULong): Job? = store.get(userId)
+
+    fun clear(userId: ULong) = store.clear(userId)
+
+    fun load() = store.load()
+
+    fun buildAllowedJobNames(userId: ULong): Set<String> {
+        val preferredJobNames = JobPreferenceManager.get(userId)
+            .orEmpty()
+            .map(Job::name)
+            .filter { it != MentalPatient.JOB_NAME }
+            .toSet()
+        return preferredJobNames + fixedCandidateJobNames
+    }
+
+    fun isAllowedJob(userId: ULong, jobName: String): Boolean {
+        if (jobName == MentalPatient.JOB_NAME) return false
+        return jobName in buildAllowedJobNames(userId)
+    }
+}
+
+internal class BestJobPreferenceStore(
+    private val storagePath: Path,
+    private val resolveJob: (String) -> Job?
+) {
+    private val bestJobByUserId: MutableMap<ULong, Job> = mutableMapOf()
+    private val json = Json { prettyPrint = true }
 
     fun save(userId: ULong, job: Job) {
         bestJobByUserId[userId] = job
@@ -40,7 +72,7 @@ object BestJobPreferenceManager {
         val raw = Files.readString(storagePath)
         val root = runCatching { json.parseToJsonElement(raw) }
             .getOrElse {
-                println("[BestJobPreferenceManager] 저장 파일 파싱 실패: ${it.message}")
+                println("[BestJobPreferenceManager] failed to parse preference file: ${it.message}")
                 return
             }
 
@@ -50,14 +82,14 @@ object BestJobPreferenceManager {
         jsonObject.forEach { (userIdText, jobElement) ->
             val userId = userIdText.toULongOrNull()
             if (userId == null) {
-                println("[BestJobPreferenceManager] 잘못된 userId 키를 건너뜁니다: $userIdText")
+                println("[BestJobPreferenceManager] skipping invalid userId key: $userIdText")
                 return@forEach
             }
 
             val jobName = jobElement.jsonPrimitive.contentOrNull ?: return@forEach
-            val matchedJob = JobManager.findByName(jobName)
+            val matchedJob = resolveJob(jobName)
             if (matchedJob == null) {
-                println("[BestJobPreferenceManager] 알 수 없는 직업을 건너뜁니다: $jobName")
+                println("[BestJobPreferenceManager] skipping unknown job: $jobName")
                 return@forEach
             }
 
@@ -66,37 +98,20 @@ object BestJobPreferenceManager {
 
         bestJobByUserId.clear()
         bestJobByUserId.putAll(loaded)
-        println("[BestJobPreferenceManager] 최선호 직업 ${loaded.size}건을 불러왔습니다.")
-    }
-
-    fun buildAllowedJobNames(userId: ULong): Set<String> {
-        val preferredJobNames = JobPreferenceManager.get(userId)
-            .orEmpty()
-            .map(Job::name)
-            .filter { it != MentalPatient.JOB_NAME }
-            .toSet()
-        return preferredJobNames + fixedCandidateJobNames
-    }
-
-    fun isAllowedJob(userId: ULong, jobName: String): Boolean {
-        if (jobName == MentalPatient.JOB_NAME) return false
-        return jobName in buildAllowedJobNames(userId)
+        println("[BestJobPreferenceManager] loaded ${loaded.size} best-job preference entries.")
     }
 
     private fun persist() {
-        val parent = storagePath.parent
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent)
-        }
+        val snapshot = bestJobByUserId.toMap()
 
         val root = buildJsonObject {
-            bestJobByUserId.entries
+            snapshot.entries
                 .sortedBy { it.key }
                 .forEach { (userId, job) ->
                     put(userId.toString(), JsonPrimitive(job.name))
                 }
         }
 
-        Files.writeString(storagePath, json.encodeToString(JsonObject.serializer(), root))
+        AtomicTextFileWriter.write(storagePath, json.encodeToString(JsonObject.serializer(), root))
     }
 }

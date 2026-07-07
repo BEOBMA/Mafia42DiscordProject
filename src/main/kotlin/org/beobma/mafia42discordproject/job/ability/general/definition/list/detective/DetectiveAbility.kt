@@ -62,11 +62,10 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
             detective.trapTriggeredTargetIdsThisNight.clear()
         }
 
-        suspend fun notifyTargetSelection(
+        fun notifyTargetSelection(
             game: Game,
             caster: PlayerData,
             selectedTarget: PlayerData,
-            usedAbility: ActiveAbility,
             previousTargetId: Snowflake?
         ) {
             if (game.currentPhase != GamePhase.NIGHT) return

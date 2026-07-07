@@ -19,6 +19,7 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.ImageIO
 
 object JobInfoImageCommand : DiscordCommand {
@@ -27,18 +28,20 @@ object JobInfoImageCommand : DiscordCommand {
     override val koreanName: String = "직업정보"
     override val aliases: Set<String> = setOf("직업정보", "직업능력")
 
-    private const val jobOptionName = "job"
-    private const val maxAutoCompleteChoices = 25
+    private const val JOB_OPTION_NAME = "job"
+    private const val MAX_AUTO_COMPLETE_CHOICES = 25
+    private val whitespaceRegex = Regex("\\s+")
+    private val jobInfoImageCache = ConcurrentHashMap<String, ByteArray>()
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val focusedEntry = event.interaction.command.options.entries.firstOrNull { it.value.focused } ?: return
-        if (focusedEntry.key != jobOptionName) return
+        if (focusedEntry.key != JOB_OPTION_NAME) return
 
         val query = (focusedEntry.value as? StringOptionValue)?.value?.trim().orEmpty()
         val suggestions = JobManager.getAll()
             .map(Job::name)
             .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-            .take(maxAutoCompleteChoices)
+            .take(MAX_AUTO_COMPLETE_CHOICES)
 
         event.interaction.suggestString {
             suggestions.forEach { jobName ->
@@ -48,7 +51,7 @@ object JobInfoImageCommand : DiscordCommand {
     }
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val selectedJobName = event.interaction.command.strings[jobOptionName]
+        val selectedJobName = event.interaction.command.strings[JOB_OPTION_NAME]
         val selectedJob = selectedJobName?.let { name ->
             JobManager.getAll().firstOrNull { it.name == name }
         }
@@ -59,7 +62,9 @@ object JobInfoImageCommand : DiscordCommand {
             return
         }
 
-        val imageBytes = renderJobInfoImage(selectedJob)
+        val imageBytes = jobInfoImageCache.computeIfAbsent(selectedJob.name) {
+            renderJobInfoImage(selectedJob)
+        }
         val response = event.interaction.deferEphemeralResponse()
         response.respond {
             content = "${selectedJob.name} 직업 정보입니다."
@@ -75,7 +80,7 @@ object JobInfoImageCommand : DiscordCommand {
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            string(jobOptionName, "정보를 확인할 직업") {
+            string(JOB_OPTION_NAME, "정보를 확인할 직업") {
                 required = true
                 autocomplete = true
             }
@@ -85,7 +90,7 @@ object JobInfoImageCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            string(jobOptionName, "정보를 확인할 직업") {
+            string(JOB_OPTION_NAME, "정보를 확인할 직업") {
                 required = true
                 autocomplete = true
             }
@@ -163,7 +168,7 @@ object JobInfoImageCommand : DiscordCommand {
 
     private fun splitIntoLines(text: String, font: Font, maxWidth: Int, graphics: Graphics2D): List<String> {
         val normalized = text.replace("\n", " \n ")
-        val words = normalized.split(Regex("\\s+"))
+        val words = normalized.split(whitespaceRegex)
         if (words.isEmpty()) return listOf(text)
 
         graphics.font = font
@@ -177,7 +182,7 @@ object JobInfoImageCommand : DiscordCommand {
                 return@forEach
             }
 
-            val candidate = if (current.isEmpty()) word else "${current} $word"
+            val candidate = if (current.isEmpty()) word else "$current $word"
             if (graphics.fontMetrics.stringWidth(candidate) <= maxWidth) {
                 current.clear()
                 current.append(candidate)

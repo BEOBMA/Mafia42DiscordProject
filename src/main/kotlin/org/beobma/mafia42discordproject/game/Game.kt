@@ -2,7 +2,9 @@ package org.beobma.mafia42discordproject.game
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Guild
+import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.AttackEvent
@@ -47,6 +49,7 @@ data class Game(
     var isRunning: Boolean = false,
 ) {
     private val playerById: MutableMap<Snowflake, PlayerData> = mutableMapOf()
+    private val spectatorById: MutableMap<Snowflake, Member> = mutableMapOf()
 
     init {
         rebuildPlayerIndex()
@@ -54,7 +57,12 @@ data class Game(
 
     var dayCount: Int = 0
     var initialPlayerCount: Int = 0
-    var isCrazyMode: Boolean = false
+    var mode: GameStartMode = GameStartMode.NORMAL
+    var isCrazyMode: Boolean
+        get() = mode == GameStartMode.MADNESS
+        set(value) {
+            mode = if (value) GameStartMode.MADNESS else GameStartMode.NORMAL
+        }
     var nightPhaseStartedAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
@@ -62,8 +70,10 @@ data class Game(
     var coupleChannel: TextChannel? = null
     var deadChannel: TextChannel? = null
     var voiceChannelId: Snowflake? = null
+    var spectatorMembers: MutableList<Member> = mutableListOf()
     var hasArchivedSnapshot: Boolean = false
     var hasSentReplay: Boolean = false
+    var hasLoggedFinalJobAbilityReplay: Boolean = false
     var replayStartedAtMillis: Long = System.currentTimeMillis()
     var nextReplaySequence: Long = 1L
     val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
@@ -108,6 +118,7 @@ data class Game(
     val pendingWitchCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val pendingOblivionCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val pendingDayStartDiscoveries: MutableList<GameEvent.JobDiscovered> = mutableListOf()
+    val pendingMadScientistRevivalAnnouncementIds: MutableSet<Snowflake> = mutableSetOf()
     val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
     val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val dayTimeAdjustmentUsedPlayers: MutableSet<Snowflake> = mutableSetOf()
@@ -119,10 +130,22 @@ data class Game(
         rebuildPlayerIndex()
     }
 
+    fun replaceSpectators(spectators: MutableList<Member>) {
+        spectatorMembers = spectators
+        rebuildSpectatorIndex()
+    }
+
     fun rebuildPlayerIndex() {
         playerById.clear()
         playerDatas.forEach { player ->
             playerById[player.member.id] = player
+        }
+    }
+
+    fun rebuildSpectatorIndex() {
+        spectatorById.clear()
+        spectatorMembers.forEach { spectator ->
+            spectatorById[spectator.id] = spectator
         }
     }
 
@@ -142,4 +165,20 @@ data class Game(
 
         return fallbackPlayer
     }
+
+    fun getSpectator(userId: Snowflake): Member? {
+        val indexedSpectator = spectatorById[userId]
+        if (indexedSpectator != null) {
+            return indexedSpectator
+        }
+
+        val fallbackSpectator = spectatorMembers.firstOrNull { spectator -> spectator.id == userId }
+        if (fallbackSpectator != null) {
+            spectatorById[userId] = fallbackSpectator
+        }
+
+        return fallbackSpectator
+    }
+
+    fun isSpectator(userId: Snowflake): Boolean = getSpectator(userId) != null
 }

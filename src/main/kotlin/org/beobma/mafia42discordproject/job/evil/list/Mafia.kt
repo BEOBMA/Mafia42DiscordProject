@@ -3,7 +3,6 @@ package org.beobma.mafia42discordproject.job.evil.list
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.NightRaid
 import org.beobma.mafia42discordproject.job.evil.Evil
 
 class Mafia : Job(), Evil {

@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.game.system
 
-import dev.kord.core.behavior.channel.createMessage
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger

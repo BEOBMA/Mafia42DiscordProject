@@ -12,10 +12,10 @@ object PerjuryCommand : DiscordCommand {
     override val description: String = "투표 시간에 가짜 투표를 행사합니다."
     override val koreanName: String = "위증"
     override val aliases: Set<String> = setOf("위증")
-    private const val targetOptionName = "target"
+    private const val TARGET_OPTION_NAME = "target"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val target = event.interaction.command.users[targetOptionName]
+        val target = event.interaction.command.users[TARGET_OPTION_NAME]
         if (target == null) {
             DiscordMessageManager.respondEphemeral(event, "위증 대상을 지정해 주세요.")
             return
@@ -31,7 +31,7 @@ object PerjuryCommand : DiscordCommand {
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            user(targetOptionName, "가짜 투표 대상") {
+            user(TARGET_OPTION_NAME, "가짜 투표 대상") {
                 required = true
             }
         }
@@ -40,7 +40,7 @@ object PerjuryCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            user(targetOptionName, "가짜 투표 대상") {
+            user(TARGET_OPTION_NAME, "가짜 투표 대상") {
                 required = true
             }
         }

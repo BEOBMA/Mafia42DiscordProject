@@ -37,6 +37,7 @@ object AbilityManager {
             org.beobma.mafia42discordproject.job.ability.general.definition.list.ghoul.Succession(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.Synchronization(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.hypnotist.Hint(),
+            org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.Emergency(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Assistant(),
             org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Xray(),

@@ -1,11 +1,6 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.witch
 
-import dev.kord.core.behavior.channel.createMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
@@ -19,6 +14,7 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Witch
+import kotlin.time.Duration.Companion.milliseconds
 
 class WitchAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "저주"
@@ -74,7 +70,7 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         }
 
         scope.launch {
-            delay(delayMillis)
+            delay(delayMillis.milliseconds)
             if (game.currentPhase != GamePhase.NIGHT) return@launch
             val selectedTargetId = game.pendingWitchCurseByCaster[caster.member.id] ?: return@launch
             if (selectedTargetId != effectiveTarget.member.id) return@launch

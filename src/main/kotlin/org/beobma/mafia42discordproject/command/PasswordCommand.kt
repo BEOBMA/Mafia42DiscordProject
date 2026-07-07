@@ -12,18 +12,18 @@ object PasswordCommand : DiscordCommand {
     override val description: String = "암구호 메시지를 마피아 팀 채널에 전송합니다."
     override val koreanName: String = "암구호"
     override val aliases: Set<String> = setOf("암구호")
-    private const val messageOptionName = "message"
+    private const val MESSAGE_OPTION_NAME = "message"
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
-        val message = event.interaction.command.strings[messageOptionName].orEmpty()
+        val message = event.interaction.command.strings[MESSAGE_OPTION_NAME].orEmpty()
         val result = GameManager.sendPasswordChat(event.interaction.user.id, message)
-        DiscordMessageManager.respondEphemeral(event, result.message)
+        DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = !result.isSuccess)
     }
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
             applyKoreanLocalization(this)
-            string(messageOptionName, "암구호 내용") {
+            string(MESSAGE_OPTION_NAME, "암구호 내용") {
                 required = true
             }
         }
@@ -32,7 +32,7 @@ object PasswordCommand : DiscordCommand {
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
             applyKoreanLocalization(this)
-            string(messageOptionName, "암구호 내용") {
+            string(MESSAGE_OPTION_NAME, "암구호 내용") {
                 required = true
             }
         }

@@ -1,0 +1,89 @@
+{
+    "schemaVersion": 1,
+    "generatedAtMillis": 1783436915170,
+    "endReason": "FORCED_STOP",
+    "winningTeamName": null,
+    "guildId": "752755763964936250",
+    "guildName": "좀비고 귀인 클랜 디코방",
+    "replayStartedAtMillis": 1783436835293,
+    "dayCount": 0,
+    "initialPlayerCount": 7,
+    "players": [
+        {
+            "id": "777116116379500554",
+            "name": "이수",
+            "jobName": "경찰",
+            "isDead": false
+        },
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "jobName": "해커",
+            "isDead": false
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "jobName": "정신병자",
+            "isDead": false
+        },
+        {
+            "id": "926806575765659648",
+            "name": "if:]",
+            "jobName": "최면술사",
+            "isDead": false
+        },
+        {
+            "id": "704301844968505365",
+            "name": "샤벳",
+            "jobName": "청부업자",
+            "isDead": false
+        },
+        {
+            "id": "818838276026794004",
+            "name": "샌드백",
+            "jobName": "마피아",
+            "isDead": false
+        },
+        {
+            "id": "1036233917218426952",
+            "name": "부계정임",
+            "jobName": "의사",
+            "isDead": false
+        }
+    ],
+    "logs": [
+        {
+            "sequence": 1,
+            "timestampMillis": 1783436835991,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "SYSTEM_INTERNAL",
+            "title": "게임 시작",
+            "body": "모드: 미치광이\n참가자 7명\n- 이수: 경찰\n- BEOBMA: 해커\n- 은지: 정신병자\n- if:]: 최면술사\n- 샤벳: 청부업자\n- 샌드백: 마피아\n- 부계정임: 의사",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 2,
+            "timestampMillis": 1783436912438,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_END",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "게임 종료",
+            "body": "FORCED_STOP",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        }
+    ]
+}

@@ -3,15 +3,10 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.doc
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.system.AttackTier
-import org.beobma.mafia42discordproject.game.system.DefenseTier
-import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.ability.PassiveAbility
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.WinOrDead
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.definition.list.Nurse
 import org.beobma.mafia42discordproject.job.evil.list.Thief

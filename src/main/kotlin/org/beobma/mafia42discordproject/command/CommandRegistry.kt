@@ -5,6 +5,9 @@ object CommandRegistry {
         PingCommand,
         PlayCommand,
         HelloCommand,
+        ReadyCommand,
+        SpectateCommand,
+        RefreshLobbyCommand,
         GameStartCommand,
         GameStopCommand,
         AbilityUseCommand,
@@ -13,6 +16,8 @@ object CommandRegistry {
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
         JobAssignmentSimulationCommand,
+        GameStatisticsCommand,
+        GameStatisticsImageCommand,
         JobInfoImageCommand,
         DebugCommand,
         ShamanRelayCommand,
@@ -23,13 +28,31 @@ object CommandRegistry {
         PerjuryCommand,
         PasswordCommand,
     )
+    private val commandsByName: Map<String, DiscordCommand> = buildMap {
+        registeredCommands.forEach { command ->
+            register(command.name, command)
+            command.aliases.forEach { alias ->
+                register(alias, command)
+            }
+        }
+    }
 
     fun all(): List<DiscordCommand> = registeredCommands
 
     fun find(name: String): DiscordCommand? {
-        val normalizedName = name.lowercase()
-        return registeredCommands.firstOrNull { command ->
-            command.name == normalizedName || command.aliases.contains(normalizedName)
+        val normalizedName = name.trim().lowercase()
+        return commandsByName[normalizedName]
+    }
+
+    private fun MutableMap<String, DiscordCommand>.register(rawName: String, command: DiscordCommand) {
+        val normalizedName = rawName.trim().lowercase()
+        require(normalizedName.isNotBlank()) {
+            "Blank command name or alias is not allowed for /${command.name}"
+        }
+
+        val existing = putIfAbsent(normalizedName, command)
+        require(existing == null || existing == command) {
+            "Duplicate command name or alias '$normalizedName' for /${existing?.name} and /${command.name}"
         }
     }
 }

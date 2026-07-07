@@ -3,7 +3,6 @@ package org.beobma.mafia42discordproject.command
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.suggestString
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
@@ -11,9 +10,9 @@ import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.interaction.user
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.Game
-import org.beobma.mafia42discordproject.game.GamePhase
-import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GameLoopManager
+import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
@@ -21,30 +20,31 @@ import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.SwindlerManager
+import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.AdministratorInvestigationPolicy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Cooperation
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.agent.Humint
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Identification
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.agent.Humint
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.cabal.SunCabalAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.beastman.BeastmanAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
-import org.beobma.mafia42discordproject.job.JobManager
-import org.beobma.mafia42discordproject.job.ability.AbilityResult
-import org.beobma.mafia42discordproject.job.evil.list.Beastman
-import org.beobma.mafia42discordproject.job.evil.list.Mafia
-import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
+import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -52,10 +52,10 @@ object AbilityUseCommand : DiscordCommand {
     override val koreanName: String = "사용"
     override val aliases: Set<String> = setOf("사용")
 
-    private const val abilityOptionName = "use_ability"
-    private const val targetOptionName = "use_target"
-    private const val jobOptionName = "use_job"
-    private const val maxAutoCompleteChoices = 25
+    private const val ABILITY_OPTION_NAME = "use_ability"
+    private const val TARGET_OPTION_NAME = "use_target"
+    private const val JOB_OPTION_NAME = "use_job"
+    private const val MAX_AUTO_COMPLETE_CHOICES = 25
 
     override suspend fun handleAutoComplete(event: GuildAutoCompleteInteractionCreateEvent) {
         val interaction = event.interaction
@@ -67,12 +67,12 @@ object AbilityUseCommand : DiscordCommand {
         val query = (focusedEntry.value as? StringOptionValue)?.value?.trim().orEmpty()
 
         when (focusedEntry.key) {
-            abilityOptionName -> {
+            ABILITY_OPTION_NAME -> {
                 val suggestions = getUsableActiveAbilities(game, caster)
                     .map(ActiveAbility::name)
                     .distinct()
                     .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-                    .take(maxAutoCompleteChoices)
+                    .take(MAX_AUTO_COMPLETE_CHOICES)
 
                 interaction.suggestString {
                     suggestions.forEach { abilityName ->
@@ -81,8 +81,8 @@ object AbilityUseCommand : DiscordCommand {
                 }
             }
 
-            jobOptionName -> {
-                val selectedAbilityName = interaction.command.strings[abilityOptionName]
+            JOB_OPTION_NAME -> {
+                val selectedAbilityName = interaction.command.strings[ABILITY_OPTION_NAME]
                 val selectedAbility = getUsableActiveAbilities(game, caster).firstOrNull { it.name == selectedAbilityName }
                 val suggestions = when (selectedAbility) {
                     is AdministratorAbility -> {
@@ -99,7 +99,7 @@ object AbilityUseCommand : DiscordCommand {
                 }
                     .distinct()
                     .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-                    .take(maxAutoCompleteChoices)
+                    .take(MAX_AUTO_COMPLETE_CHOICES)
 
                 interaction.suggestString {
                     suggestions.forEach { jobName ->
@@ -139,7 +139,7 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
 
-        val abilityName = interaction.command.strings[abilityOptionName]
+        val abilityName = interaction.command.strings[ABILITY_OPTION_NAME]
         if (abilityName == null) {
             DiscordMessageManager.respondEphemeral(event, "You must choose an ability to use.")
             return
@@ -155,7 +155,7 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
 
-        val targetDiscordUser = interaction.command.users[targetOptionName]
+        val targetDiscordUser = interaction.command.users[TARGET_OPTION_NAME]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
         if (isBlockedByUnwrittenRule(game, target)) {
             DiscordMessageManager.respondEphemeral(event, "불문율에 의해 불가능합니다.")
@@ -171,7 +171,7 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
         if (caster.job is MentalPatient) {
-            val selectedJobName = interaction.command.strings[jobOptionName]
+            val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
             val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
             val message = if (result.isSuccess) {
                 result.message?.takeIf { it.isNotBlank() } ?: "Your ability was used successfully."
@@ -190,7 +190,7 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, message)
             return
         }
-        val previousMafiaTarget = if (selectedAbility is MafiaAbility || selectedAbility is BeastmanAbility) {
+        val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
         } else {
             null
@@ -199,11 +199,11 @@ object AbilityUseCommand : DiscordCommand {
 
         val result = when (selectedAbility) {
             is AdministratorAbility -> {
-                val selectedJobName = interaction.command.strings[jobOptionName]
+                val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
                 selectedAbility.activateWithJobName(game, caster, selectedJobName)
             }
             is HitManAbility -> {
-                val selectedJobName = interaction.command.strings[jobOptionName]
+                val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
                 selectedAbility.activateWithJobName(game, caster, target, selectedJobName)
             }
             else -> selectedAbility.activate(game, caster, target)
@@ -225,17 +225,13 @@ object AbilityUseCommand : DiscordCommand {
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
-        if (result.isSuccess && selectedAbility is BeastmanAbility && target != null && caster.job is Beastman && caster.state.isTamed) {
-            notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
-        }
         if (result.isSuccess && effectiveTarget != null) {
             SwindlerManager.notifyBeautyTrap(effectiveTarget, caster)
-            Humint.notifyIfTriggered(game, caster, effectiveTarget, selectedAbility)
+            Humint.notifyIfTriggered(game, caster, effectiveTarget)
             DetectiveAbility.notifyTargetSelection(
                 game = game,
                 caster = caster,
                 selectedTarget = effectiveTarget,
-                usedAbility = selectedAbility,
                 previousTargetId = previousAbilityTargetId
             )
         }
@@ -254,7 +250,7 @@ object AbilityUseCommand : DiscordCommand {
                 abilityName = selectedAbility.name,
                 target = target,
                 effectiveTarget = effectiveTarget,
-                selectedJobName = interaction.command.strings[jobOptionName],
+                selectedJobName = interaction.command.strings[JOB_OPTION_NAME],
                 isSuccess = result.isSuccess,
                 message = message
             ),
@@ -309,12 +305,12 @@ object AbilityUseCommand : DiscordCommand {
         }
 
         return when (selectedAbility) {
-            is FortunetellerAbility -> buildMentalPatientFortuneResult(game, target)
+            is FortunetellerAbility -> buildMentalPatientFortuneResult(target)
             is MentalistAbility -> buildMentalPatientMentalistResult(game, caster, target)
             is AdministratorAbility -> {
                 val jobName = selectedJobName?.takeIf { it.isNotBlank() }
                     ?: return AbilityResult(true, "이번 밤의 조회 대상을 해제했습니다.")
-                AbilityResult(true, "${jobName} 직업을 조회 대상으로 선택했습니다.")
+                AbilityResult(true, "$jobName 직업을 조회 대상으로 선택했습니다.")
             }
             else -> {
                 val targetName = target?.member?.effectiveName
@@ -328,7 +324,7 @@ object AbilityUseCommand : DiscordCommand {
         }
     }
 
-    private fun buildMentalPatientFortuneResult(game: Game, target: PlayerData?): AbilityResult {
+    private fun buildMentalPatientFortuneResult(target: PlayerData?): AbilityResult {
         if (target == null) {
             return AbilityResult(false, "운세 대상을 지정해야 합니다.")
         }
@@ -395,6 +391,7 @@ object AbilityUseCommand : DiscordCommand {
         return abilitySource
             .filterIsInstance<ActiveAbility>()
             .filter { it.usablePhase == game.currentPhase }
+            .filter { canUseCabalActiveAbility(game, caster, it) }
             .filter { ability ->
                 if (ability is GodfatherAbility) {
                     GodfatherContactPolicy.canUseExecution(game, caster) &&
@@ -403,6 +400,18 @@ object AbilityUseCommand : DiscordCommand {
                     FrogCurseManager.canUseActiveAbility(caster, ability)
                 }
             }
+    }
+
+    private fun canUseCabalActiveAbility(game: Game, caster: PlayerData, ability: ActiveAbility): Boolean {
+        if (ability !is SunCabalAbility) return true
+
+        val sunCabal = caster.job as? Cabal ?: return true
+        if (sunCabal.role != CabalRole.SUN) return true
+
+        val moonCabal = sunCabal.pairedPlayerId
+            ?.let(game::getPlayer)
+            ?.job as? Cabal
+        return moonCabal?.role == CabalRole.MOON && moonCabal.hasFoundSun
     }
 
     private fun isBlockedByUnwrittenRule(game: Game, directTarget: PlayerData?): Boolean {
@@ -416,7 +425,7 @@ object AbilityUseCommand : DiscordCommand {
     private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {
         return when (selectedAbility) {
             is DoctorAbility -> "이미 사망한 플레이어는 치료할 수 없습니다."
-            is MafiaAbility, is GodfatherAbility, is BeastmanAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
+            is MafiaAbility, is GodfatherAbility -> "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다."
             is NurseAbility -> "사망한 플레이어는 처방 대상으로 지정할 수 없습니다."
             is DetectiveAbility -> "사망한 플레이어는 추리 대상으로 지정할 수 없습니다."
             is SpyAbility -> "사망한 플레이어는 첩보 대상으로 지정할 수 없습니다."
@@ -425,14 +434,14 @@ object AbilityUseCommand : DiscordCommand {
     }
 
     private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
-        string(abilityOptionName, "Select which active ability to use.") {
+        string(ABILITY_OPTION_NAME, "Select which active ability to use.") {
             required = true
             autocomplete = true
         }
-        user(targetOptionName, "Select a target if the ability needs one.") {
+        user(TARGET_OPTION_NAME, "Select a target if the ability needs one.") {
             required = false
         }
-        string(jobOptionName, "Select a job if the ability targets a job.") {
+        string(JOB_OPTION_NAME, "Select a job if the ability targets a job.") {
             required = false
             autocomplete = true
         }

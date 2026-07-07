@@ -136,7 +136,7 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "숙청 대상이 이미 사망했습니다.")
         }
 
-        if (!isKnownEnemyTarget(game, caster, selectedTarget, vigilante)) {
+        if (!isKnownEnemyTarget(caster, selectedTarget, vigilante)) {
             return AbilityResult(false, "알고 있는 적팀만 숙청할 수 있습니다.")
         }
 
@@ -156,7 +156,6 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private fun isKnownEnemyTarget(
-        game: Game,
         caster: PlayerData,
         target: PlayerData,
         vigilante: Vigilante?

@@ -21,6 +21,7 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.HitMan
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
+import kotlin.time.Duration.Companion.milliseconds
 
 class HitManAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "청부"
@@ -125,7 +126,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
         scope.launch {
             if (delayMillis > 0L) {
-                delay(delayMillis)
+                delay(delayMillis.milliseconds)
             }
             resolveContract(game, caster, firstContract, secondContract)
         }

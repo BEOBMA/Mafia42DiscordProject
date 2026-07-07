@@ -1,192 +1,112 @@
 package org.beobma.mafia42discordproject.game
 
 import dev.kord.common.entity.ButtonStyle
-import dev.kord.common.entity.Permission
-import dev.kord.common.entity.Permissions
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.GuildBehavior
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
-import dev.kord.core.behavior.channel.edit
 import dev.kord.core.behavior.getChannelOfOrNull
 import dev.kord.core.behavior.interaction.response.respond
-import dev.kord.rest.builder.channel.addMemberOverwrite
-import dev.kord.rest.builder.channel.addRoleOverwrite
-import dev.kord.rest.builder.component.actionRow
+import dev.kord.core.entity.Guild
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.DmChannel
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.channel.VoiceChannel
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.rest.builder.component.actionRow
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.discord.InteractionErrorHandler
-import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
+import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuide
+import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
+import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
+import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
+import org.beobma.mafia42discordproject.game.assignment.AssignmentPlayer
+import org.beobma.mafia42discordproject.game.assignment.AssignmentTrace
+import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
+import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
+import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
+import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
+import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
+import org.beobma.mafia42discordproject.game.lobby.LobbyRefreshResult
+import org.beobma.mafia42discordproject.game.lobby.LobbySelectionManager
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
+import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
-import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
-import org.beobma.mafia42discordproject.game.replay.GameReplayMessenger
-import org.beobma.mafia42discordproject.game.replay.GameReplaySender
-import org.beobma.mafia42discordproject.game.replay.ReplayLogType
-import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
+import org.beobma.mafia42discordproject.game.replay.*
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
-import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.AbilityManager
-import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.ability.PassiveAbility
+import org.beobma.mafia42discordproject.job.ability.*
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Inspection
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
-import org.beobma.mafia42discordproject.job.definition.Definition
-import org.beobma.mafia42discordproject.job.definition.list.Administrator
-import org.beobma.mafia42discordproject.job.definition.list.Cabal
-import org.beobma.mafia42discordproject.job.definition.list.CabalRole
-import org.beobma.mafia42discordproject.job.definition.list.Couple
-import org.beobma.mafia42discordproject.job.definition.list.CoupleRole
-import org.beobma.mafia42discordproject.job.definition.list.Detective
-import org.beobma.mafia42discordproject.job.definition.list.Doctor
-import org.beobma.mafia42discordproject.job.definition.list.Hacker
-import org.beobma.mafia42discordproject.job.definition.list.Mercenary
-import org.beobma.mafia42discordproject.job.definition.list.Nurse
-import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
-import org.beobma.mafia42discordproject.job.definition.list.Police
-import org.beobma.mafia42discordproject.job.definition.list.Politician
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.Password
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.list.Megaphone
 import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
 import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
 import org.beobma.mafia42discordproject.job.ability.general.list.Will
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.Password
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
+import org.beobma.mafia42discordproject.job.definition.Definition
+import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
-import org.beobma.mafia42discordproject.job.evil.list.Beastman
-import org.beobma.mafia42discordproject.job.evil.list.Godfather
-import org.beobma.mafia42discordproject.job.evil.list.HitMan
-import org.beobma.mafia42discordproject.job.evil.list.Hostess
-import org.beobma.mafia42discordproject.job.evil.list.MadScientist
-import org.beobma.mafia42discordproject.job.evil.list.Mafia
-import org.beobma.mafia42discordproject.job.evil.list.Spy
-import org.beobma.mafia42discordproject.job.evil.list.Swindler
-import org.beobma.mafia42discordproject.job.evil.list.Thief
-import org.beobma.mafia42discordproject.job.evil.list.Villain
-import org.beobma.mafia42discordproject.job.evil.list.Witch
+import org.beobma.mafia42discordproject.job.evil.list.*
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 object GameManager {
+    enum class VoteSubmissionResult {
+        SUCCESS,
+        THREATENED,
+        FAILURE
+    }
+
     private var currentGame: Game? = null
     private var currentGuild: GuildBehavior? = null
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
     private val nextGameMafiaExecutionProtectedTargets: MutableMap<Snowflake, Snowflake> = ConcurrentHashMap()
+    private val lobbySelectionManager = LobbySelectionManager()
 
     private const val FULL_GAME_PLAYER_COUNT = 8
     private const val EXTENDED_ROLE_RULE_START_COUNT = 9
     private const val MAX_GAME_PLAYER_COUNT = 20
 
-    private data class RequiredRoleCounts(
-        val mafiaCount: Int,
-        val assistantCount: Int,
-        val doctorCount: Int,
-        val policeCount: Int,
-        val citizenCount: Int = 0
-    )
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
-    private const val GAME_MAIN_CHANNEL_ID = 1521943257884528671L
-    private const val GAME_MAFIA_CHANNEL_ID = 1521943318790144021L
-    private const val GAME_COUPLE_CHANNEL_ID = 1521943398540378275L
-    private const val GAME_DEAD_CHANNEL_ID = 1521943426893877359L
+    private const val GAME_MAIN_CHANNEL_ID = 1524098920576319518L
+    private const val GAME_MAFIA_CHANNEL_ID = 1524098952499036320L
+    private const val GAME_COUPLE_CHANNEL_ID = 1524098966139043860L
+    private const val GAME_DEAD_CHANNEL_ID = 1524098974154227773L
     private const val SHAMAN_RELAY_COMMAND = "접신"
     private const val SHAMANED_RELAY_COMMAND = "강령"
-    private const val MEGAPHONE_COMMAND = "확성기"
-    private const val SECRET_LETTER_COMMAND = "밀서"
-    private const val WILL_COMMAND = "유언"
-    private const val PERJURY_COMMAND = "위증"
-    private const val PASSWORD_COMMAND = "암구호"
     private const val GAME_CHANNEL_SPACER_LINES = 180
     private const val SEVEN_PLAYER_COUNT = 7
     private const val MAFIA_JOB_NAME = "마피아"
     private const val DOCTOR_JOB_NAME = "의사"
     private const val POLICE_JOB_NAME = "경찰"
+    private const val INSPECTOR_JOB_NAME = "형사"
     private const val AGENT_JOB_NAME = "요원"
     private const val NURSE_JOB_NAME = "간호사"
     private const val CITIZEN_JOB_NAME = "시민"
     private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
-    enum class GameStartMode(
-        val optionValue: String,
-        val displayName: String
-    ) {
-        NORMAL("일반", "일반"),
-        MADNESS("미치광이", "미치광이");
-
-        companion object {
-            fun parse(raw: String?): GameStartMode? {
-                val normalized = raw?.trim()?.lowercase() ?: return NORMAL
-                return when (normalized) {
-                    "", "일반", "normal" -> NORMAL
-                    "미치광이", "madness", "crazy", "mad" -> MADNESS
-                    else -> null
-                }
-            }
-        }
-    }
-
-    data class SpiritRelayResult(
-        val isSuccess: Boolean,
-        val message: String
-    )
-
-    private val policeJobNames = setOf("경찰", "요원", "자경단원")
+    private val policeJobNames = setOf(POLICE_JOB_NAME, INSPECTOR_JOB_NAME, AGENT_JOB_NAME, "자경단원")
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false
     private var abilitySelectionPendingUserIds: MutableSet<Snowflake> = mutableSetOf()
-
-    private data class AssignmentPlayer(
-        val memberId: Snowflake? = null,
-        val name: String,
-        val preferences: List<Job>,
-        val bestJob: Job? = null,
-        var assignedJob: Job? = null
-    )
-
-    private data class AssignmentTrace(
-        val lines: MutableList<String> = mutableListOf()
-    ) {
-        fun add(message: String) {
-            lines += message
-        }
-    }
-
-    private data class AbilitySelectionSession(
-        val playerJob: Job,
-        val availablePool: MutableList<Ability>,
-        val selected: MutableList<Ability> = mutableListOf(),
-        var currentOptions: List<Ability> = emptyList(),
-        var completedRounds: Int = 0
-    )
 
     suspend fun start(
         event: GuildChatInputCommandInteractionCreateEvent,
@@ -199,7 +119,7 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
-        game.isCrazyMode = mode == GameStartMode.MADNESS
+        game.mode = mode
 
         game.start(event, mode)
     }
@@ -214,10 +134,105 @@ object GameManager {
             playerDatas = mutableListOf(),
             guild = guild,
         )
-        game.isCrazyMode = mode == GameStartMode.MADNESS
+        game.mode = mode
 
         // 기존 로직 실행
         game.start(event, mode)
+    }
+
+    suspend fun markReady(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return markLobbyParticipation(guild, member, LobbyParticipation.READY)
+    }
+
+    suspend fun markReady(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return markLobbyParticipation(guild, member, LobbyParticipation.READY)
+    }
+
+    suspend fun markSpectator(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return markLobbyParticipation(guild, member, LobbyParticipation.SPECTATOR)
+    }
+
+    suspend fun markSpectator(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return markLobbyParticipation(guild, member, LobbyParticipation.SPECTATOR)
+    }
+
+    suspend fun refreshLobby(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return refreshLobby(guild, member)
+    }
+
+    suspend fun refreshLobby(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return refreshLobby(guild, member)
+    }
+
+    private suspend fun refreshLobby(guild: Guild, member: Member): LobbyParticipationResult {
+        if (currentGame != null) {
+            return LobbyParticipationResult(false, "게임이 진행 중일 때는 대기 목록을 새로고침할 수 없습니다.")
+        }
+
+        val voiceChannelId = member.getVoiceStateOrNull()?.channelId
+            ?: return LobbyParticipationResult(false, "먼저 음성채널에 접속한 뒤 사용해 주세요.")
+        val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId)
+        val result = lobbySelectionManager.refreshParticipants(guild, voiceChannelId)
+
+        return LobbyParticipationResult(
+            true,
+            buildLobbyRefreshMessage(voiceChannel?.mention, result)
+        )
+    }
+
+    private suspend fun markLobbyParticipation(
+        guild: Guild,
+        member: Member,
+        participation: LobbyParticipation
+    ): LobbyParticipationResult {
+        if (currentGame != null) {
+            return LobbyParticipationResult(false, "게임이 진행 중일 때는 준비/관전 상태를 변경할 수 없습니다.")
+        }
+
+        return lobbySelectionManager.markParticipation(guild, member, participation)
+    }
+
+    private fun buildLobbyRefreshMessage(
+        voiceChannelMention: String?,
+        result: LobbyRefreshResult
+    ): String {
+        val members = result.members
+        return buildString {
+            appendLine("현재 음성채널 인원으로 대기 목록을 새로고침했습니다.")
+            if (voiceChannelMention != null) {
+                appendLine("음성채널: $voiceChannelMention")
+            }
+            appendLine("플레이어 ${members.readyMembers.size}명, 관전자 ${members.spectatorMembers.size}명")
+            if (result.removedSelectionCount > 0) {
+                appendLine("음성채널에 없는 ${result.removedSelectionCount}명의 선택을 제거했습니다.")
+            }
+            appendLine()
+            appendLine("플레이어")
+            appendLine(DiscordMessageManager.mentions(members.readyMembers).ifBlank { "없음" })
+            if (members.spectatorMembers.isNotEmpty()) {
+                appendLine()
+                appendLine("관전자")
+                append(DiscordMessageManager.mentions(members.spectatorMembers))
+            }
+        }
     }
 
     private suspend fun Game.start(
@@ -232,8 +247,8 @@ object GameManager {
 
         val deferredResponse = interaction.deferPublicResponse()
 
-        val guild = interaction.guild
-        val commandSender = interaction.user
+        val guild = interaction.getGuild()
+        val commandSender = interaction.user.asMember(guild.id)
         val voiceChannelId = commandSender.getVoiceStateOrNull()?.channelId ?: run {
             deferredResponse.respond {
                 content = "현재 음성채널에 들어가 있지 않습니다."
@@ -247,20 +262,33 @@ object GameManager {
             return
         }
 
-        val membersInSameVoice = guild.members
-            .filter { guildMember ->
-                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
-            }
-            .filterNot { it.isBot }
-            .toList()
-        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+        val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
+        if (lobbyMembers.undecidedMembers.isNotEmpty()) {
+            val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "/준비", "/관전")
             deferredResponse.respond {
-                content = "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+                content = buildReadyRequiredPublicMessage(failedMembers)
             }
             return
         }
 
-        val membersWithoutPreference = membersInSameVoice.filter { member ->
+        val playerMembers = lobbyMembers.readyMembers
+        val spectatorMembers = lobbyMembers.spectatorMembers
+
+        if (playerMembers.isEmpty()) {
+            deferredResponse.respond {
+                content = "플레이어로 준비한 사람이 없어 게임을 시작할 수 없습니다."
+            }
+            return
+        }
+
+        if (playerMembers.size > MAX_GAME_PLAYER_COUNT) {
+            deferredResponse.respond {
+                content = "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 플레이어: ${playerMembers.size}명"
+            }
+            return
+        }
+
+        val membersWithoutPreference = playerMembers.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
         }
 
@@ -278,12 +306,13 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.replacePlayers(playerMembers.map(::PlayerData).toMutableList())
+        this.replaceSpectators(spectatorMembers.toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
 
-        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
         applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
@@ -293,15 +322,23 @@ object GameManager {
         GameLoopManager.prepareGameChannels(this)
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
-        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+        tryStartGameLoopWhenAbilitySelectionCompleted()
+        lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
 
         deferredResponse.respond {
             content = buildString {
                 appendLine("현재 음성채널: ${voiceChannel.mention}")
-                appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("플레이어 수: ${playerMembers.size}")
+                appendLine("관전자 수: ${spectatorMembers.size}")
                 appendLine("모드: ${mode.displayName}")
                 appendLine()
-                append(DiscordMessageManager.mentions(membersInSameVoice))
+                appendLine("플레이어")
+                appendLine(DiscordMessageManager.mentions(playerMembers))
+                if (spectatorMembers.isNotEmpty()) {
+                    appendLine()
+                    appendLine("관전자")
+                    append(DiscordMessageManager.mentions(spectatorMembers))
+                }
             }
         }
     }
@@ -318,24 +355,32 @@ object GameManager {
             event.message.channel.createMessage("현재 음성채널에 들어가 있지 않습니다.")
             return
         }
-        val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId) ?: run {
-            event.message.channel.createMessage("음성채널 정보를 가져오지 못했습니다.")
-            return
-        }
 
-        val membersInSameVoice = guild.members
-            .filter { guildMember ->
-                guildMember.getVoiceStateOrNull()?.channelId == voiceChannelId
-            }
-            .toList()
-        if (membersInSameVoice.size > MAX_GAME_PLAYER_COUNT) {
+        val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
+        if (lobbyMembers.undecidedMembers.isNotEmpty()) {
+            val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "!준비", "!관전")
             event.message.channel.createMessage(
-                "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 인원: ${membersInSameVoice.size}명"
+                buildReadyRequiredPublicMessage(failedMembers)
             )
             return
         }
 
-        val membersWithoutPreference = membersInSameVoice.filter { member ->
+        val playerMembers = lobbyMembers.readyMembers
+        val spectatorMembers = lobbyMembers.spectatorMembers
+
+        if (playerMembers.isEmpty()) {
+            event.message.channel.createMessage("플레이어로 준비한 사람이 없어 게임을 시작할 수 없습니다.")
+            return
+        }
+
+        if (playerMembers.size > MAX_GAME_PLAYER_COUNT) {
+            event.message.channel.createMessage(
+                "최대 ${MAX_GAME_PLAYER_COUNT}명까지만 게임을 시작할 수 있습니다. 현재 플레이어: ${playerMembers.size}명"
+            )
+            return
+        }
+
+        val membersWithoutPreference = playerMembers.filter { member ->
             JobPreferenceManager.get(member.id.value).isNullOrEmpty()
         }
 
@@ -353,12 +398,13 @@ object GameManager {
         currentGame = this
         currentGuild = guild
         GameLoopManager.resetTimeThreadState()
-        this.replacePlayers(membersInSameVoice.map(::PlayerData).toMutableList())
+        this.replacePlayers(playerMembers.map(::PlayerData).toMutableList())
+        this.replaceSpectators(spectatorMembers.toMutableList())
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
 
-        val assignmentPlayers = buildAssignmentPlayers(membersInSameVoice)
+        val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
         applyMadnessModeMentalPatientReplacements(assignmentPlayers, mode)
         this.applyAssignedJobs(assignmentPlayers)
@@ -368,16 +414,55 @@ object GameManager {
         GameLoopManager.prepareGameChannels(this)
         sendGameChannelSpacer(this)
         initializeExtraAbilitySelectionForPlayers(assignmentPlayers)
-        tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+        tryStartGameLoopWhenAbilitySelectionCompleted()
+        lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
 
         event.message.channel.createMessage(
             buildString {
-                appendLine("인원 수: ${membersInSameVoice.size}")
+                appendLine("플레이어 수: ${playerMembers.size}")
+                appendLine("관전자 수: ${spectatorMembers.size}")
                 appendLine("모드: ${mode.displayName}")
                 appendLine()
-                append(DiscordMessageManager.mentions(membersInSameVoice))
+                appendLine("플레이어")
+                appendLine(DiscordMessageManager.mentions(playerMembers))
+                if (spectatorMembers.isNotEmpty()) {
+                    appendLine()
+                    appendLine("관전자")
+                    append(DiscordMessageManager.mentions(spectatorMembers))
+                }
             }
         )
+    }
+
+    private suspend fun sendReadyRequiredDm(
+        members: List<Member>,
+        readyCommand: String,
+        spectatorCommand: String
+    ): List<Member> {
+        val failedMembers = mutableListOf<Member>()
+
+        members.forEach { member ->
+            val message = "${member.mention} 게임에 참여하려면 `$readyCommand`, 관전하려면 `$spectatorCommand`을(를) 선택해 주세요."
+            runCatching {
+                member.getDmChannel().createMessage(message)
+            }.onFailure { error ->
+                failedMembers += member
+                println("⚠️ ${member.effectiveName} 준비 요청 DM 전송 실패: ${error.message}")
+            }
+        }
+
+        return failedMembers
+    }
+
+    private fun buildReadyRequiredPublicMessage(failedMembers: List<Member>): String = buildString {
+        appendLine("음성채널의 모든 사람이 준비 또는 관전 중 하나를 먼저 선택해야 합니다.")
+        append("아직 선택하지 않은 인원에게 준비 요청 DM을 보냈습니다.")
+        if (failedMembers.isNotEmpty()) {
+            appendLine()
+            appendLine()
+            appendLine("DM을 보내지 못한 인원:")
+            append(DiscordMessageManager.mentions(failedMembers))
+        }
     }
 
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {
@@ -594,8 +679,7 @@ object GameManager {
         return when {
             playerCount <= 6 -> 0
             playerCount in 7..9 -> 1
-            playerCount >= 10 -> 2
-            else -> 0
+            else -> 2
         }
     }
 
@@ -703,11 +787,6 @@ object GameManager {
                 }
             }
     }
-
-    data class JobAssignmentSimulationResult(
-        val lines: List<String>,
-        val assignedJobCountByName: Map<String, Int>
-    )
 
     fun simulateJobAssignmentForVirtualPlayers(repeatCount: Int, playerCount: Int = FULL_GAME_PLAYER_COUNT): JobAssignmentSimulationResult {
         require(repeatCount > 0) { "repeatCount는 1 이상이어야 합니다." }
@@ -1043,57 +1122,6 @@ object GameManager {
         return solved
     }
 
-    private fun assignRemainingPlayersFromAllowedSlots(
-        players: MutableList<AssignmentPlayer>,
-        slotCounter: MutableMap<String, Int>,
-        trace: AssignmentTrace
-    ) {
-        val unassignedPlayers = players.filter { it.assignedJob == null }.toMutableList()
-
-        while (unassignedPlayers.isNotEmpty()) {
-            val player = unassignedPlayers.removeFirst()
-            if (player.assignedJob != null) continue
-
-            val allowedNames = getAllowedJobNames(player)
-            val singleCandidate = allowedNames.firstOrNull { name ->
-                !isPairAssignmentJob(name) && (slotCounter[name] ?: 0) > 0
-            }
-            if (singleCandidate != null) {
-                val job = JobManager.findByName(singleCandidate)
-                if (job != null) {
-                    player.assignedJob = job
-                    slotCounter[singleCandidate] = (slotCounter[singleCandidate] ?: 0) - 1
-                    trace.add("[3단계] ${player.name} -> ${singleCandidate} (선호 기반 잔여 슬롯 배정)")
-                    continue
-                }
-            }
-
-            val pairCandidate = allowedNames.firstOrNull { name ->
-                isPairAssignmentJob(name) && (slotCounter[name] ?: 0) >= 2
-            }
-            if (pairCandidate != null) {
-                val partner = unassignedPlayers.firstOrNull { candidate ->
-                    candidate.assignedJob == null && pairCandidate in getAllowedJobNames(candidate)
-                }
-                val pairJob = JobManager.findByName(pairCandidate)
-                if (partner != null && pairJob != null) {
-                    player.assignedJob = pairJob
-                    partner.assignedJob = pairJob
-                    slotCounter[pairCandidate] = (slotCounter[pairCandidate] ?: 0) - 2
-                    unassignedPlayers.remove(partner)
-                    trace.add("[3단계] ${player.name}, ${partner.name} -> ${pairCandidate} (선호 기반 잔여 짝 배정)")
-                    continue
-                }
-            }
-
-            val doctorFallback = JobManager.findByName("의사")
-            if (doctorFallback != null) {
-                player.assignedJob = doctorFallback
-                trace.add("[3단계] ${player.name} -> 의사 (선호 직업만 허용하는 긴급 보완)")
-            }
-        }
-    }
-
     private fun isPairAssignmentJob(jobName: String): Boolean {
         return jobName == "연인" || jobName == "비밀결사"
     }
@@ -1176,85 +1204,6 @@ object GameManager {
         return picked
     }
 
-    private fun assignNonFixedJobsByPreference(
-        players: MutableList<AssignmentPlayer>,
-        slotCount: Int,
-        trace: AssignmentTrace
-    ) {
-        val excludedJobNames = buildNonFixedExcludedJobNames(players.size)
-        val allCandidates = getNonFixedJobCandidates(players.size)
-        val preferenceWeightByName = players
-            .flatMap { it.preferences }
-            .asSequence()
-            .filter { job -> job !is Evil && job.name !in excludedJobNames }
-            .groupingBy(Job::name)
-            .eachCount()
-
-        val pickedNames = mutableSetOf<String>()
-        var assignedSlots = 0
-
-        fun slotsFor(job: Job): Int = if (job.name == "연인" || job.name == "비밀결사") 2 else 1
-
-        fun isEligible(job: Job): Boolean {
-            if (pickedNames.contains(job.name)) return false
-
-            val requiredSlots = slotsFor(job)
-            if (assignedSlots + requiredSlots > slotCount) return false
-
-            val preferredUnassignedCount = players.count { player ->
-                player.assignedJob == null && player.preferences.any { it.name == job.name }
-            }
-            return preferredUnassignedCount >= requiredSlots
-        }
-
-        trace.add("[2단계] 고정 직업 제외 슬롯 수: $slotCount")
-        trace.add("[2단계] 후보 직업 수: ${allCandidates.size}개")
-        val sortedWeightSummary = preferenceWeightByName.entries
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .joinToString(", ") { (name, weight) -> "$name($weight)" }
-        trace.add("[2단계] 전체 선호 직업 가중치: ${sortedWeightSummary.ifEmpty { "없음" }}")
-        players.forEach { player ->
-            val playerWeightSummary = player.preferences
-                .joinToString(", ") { job -> "${job.name}(${preferenceWeightByName[job.name] ?: 0})" }
-            trace.add("[2단계] ${player.name} 선호 직업 가중치: $playerWeightSummary")
-        }
-
-        while (assignedSlots < slotCount) {
-            val eligibleJobs = allCandidates.filter(::isEligible)
-            if (eligibleJobs.isEmpty()) break
-
-            val weightedJobs = eligibleJobs.map { it to (preferenceWeightByName[it.name] ?: 0) }
-            val picked = pickByWeight(weightedJobs)
-                ?: eligibleJobs.random()
-            val pickedWeight = preferenceWeightByName[picked.name] ?: 0
-            val requiredCount = slotsFor(picked)
-            val candidates = players
-                .filter { it.assignedJob == null && it.preferences.any { preferred -> preferred.name == picked.name } }
-                .shuffled()
-                .take(requiredCount)
-
-            if (candidates.size < requiredCount) {
-                trace.add("[2단계] ${picked.name}: 선호 인원 부족으로 건너뜀")
-                pickedNames += picked.name
-                continue
-            }
-
-            candidates.forEach { player ->
-                player.assignedJob = picked
-            }
-            pickedNames += picked.name
-            assignedSlots += requiredCount
-            trace.add(
-                "[2단계] 선택/배정 직업: ${picked.name} (가중치 $pickedWeight / 필요 슬롯 $requiredCount / 누적 $assignedSlots) -> ${candidates.joinToString { it.name }}"
-            )
-        }
-
-        if (assignedSlots < slotCount) {
-            trace.add("[2단계] 경고: 선호 기반 비고정 배정이 부족하여 보완 배정을 시도합니다. (현재 $assignedSlots/$slotCount)")
-            fillRemainingNonFixedSlots(players, allCandidates, pickedNames, slotCount, assignedSlots, trace)
-        }
-    }
-
     private fun pickByWeight(weightedJobs: List<Pair<Job, Int>>): Job? {
         val totalWeight = weightedJobs.sumOf { (_, weight) -> weight.coerceAtLeast(0) }
         if (totalWeight <= 0) return null
@@ -1271,147 +1220,8 @@ object GameManager {
         return null
     }
 
-    private fun buildCandidateWeights(
-        preferredCandidates: List<String>,
-        fallbackCandidates: List<String>,
-        bestJobName: String?
-    ): List<Pair<String, Int>> {
-        val uniqueCandidates = (preferredCandidates + fallbackCandidates).distinct()
-        return uniqueCandidates.map { candidateName ->
-            var weight = if (candidateName in preferredCandidates) 3 else 1
-            if (bestJobName != null && candidateName == bestJobName) {
-                weight *= 3
-            }
-            candidateName to weight
-        }
-    }
-
-    private fun pickNameByWeight(weightedNames: List<Pair<String, Int>>): String? {
-        val totalWeight = weightedNames.sumOf { (_, weight) -> weight.coerceAtLeast(0) }
-        if (totalWeight <= 0) return null
-
-        var point = Random.nextInt(totalWeight)
-        weightedNames.forEach { (name, rawWeight) ->
-            val weight = rawWeight.coerceAtLeast(0)
-            if (weight == 0) return@forEach
-            if (point < weight) {
-                return name
-            }
-            point -= weight
-        }
-        return null
-    }
-
-    private fun fillRemainingNonFixedSlots(
-        players: MutableList<AssignmentPlayer>,
-        allCandidates: List<Job>,
-        pickedNames: MutableSet<String>,
-        targetSlotCount: Int,
-        initialAssignedSlots: Int,
-        trace: AssignmentTrace
-    ) {
-        var assignedSlots = initialAssignedSlots
-        fun slotsFor(job: Job): Int = if (job.name == "연인" || job.name == "비밀결사") 2 else 1
-
-        while (assignedSlots < targetSlotCount) {
-            val remainingSlots = targetSlotCount - assignedSlots
-            val selectable = allCandidates.filter { job ->
-                job.name !in pickedNames && slotsFor(job) <= remainingSlots
-            }
-            if (selectable.isEmpty()) break
-
-            val picked = selectable.random()
-            val requiredCount = slotsFor(picked)
-            val preferCandidates = players
-                .filter { it.assignedJob == null && it.preferences.any { preferred -> preferred.name == picked.name } }
-                .shuffled()
-                .take(requiredCount)
-
-            val finalCandidates = if (preferCandidates.size == requiredCount) {
-                preferCandidates
-            } else {
-                players.filter { it.assignedJob == null }.shuffled().take(requiredCount)
-            }
-
-            if (finalCandidates.size < requiredCount) break
-
-            finalCandidates.forEach { player ->
-                player.assignedJob = picked
-            }
-            pickedNames += picked.name
-            assignedSlots += requiredCount
-            trace.add(
-                "[2단계-보완] ${picked.name}: ${finalCandidates.joinToString { it.name }} 배정 (누적 $assignedSlots/$targetSlotCount)"
-            )
-        }
-    }
-
     private fun getAllowedJobNames(player: AssignmentPlayer): List<String> {
         return (player.preferences.map(Job::name) + listOf("마피아", "의사")).distinct()
-    }
-
-    private fun assignRequiredJobs(
-        players: MutableList<AssignmentPlayer>,
-        mafia: Job,
-        assistant: Job?,
-        doctor: Job,
-        policeJob: Job?,
-        requiredCounts: RequiredRoleCounts,
-        trace: AssignmentTrace
-    ) {
-        trace.add("[3단계] 고정 직업/잔여 인원 배정 시작")
-        val unassigned = players.filter { it.assignedJob == null }.shuffled().toMutableList()
-
-        repeat(requiredCounts.mafiaCount) {
-            if (unassigned.isEmpty()) return@repeat
-            val player = unassigned.removeFirst()
-            player.assignedJob = mafia
-            trace.add("[3단계] 마피아 배정: ${player.name}")
-        }
-
-        repeat(requiredCounts.assistantCount) {
-            if (unassigned.isEmpty()) return@repeat
-            val assistantJob = requireNotNull(assistant) { "보조계열 고정 직업이 필요하지만 선택되지 않았습니다." }
-            val preferred = unassigned.firstOrNull { candidate ->
-                candidate.preferences.any { it.name == assistantJob.name }
-            }
-            val player = preferred ?: unassigned.first()
-            unassigned.remove(player)
-            player.assignedJob = assistantJob
-            trace.add("[3단계] 보조계열 배정: ${player.name} -> ${assistantJob.name}")
-        }
-
-        repeat(requiredCounts.doctorCount) {
-            if (unassigned.isEmpty()) return@repeat
-            val player = unassigned.removeFirst()
-            player.assignedJob = doctor
-            trace.add("[3단계] 의사 배정: ${player.name}")
-        }
-
-        repeat(requiredCounts.policeCount) {
-            if (unassigned.isEmpty()) return@repeat
-            val selectedPoliceJob = requireNotNull(policeJob) { "경찰계열 고정 직업이 필요하지만 선택되지 않았습니다." }
-            val preferred = unassigned.firstOrNull { candidate ->
-                candidate.preferences.any { it.name == selectedPoliceJob.name }
-            }
-            val player = preferred ?: unassigned.first()
-            unassigned.remove(player)
-            player.assignedJob = selectedPoliceJob
-            trace.add("[3단계] 경찰계열 배정: ${player.name} -> ${selectedPoliceJob.name}")
-        }
-
-        repeat(requiredCounts.citizenCount) {
-            if (unassigned.isEmpty()) return@repeat
-            val player = unassigned.removeFirst()
-            player.assignedJob = JobManager.findByName("시민") ?: doctor
-            trace.add("[3단계] 시민 배정: ${player.name} -> ${player.assignedJob?.name}")
-        }
-
-        unassigned.forEach { player ->
-            player.assignedJob = JobManager.findByName("시민") ?: doctor
-            trace.add("[3단계] 안전 배정: ${player.name} -> ${player.assignedJob?.name}")
-        }
-        trace.add("[3단계] 배정 완료")
     }
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
@@ -1457,7 +1267,7 @@ object GameManager {
                             appendAbilityImages(this, displayJob.abilities)
                         }.trim()
                         if (ownedAbilityMessage.isNotBlank()) {
-                            GameReplayMessenger.sendTrackedDm(this@initializeExtraAbilitySelectionForPlayers, player, ownedAbilityMessage, "직업/능력 안내")
+                            dmChannel.createMessage(ownedAbilityMessage)
                         }
 
                         val cabalJob = job as? Cabal
@@ -1478,7 +1288,7 @@ object GameManager {
                             ?.let { GameReplayMessenger.sendTrackedDm(this@initializeExtraAbilitySelectionForPlayers, player, it, "연인 안내") }
 
                         if (session != null) {
-                            sendAbilitySelectionPrompt(this@initializeExtraAbilitySelectionForPlayers, player, dmChannel, player.member.id, session)
+                            sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
                         } else {
                             val message = "ℹ️ 선택 가능한 부가 능력이 없어 능력 선택 단계를 건너뜁니다."
                             GameReplayLogger.logDirectMessage(this@initializeExtraAbilitySelectionForPlayers, player, message, "능력 선택 안내")
@@ -1543,6 +1353,206 @@ object GameManager {
                 count += 1
             }
         return count
+    }
+
+    private fun buildFinalJobAbilityReplayMessage(player: PlayerData): String {
+        val job = player.job ?: return ""
+        val displayJob = getAbilitySelectionDisplayJob(player) ?: job
+        val builder = StringBuilder()
+        val appendedImageUrls = linkedSetOf<String>()
+
+        fun appendImage(imageUrl: String?) {
+            val normalized = imageUrl?.trim().orEmpty()
+            if (normalized.isBlank() || !appendedImageUrls.add(normalized)) return
+            builder.appendLine(normalized)
+        }
+
+        appendImage(displayJob.jobImage)
+        displayJob.abilities.forEach { ability -> appendImage(ability.image) }
+        job.extraAbilities.forEach { ability -> appendImage(ability.image) }
+
+        return builder.toString().trim()
+    }
+
+    private fun logFinalJobAbilityReplayMessages(game: Game) {
+        val shouldLog = synchronized(game) {
+            if (game.hasLoggedFinalJobAbilityReplay) {
+                false
+            } else {
+                game.hasLoggedFinalJobAbilityReplay = true
+                true
+            }
+        }
+        if (!shouldLog) return
+
+        game.playerDatas.forEach { player ->
+            val message = buildFinalJobAbilityReplayMessage(player)
+            if (message.isNotBlank()) {
+                GameReplayLogger.logDirectMessage(game, player, message, "직업/능력 안내")
+            }
+        }
+    }
+
+    private suspend fun sendAbilityCommandGuides(game: Game) = coroutineScope {
+        game.playerDatas.forEach { player ->
+            launch {
+                val message = buildAbilityCommandGuideMessage(player) ?: return@launch
+                runCatching {
+                    val dmChannel = player.member.getDmChannel()
+                    splitDiscordMessage(message).forEach { chunk ->
+                        dmChannel.createMessage(chunk)
+                    }
+                }.onFailure { error ->
+                    println("⚠️ ${player.member.effectiveName} 능력 사용 안내 DM 전송 실패: ${error.message}")
+                }
+            }
+        }
+    }
+
+    private fun buildAbilityCommandGuideMessage(player: PlayerData): String? {
+        val job = player.job ?: return null
+        val displayJob = getAbilitySelectionDisplayJob(player) ?: job
+        val guides = commandGuideAbilities(player)
+            .flatMap(::buildAbilityCommandGuides)
+            .distinctBy { "${it.abilityName}|${it.timing}|${it.command.orEmpty()}" }
+        if (guides.isEmpty()) return null
+
+        return buildString {
+            appendLine("능력 사용 안내")
+            appendLine("직업: ${displayJob.name}")
+            appendLine()
+            guides.forEach { guide ->
+                appendLine("[${guide.abilityName}]")
+                appendLine("시점: ${guide.timing}")
+                appendLine("명령어: ${guide.command ?: "없음 (자동/패시브 능력)"}")
+                appendLine("요약: ${guide.summary}")
+                appendLine()
+            }
+            append("슬래시 명령어 옵션 이름은 Discord 입력창의 자동완성을 따라 선택하면 됩니다.")
+        }.trim()
+    }
+
+    private fun splitDiscordMessage(message: String, maxLength: Int = 1900): List<String> {
+        if (message.length <= maxLength) return listOf(message)
+
+        val chunks = mutableListOf<String>()
+        var current = StringBuilder()
+        message.lineSequence().forEach { line ->
+            val nextLength = current.length + line.length + 1
+            if (current.isNotEmpty() && nextLength > maxLength) {
+                chunks += current.toString().trimEnd()
+                current = StringBuilder()
+            }
+
+            if (line.length > maxLength) {
+                line.chunked(maxLength).forEach { part ->
+                    if (current.isNotEmpty()) {
+                        chunks += current.toString().trimEnd()
+                        current = StringBuilder()
+                    }
+                    chunks += part
+                }
+            } else {
+                current.appendLine(line)
+            }
+        }
+        if (current.isNotBlank()) {
+            chunks += current.toString().trimEnd()
+        }
+        return chunks
+    }
+
+    private fun commandGuideAbilities(player: PlayerData): List<Ability> {
+        return (player.job as? MentalPatient)?.activeAbilitySourceAbilities()
+            ?: player.allAbilities
+    }
+
+    private fun buildAbilityCommandGuides(ability: Ability): List<AbilityCommandGuide> {
+        return when (ability) {
+            is Megaphone -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/확성기 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is SecretLetter -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/밀서 {대상} {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Will -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "밤",
+                    command = "/유언 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Perjury -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "본투표",
+                    command = "/위증 {대상}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is Password -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "상시 (마피아팀 전용, 보조 직업은 접선 후)",
+                    command = "/암구호 {내용}",
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            is ActiveAbility -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = phaseLabel(ability.usablePhase),
+                    command = activeAbilityCommandUsage(ability),
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+            else -> listOf(
+                AbilityCommandGuide(
+                    abilityName = ability.name,
+                    timing = "자동 발동",
+                    command = null,
+                    summary = briefAbilitySummary(ability)
+                )
+            )
+        }
+    }
+
+    private fun activeAbilityCommandUsage(ability: ActiveAbility): String {
+        return when (ability.name) {
+            "조회" -> "/사용 ${ability.name} {직업}"
+            "청부" -> "/사용 ${ability.name} {대상} {직업}"
+            "최면 해제" -> "/사용 ${ability.name}"
+            else -> "/사용 ${ability.name} {대상}"
+        }
+    }
+
+    private fun phaseLabel(phase: GamePhase): String = when (phase) {
+        GamePhase.DAY -> "낮"
+        GamePhase.NIGHT -> "밤"
+        GamePhase.DAWN -> "새벽"
+        GamePhase.VOTE -> "투표/최후 변론"
+        GamePhase.END -> "게임 종료"
+    }
+
+    private fun briefAbilitySummary(ability: Ability): String {
+        val normalized = ability.description
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (normalized.length <= 120) return normalized
+        return normalized.take(117).trimEnd() + "..."
     }
 
     private fun assignVirtualPlayerExtraAbilities(players: List<AssignmentPlayer>) {
@@ -1634,7 +1644,7 @@ object GameManager {
         if (shouldTryStartGameLoop) {
             currentGuild?.let { guild ->
                 runCatching {
-                    tryStartGameLoopWhenAbilitySelectionCompleted(guild)
+                    tryStartGameLoopWhenAbilitySelectionCompleted()
                 }.onFailure { error ->
                     println("⚠️ 능력 선택 종료 후 게임 루프 시작 실패: ${error.message}")
                 }
@@ -1686,16 +1696,11 @@ object GameManager {
         return options
     }
 
-    private fun buildAbilitySelectionGuideMessage(session1: AbilitySelectionSession, includeProgress: Boolean): String {
+    private fun buildAbilitySelectionGuideMessage(): String {
         return buildString {
             append("능력 중 하나를 선택하세요.")
         }
     }
-
-    data class AbilityPickButtonPayload(
-        val ownerUserId: Snowflake,
-        val pickNumber: Int
-    )
 
     fun parseAbilityPickButtonId(componentId: String): AbilityPickButtonPayload? {
         val prefix = "ability_pick_"
@@ -1716,17 +1721,9 @@ object GameManager {
             abilitySelectionSessions[userId]
         } ?: return null
         return AbilitySelectionSnapshot(
-            guideMessage = buildAbilitySelectionGuideMessage(session, true),
+            guideMessage = buildAbilitySelectionGuideMessage(),
             optionCount = session.currentOptions.size
         )
-    }
-
-    suspend fun sendCurrentAbilityOptionImages(userId: Snowflake): Boolean {
-        return sendCurrentAbilitySelectionPrompt(userId)
-    }
-
-    suspend fun sendCurrentAbilityPickButtons(userId: Snowflake): Boolean {
-        return sendCurrentAbilitySelectionPrompt(userId)
     }
 
     suspend fun sendCurrentAbilitySelectionPrompt(userId: Snowflake): Boolean {
@@ -1740,7 +1737,7 @@ object GameManager {
 
         return runCatching {
             val dmChannel = player.member.getDmChannel()
-            sendAbilitySelectionPrompt(game, player, dmChannel, userId, session)
+            sendAbilitySelectionPrompt(dmChannel, userId, session)
             true
         }.getOrElse { error ->
             println("⚠️ 현재 능력 선택 안내 DM 전송 실패(${player.member.effectiveName}): ${error.message}")
@@ -1749,8 +1746,6 @@ object GameManager {
     }
 
     private suspend fun sendAbilitySelectionPrompt(
-        game: Game,
-        player: PlayerData,
         dmChannel: DmChannel,
         userId: Snowflake,
         session: AbilitySelectionSession
@@ -1760,10 +1755,9 @@ object GameManager {
             if (isNotEmpty()) {
                 appendLine()
             }
-            append(buildAbilitySelectionGuideMessage(session, includeProgress = true))
+            append(buildAbilitySelectionGuideMessage())
         }.trim()
 
-        GameReplayLogger.logDirectMessage(game, player, content, "능력 선택 안내")
         dmChannel.createMessage {
             this.content = content
             actionRow {
@@ -1779,15 +1773,10 @@ object GameManager {
     fun getCurrentGameFor(userId: Snowflake): Game? =
         currentGame?.takeIf { game -> game.getPlayer(userId) != null }
 
-    data class AbilitySelectionSnapshot(
-        val guideMessage: String,
-        val optionCount: Int
-    )
-
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true
 
-    private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted(guild: GuildBehavior) {
+    private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted() {
         val game = currentGame ?: return
         val canStart = abilitySelectionSessionMutex.withLock {
             !abilitySelectionInitializationInProgress && abilitySelectionPendingUserIds.isEmpty()
@@ -1796,6 +1785,8 @@ object GameManager {
         if (game.isRunning) return
         if (gameLoopJob?.isActive == true) return
 
+        logFinalJobAbilityReplayMessages(game)
+        sendAbilityCommandGuides(game)
         notifyAdministratorInspection(game)
         notifyNurseOath(game)
         game.isRunning = true
@@ -1850,13 +1841,11 @@ object GameManager {
     ) {
         registerNextGameMafiaExecutionProtection(gameToStop)
         scheduleDelayedVoiceDisconnect(gameToStop)
+        gameToStop.isRunning = false
         if (gameToStop.replayLogs.none { it.type == ReplayLogType.GAME_END }) {
             GameReplayLogger.logGameEnd(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         }
-        GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
-        GameReplaySender.sendReplay(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
-        currentGame = null
-        currentGuild = null
+        releaseAllPlayerMutes(gameToStop)
 
         if (cancelLoopJob) {
             gameLoopJob?.cancelAndJoin()
@@ -1865,12 +1854,23 @@ object GameManager {
 
         GameLoopManager.clearTimeThread()
         abilitySelectionSessions.clear()
-        releaseAllPlayerMutes(gameToStop)
+
+        val replayRenderData = GameReplayRenderDataStore.snapshot(
+            game = gameToStop,
+            endReason = endReason,
+            winningTeamName = winningTeamName
+        )
+        GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
+        GameReplayRenderDataStore.save(replayRenderData)
+        GameReplaySender.sendReplay(gameToStop, replayRenderData)
+        currentGame = null
+        currentGuild = null
 
         gameToStop.mainChannel = null
         gameToStop.mafiaChannel = null
         gameToStop.coupleChannel = null
         gameToStop.deadChannel = null
+        gameToStop.replaceSpectators(mutableListOf())
     }
 
     private fun registerNextGameMafiaExecutionProtection(game: Game) {
@@ -1883,7 +1883,7 @@ object GameManager {
         val guildId = game.guild.id
 
         gameLoopScope.launch {
-            delay(GAME_END_VOICE_DISCONNECT_DELAY_MS)
+            delay(GAME_END_VOICE_DISCONNECT_DELAY_MS.milliseconds)
             if (currentGame?.guild?.id == guildId) return@launch
             LavalinkManager.stop(kord = kord, guildId = guildId)
         }
@@ -1893,6 +1893,13 @@ object GameManager {
         game.playerDatas.forEach { player ->
             runCatching {
                 player.member.edit {
+                    muted = false
+                }
+            }
+        }
+        game.spectatorMembers.forEach { spectator ->
+            runCatching {
+                spectator.edit {
                     muted = false
                 }
             }
@@ -1918,7 +1925,7 @@ object GameManager {
         runCatching {
             channel.createMessage(spacerMessage)
         }.onFailure { exception ->
-            println("[GameManager] ${channelName} 채널 줄넘김 메시지 전송 실패: ${exception.message}")
+            println("[GameManager] $channelName 채널 줄넘김 메시지 전송 실패: ${exception.message}")
         }
     }
 
@@ -1943,25 +1950,36 @@ object GameManager {
     suspend fun enforceDeadPlayerChatRestriction(event: MessageCreateEvent): Boolean {
         val game = currentGame ?: return false
         val member = event.member ?: return false
+        if (game.isSpectator(member.id)) {
+            if (isGameTextChannelOrThread(game, event)) {
+                runCatching { event.message.delete("관전자 채팅 차단") }
+                return true
+            }
+            return false
+        }
+
         val player = game.getPlayer(member.id) ?: return false
         if (!GameLoopManager.isMadScientistDistortionHidden(player) && !player.state.isDead) return false
 
         val isDeadChannel = event.message.channelId == Snowflake(GAME_DEAD_CHANNEL_ID)
+        val replayContent = replayMessageContent(event)
 
         if (isDeadChannel && player.state.isDead) {
             GameReplayLogger.logChat(
                 game = game,
                 actor = player,
-                body = event.message.content,
-                visibility = ReplayVisibility.DEAD_CHANNEL
+                body = replayContent,
+                visibility = ReplayVisibility.DEAD_CHANNEL,
+                recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
+                recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
             )
             val deceasedChatEvent = GameEvent.DeceasedChat(
                 dayCount = game.dayCount,
                 chatSender = player,
-                chat = event.message.content
+                chat = replayContent
             )
             dispatchDeceasedChatEvent(game, deceasedChatEvent)
-            return false
+            return true
         }
 
         if (player.state.isDead) {
@@ -1973,11 +1991,25 @@ object GameManager {
         return true
     }
 
+    private suspend fun isGameTextChannelOrThread(game: Game, event: MessageCreateEvent): Boolean {
+        val channelId = event.message.channelId
+        val parentChannelId = runCatching { event.message.getChannel().data.parentId }
+            .getOrNull()
+        val gameChannelIds: Set<Snowflake> = setOf(
+            game.mainChannel?.id ?: Snowflake(GAME_MAIN_CHANNEL_ID),
+            game.mafiaChannel?.id ?: Snowflake(GAME_MAFIA_CHANNEL_ID),
+            game.coupleChannel?.id ?: Snowflake(GAME_COUPLE_CHANNEL_ID),
+            game.deadChannel?.id ?: Snowflake(GAME_DEAD_CHANNEL_ID)
+        )
+
+        return channelId in gameChannelIds || gameChannelIds.any { channel -> channel == parentChannelId }
+    }
+
     suspend fun recordReplayChat(event: MessageCreateEvent) {
         val game = currentGame ?: return
         val member = event.member ?: return
         val player = game.getPlayer(member.id) ?: return
-        val content = event.message.content.trim()
+        val content = replayMessageContent(event)
         if (content.isBlank()) return
 
         val channelId = event.message.channelId
@@ -1998,8 +2030,64 @@ object GameManager {
             game = game,
             actor = player,
             body = content,
-            visibility = visibility
+            visibility = visibility,
+            recipients = replayRecipientsFor(game, visibility),
+            recipientDescription = replayRecipientDescription(game, visibility)
         )
+    }
+
+    private fun replayMessageContent(event: MessageCreateEvent): String {
+        val text = event.message.content.trim()
+        val attachments = event.message.attachments.map { attachment ->
+            val filename = attachment.filename.takeIf { it.isNotBlank() } ?: "첨부파일"
+            val url = attachment.url.takeIf { it.isNotBlank() }
+            if (url == null) filename else "$filename $url"
+        }
+
+        return (listOf(text).filter(String::isNotBlank) + attachments)
+            .joinToString("\n")
+            .trim()
+    }
+
+    private fun replayRecipientsFor(game: Game, visibility: ReplayVisibility): List<ReplayRecipient> {
+        val players = when (visibility) {
+            ReplayVisibility.PUBLIC -> game.playerDatas
+            ReplayVisibility.MAFIA_CHANNEL -> game.playerDatas
+                .filter { !it.state.isDead }
+                .filter { it.job is Mafia || hasContactedMafiaTeam(game, it) }
+            ReplayVisibility.COUPLE_CHANNEL -> game.playerDatas
+                .filter { !it.state.isDead && it.job is Couple }
+            ReplayVisibility.DEAD_CHANNEL -> game.playerDatas
+                .filter { it.state.isDead || it.job is Shaman }
+            else -> emptyList()
+        }
+
+        return players.map { player -> GameReplayLogger.recipient(player, visibility) }
+    }
+
+    private fun replayRecipientDescription(game: Game, visibility: ReplayVisibility): String {
+        val label = when (visibility) {
+            ReplayVisibility.PUBLIC -> "공개 채널"
+            ReplayVisibility.MAFIA_CHANNEL -> "마피아 채널"
+            ReplayVisibility.COUPLE_CHANNEL -> "연인 채널"
+            ReplayVisibility.DEAD_CHANNEL -> "사망자 채널"
+            ReplayVisibility.DIRECT_MESSAGE -> "DM"
+            ReplayVisibility.EPHEMERAL -> "개인 응답"
+            ReplayVisibility.SYSTEM_INTERNAL -> "시스템"
+        }
+        val names = replayRecipientsFor(game, visibility).joinToString(", ") { it.name }
+        return if (names.isBlank()) label else "$label ($names)"
+    }
+
+    private fun replayCommunicationBody(sender: PlayerData, recipientDescription: String, message: String): String {
+        val content = message.trim().ifBlank { "(내용 없음)" }
+        return "보낸 사람: ${sender.member.effectiveName}\n받은 사람/곳: $recipientDescription\n내용: $content"
+    }
+
+    private fun replayCommunicationBody(sender: PlayerData, recipients: List<PlayerData>, message: String): String {
+        val recipientDescription = recipients.joinToString(", ") { it.member.effectiveName }
+            .ifBlank { "없음" }
+        return replayCommunicationBody(sender, recipientDescription, message)
     }
 
     suspend fun handleSpiritCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
@@ -2009,15 +2097,22 @@ object GameManager {
             SHAMAN_RELAY_COMMAND -> {
                 val memberId = event.member?.id ?: return false
                 val result = relayShamanMessage(memberId, message)
-                result.isSuccess
+                if (result.isSuccess) {
+                    runCatching { event.message.delete("영매 접신 전달 처리") }
+                } else {
+                    event.message.channel.createMessage(result.message)
+                }
+                true
             }
             SHAMANED_RELAY_COMMAND -> {
                 val memberId = event.member?.id ?: return false
                 val result = relayShamanedMessage(memberId, event.message.channelId, message)
                 if (result.isSuccess) {
                     runCatching { event.message.delete("성불 플레이어 강령 전달 처리") }
+                } else {
+                    event.message.channel.createMessage(result.message)
                 }
-                result.isSuccess
+                true
             }
             else -> false
         }
@@ -2055,65 +2150,6 @@ object GameManager {
         return sendPasswordChat(game, sender, message)
     }
 
-    suspend fun handleNightUtilityCommands(event: MessageCreateEvent, commandName: String, args: List<String>): Boolean {
-        val game = currentGame ?: return false
-        val memberId = event.member?.id ?: return false
-        val sender = game.getPlayer(memberId) ?: return false
-
-        return when (commandName) {
-            MEGAPHONE_COMMAND -> {
-                val message = args.joinToString(" ").trim()
-                val result = sendMegaphoneMessage(game, sender, message)
-                event.message.channel.createMessage(result.message)
-                true
-            }
-
-            SECRET_LETTER_COMMAND -> {
-                if (args.size < 2) {
-                    event.message.channel.createMessage("사용법: !밀서 @대상 내용")
-                    return true
-                }
-                val target = parseTargetPlayer(game, args.first())
-                val result = if (target == null) {
-                    SpiritRelayResult(false, "밀서 대상을 찾을 수 없습니다.")
-                } else {
-                    sendSecretLetter(game, sender, target, args.drop(1).joinToString(" ").trim())
-                }
-                event.message.channel.createMessage(result.message)
-                true
-            }
-
-            WILL_COMMAND -> {
-                val result = writeWill(game, sender, args.joinToString(" ").trim())
-                event.message.channel.createMessage(result.message)
-                true
-            }
-
-            PERJURY_COMMAND -> {
-                if (args.isEmpty()) {
-                    event.message.channel.createMessage("사용법: !위증 @대상")
-                    return true
-                }
-                val target = parseTargetPlayer(game, args.first())
-                val result = if (target == null) {
-                    SpiritRelayResult(false, "위증 대상을 찾을 수 없습니다.")
-                } else {
-                    castPerjuryVote(game, sender, target)
-                }
-                event.message.channel.createMessage(result.message)
-                true
-            }
-
-            PASSWORD_COMMAND -> {
-                val result = sendPasswordChat(game, sender, args.joinToString(" ").trim())
-                event.message.channel.createMessage(result.message)
-                true
-            }
-
-            else -> false
-        }
-    }
-
     private suspend fun sendMegaphoneMessage(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "확성기는 밤에만 사용할 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 확성기를 사용할 수 없습니다.")
@@ -2129,6 +2165,15 @@ object GameManager {
                 description = "${sender.member.effectiveName}: $message"
             }
         }
+        GameReplayLogger.logChat(
+            game = game,
+            actor = sender,
+            body = message,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "확성기",
+            recipients = replayRecipientsFor(game, ReplayVisibility.PUBLIC),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.PUBLIC)
+        )
         game.usedMegaphonePlayerIds += sender.member.id
         game.megaphoneUsedTonight = true
         return SpiritRelayResult(true, "확성기 메시지를 전송했습니다.")
@@ -2144,7 +2189,7 @@ object GameManager {
         if (target.member.id == sender.member.id) return SpiritRelayResult(false, "자기 자신에게는 밀서를 보낼 수 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
 
-        val formatted = "${sender.member.effectiveName} To ${target.member.effectiveName}\n$message"
+        val formatted = replayCommunicationBody(sender, listOf(target), message)
         GameReplayLogger.logSystem(
             game = game,
             title = "밀서 작성",
@@ -2179,7 +2224,7 @@ object GameManager {
         GameReplayLogger.logSystem(
             game = game,
             title = "유언 작성",
-            body = message,
+            body = replayCommunicationBody(sender, "본인", message),
             visibility = ReplayVisibility.DIRECT_MESSAGE,
             actor = sender,
             recipients = listOf(GameReplayLogger.recipient(sender, ReplayVisibility.DIRECT_MESSAGE))
@@ -2197,7 +2242,7 @@ object GameManager {
             return SpiritRelayResult(false, "투표권이 없어 위증을 사용할 수 없습니다.")
         }
         if (game.activeThreatenedVoters.containsKey(sender.member.id)) {
-            return SpiritRelayResult(false, "투표권이 없어 위증을 사용할 수 없습니다.")
+            return SpiritRelayResult(false, "협박받아 투표할 수 없습니다")
         }
         if (sender.allAbilities.none { it is Perjury }) return SpiritRelayResult(false, "위증 능력이 없습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
@@ -2220,8 +2265,11 @@ object GameManager {
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
-            body = relayMessage,
-            visibility = ReplayVisibility.MAFIA_CHANNEL
+            body = message,
+            visibility = ReplayVisibility.MAFIA_CHANNEL,
+            title = "암구호",
+            recipients = replayRecipientsFor(game, ReplayVisibility.MAFIA_CHANNEL),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.MAFIA_CHANNEL)
         )
         mafiaChannel.createMessage(relayMessage)
         return SpiritRelayResult(true, "암구호 메시지를 전송했습니다.")
@@ -2250,20 +2298,6 @@ object GameManager {
         return job is Evil && job !is Mafia && job !is Villain
     }
 
-    private fun parseTargetPlayer(game: Game, raw: String): PlayerData? {
-        val targetId = raw
-            .replace("<@", "")
-            .replace(">", "")
-            .replace("!", "")
-            .toULongOrNull()
-            ?.let(::Snowflake)
-        if (targetId != null) {
-            return game.getPlayer(targetId)
-        }
-
-        return game.playerDatas.firstOrNull { it.member.effectiveName.equals(raw, ignoreCase = true) }
-    }
-
     suspend fun relayShamanMessage(memberId: Snowflake, message: String): SpiritRelayResult {
         val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
         val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
@@ -2273,19 +2307,28 @@ object GameManager {
         val deadChannel = game.deadChannel ?: return SpiritRelayResult(false, "죽은 자들의 채널을 찾을 수 없습니다.")
 
         val relayMessage = "[접신] ${sender.member.effectiveName}: $message"
+        val sendResult = runCatching {
+            deadChannel.createMessage(relayMessage)
+        }
+        if (sendResult.isFailure) {
+            val error = sendResult.exceptionOrNull()
+            println("[GameManager] 접신 메시지 전송 실패: channelId=${deadChannel.id}, senderId=${sender.member.id}, reason=${error?.message}")
+            return SpiritRelayResult(false, "죽은 자들의 채널에 접신 메시지를 보내지 못했습니다. 봇 권한과 채널 설정을 확인해 주세요.")
+        }
+
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
-            body = relayMessage,
-            visibility = ReplayVisibility.DEAD_CHANNEL
+            body = message,
+            visibility = ReplayVisibility.DEAD_CHANNEL,
+            title = "접신",
+            recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
         )
-        runCatching {
-            deadChannel.createMessage(relayMessage)
-        }
         return SpiritRelayResult(true, "죽은 자들의 채널에 접신 메시지를 보냈습니다.")
     }
 
-    suspend fun relayShamanedMessage(
+    fun relayShamanedMessage(
         memberId: Snowflake,
         channelId: Snowflake,
         message: String
@@ -2296,7 +2339,18 @@ object GameManager {
         if (channelId != Snowflake(GAME_DEAD_CHANNEL_ID)) return SpiritRelayResult(false, "죽은 자들의 채널에서만 사용할 수 있습니다.")
         if (!sender.state.isDead || !sender.state.isShamaned) return SpiritRelayResult(false, "성불된 사망자만 사용할 수 있습니다.")
 
-        relayShamanedPlayerMessage(game, sender, message)
+        val manifestShamans = shamanedRelayRecipients(game)
+        GameReplayLogger.logChat(
+            game = game,
+            actor = sender,
+            body = message,
+            visibility = ReplayVisibility.DEAD_CHANNEL,
+            title = "강령",
+            recipients = manifestShamans.map { GameReplayLogger.recipient(it, ReplayVisibility.DIRECT_MESSAGE) },
+            recipientDescription = manifestShamans.joinToString(", ") { it.member.effectiveName }
+                .ifBlank { "수신자 없음" }
+        )
+        relayShamanedPlayerMessage(game, sender, message, manifestShamans)
         return SpiritRelayResult(true, "강령 메시지를 전달했습니다.")
     }
 
@@ -2385,19 +2439,26 @@ object GameManager {
         }
     }
 
-    private fun relayShamanedPlayerMessage(game: Game, sender: PlayerData, message: String) {
-        val manifestShamans = game.playerDatas
+    private fun shamanedRelayRecipients(game: Game): List<PlayerData> =
+        game.playerDatas
             .asSequence()
             .filter { !it.state.isDead }
             .filter { it.job is Shaman }
             .filter { player -> player.allAbilities.any { it is Manifesto } }
             .toList()
+
+    private fun relayShamanedPlayerMessage(
+        game: Game,
+        sender: PlayerData,
+        message: String,
+        manifestShamans: List<PlayerData> = shamanedRelayRecipients(game)
+    ) {
         if (manifestShamans.isEmpty()) return
 
         manifestShamans.forEach { shaman ->
             gameLoopScope.launch {
                 runCatching {
-                    val replayMessage = "[강령] ${sender.member.effectiveName}: $message"
+                    val replayMessage = replayCommunicationBody(sender, listOf(shaman), message)
                     GameReplayLogger.logDirectMessage(game, shaman, replayMessage, "강령")
                     shaman.member.getDmChannel().createMessage(replayMessage)
                 }
@@ -2406,28 +2467,26 @@ object GameManager {
     }
 
     // 지목투표 데이터 저장
-    fun receiveMainVote(voterId: Snowflake, targetIdString: String): Boolean {
-        val game = currentGame ?: return false
+    fun receiveMainVote(voterId: Snowflake, targetIdString: String): VoteSubmissionResult {
+        val game = currentGame ?: return VoteSubmissionResult.FAILURE
 
         return synchronized(game) {
             // 현재 페이즈가 본투표 시간일 때만 표를 받습니다.
-            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return@synchronized false
-            val voter = game.getPlayer(voterId) ?: return@synchronized false
-            if (voter.state.isDead) return@synchronized false
-            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
-            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
-            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized false
-            val target = game.getPlayer(targetId) ?: return@synchronized false
-            if (target.state.isDead) return@synchronized false
+            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return@synchronized VoteSubmissionResult.FAILURE
+            val voter = game.getPlayer(voterId) ?: return@synchronized VoteSubmissionResult.FAILURE
+            if (voter.state.isDead) return@synchronized VoteSubmissionResult.FAILURE
+            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized VoteSubmissionResult.FAILURE
+            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized VoteSubmissionResult.THREATENED
+            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized VoteSubmissionResult.FAILURE
+            val target = game.getPlayer(targetId) ?: return@synchronized VoteSubmissionResult.FAILURE
+            if (target.state.isDead) return@synchronized VoteSubmissionResult.FAILURE
             if (
                 GameLoopManager.isMadScientistDistortionHidden(voter) &&
                 voter.member.id == target.member.id
-            ) return@synchronized false
-            val dictatorshipPolitician = game.playerDatas
-                .filter { !it.state.isDead && it.job !is Evil }
-                .singleOrNull()
+            ) return@synchronized VoteSubmissionResult.FAILURE
+            val dictatorshipPolitician = game.playerDatas.singleOrNull { !it.state.isDead && it.job !is Evil }
                 ?.takeIf { it.job is Politician }
-            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized false
+            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized VoteSubmissionResult.FAILURE
 
             game.currentMainVotes[voterId] = target.member.id.toString()
             if (game.dayCount == 1 && voter.job is Hostess && !game.hostessFirstVoteTargetByDay.containsKey(voterId)) {
@@ -2442,35 +2501,7 @@ object GameManager {
                 actor = voter,
                 recipients = listOf(GameReplayLogger.recipient(voter, ReplayVisibility.EPHEMERAL))
             )
-            true
-        }
-    }
-
-    fun receivePerjuryVote(voterId: Snowflake, targetIdString: String): Boolean {
-        val game = currentGame ?: return false
-        return synchronized(game) {
-            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId != null) return@synchronized false
-            val voter = game.getPlayer(voterId) ?: return@synchronized false
-            if (voter.state.isDead) return@synchronized false
-            if (voter.state.isSilenced) return@synchronized false
-            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
-            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
-            if (voter.allAbilities.none { it is Perjury }) return@synchronized false
-            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized false
-            val target = game.getPlayer(targetId) ?: return@synchronized false
-            if (target.state.isDead) return@synchronized false
-
-            game.currentFakeVotes[voterId] = target.member.id
-            GameReplayLogger.log(
-                game = game,
-                type = ReplayLogType.VOTE_CAST,
-                visibility = ReplayVisibility.EPHEMERAL,
-                title = "위증 투표",
-                body = "${voter.member.effectiveName} -> ${target.member.effectiveName}",
-                actor = voter,
-                recipients = listOf(GameReplayLogger.recipient(voter, ReplayVisibility.EPHEMERAL))
-            )
-            true
+            VoteSubmissionResult.SUCCESS
         }
     }
 
@@ -2479,22 +2510,20 @@ object GameManager {
         voterId: Snowflake,
         isPros: Boolean,
         expectedDefenseTargetId: Snowflake? = null
-    ): Boolean {
-        val game = currentGame ?: return false
+    ): VoteSubmissionResult {
+        val game = currentGame ?: return VoteSubmissionResult.FAILURE
 
         return synchronized(game) {
-            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId == null) return@synchronized false
-            if (expectedDefenseTargetId != null && game.defenseTargetId != expectedDefenseTargetId) return@synchronized false
-            val voter = game.getPlayer(voterId) ?: return@synchronized false
-            if (voter.state.isDead) return@synchronized false
-            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized false
-            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized false
-            val dictatorshipPolitician = game.playerDatas
-                .filter { !it.state.isDead && it.job !is Evil }
-                .singleOrNull()
+            if (game.currentPhase != GamePhase.VOTE || game.defenseTargetId == null) return@synchronized VoteSubmissionResult.FAILURE
+            if (expectedDefenseTargetId != null && game.defenseTargetId != expectedDefenseTargetId) return@synchronized VoteSubmissionResult.FAILURE
+            val voter = game.getPlayer(voterId) ?: return@synchronized VoteSubmissionResult.FAILURE
+            if (voter.state.isDead) return@synchronized VoteSubmissionResult.FAILURE
+            if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized VoteSubmissionResult.FAILURE
+            if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized VoteSubmissionResult.THREATENED
+            val dictatorshipPolitician = game.playerDatas.singleOrNull { !it.state.isDead && it.job !is Evil }
                 ?.takeIf { it.job is Politician }
-            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized false
-            if (game.currentProsConsVotes.containsKey(voterId)) return@synchronized false
+            if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized VoteSubmissionResult.FAILURE
+            if (game.currentProsConsVotes.containsKey(voterId)) return@synchronized VoteSubmissionResult.FAILURE
 
             game.currentProsConsVotes[voterId] = isPros
             GameReplayLogger.log(
@@ -2506,7 +2535,7 @@ object GameManager {
                 actor = voter,
                 recipients = listOf(GameReplayLogger.recipient(voter, ReplayVisibility.EPHEMERAL))
             )
-            true
+            VoteSubmissionResult.SUCCESS
         }
     }
 }

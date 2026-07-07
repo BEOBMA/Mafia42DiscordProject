@@ -2,9 +2,7 @@ package org.beobma.mafia42discordproject.job.ability.general.evil.list.spy
 
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.AssistanceCommonAbility
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
-import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Spy
 import kotlin.reflect.KClass
 

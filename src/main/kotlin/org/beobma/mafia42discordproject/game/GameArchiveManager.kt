@@ -17,6 +17,7 @@ import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
@@ -42,7 +43,7 @@ object GameArchiveManager {
             val root = buildSnapshot(game, endReason, winningTeamName, now)
             val fileName = "game-${fileNameFormatter.format(now)}-${game.guild.id.value}.json"
             val outputPath = archiveDir.resolve(fileName)
-            Files.writeString(outputPath, json.encodeToString(JsonObject.serializer(), root))
+            AtomicTextFileWriter.write(outputPath, json.encodeToString(JsonObject.serializer(), root))
             game.hasArchivedSnapshot = true
             println("[GameArchiveManager] 게임 데이터 저장 완료: $outputPath")
         }.onFailure {
@@ -59,7 +60,8 @@ object GameArchiveManager {
             put("guildName", game.guild.name)
             put("dayCount", game.dayCount)
             put("initialPlayerCount", game.initialPlayerCount)
-            put("isCrazyMode", game.isCrazyMode)
+            put("modeType", game.mode.typeName)
+            put("modeDisplayName", game.mode.displayName)
             put("currentPhase", game.currentPhase.name)
             put("isRunning", game.isRunning)
             putNullable("voiceChannelId", game.voiceChannelId?.value?.toString())

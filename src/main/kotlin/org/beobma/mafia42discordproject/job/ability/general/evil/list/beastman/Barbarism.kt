@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 class Barbarism : Ability, JobSpecificExtraAbility {
     override val name: String = "야만성"
-    override val description: String = "첫 번째 밤에 두 명에게 표식을 새길 수 있다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(203).webp"
+    override val description: String = "마피아에게 공격받은 경우 접선한다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/beastman_ability_4.webp"
     override val targetJob: List<KClass<out Job>> = listOf(Beastman::class)
 }

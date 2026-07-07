@@ -12,12 +12,9 @@ import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
-import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
-import org.beobma.mafia42discordproject.job.definition.list.Paparazzi
-import kotlin.reflect.KClass
 
 class Issue : Ability, JobUniqueAbility, PassiveAbility {
     override val name: String = "이슈"
@@ -25,6 +22,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(144).webp"
 
     companion object {
+        private const val ISSUE_NOTIFICATION_IMAGE_URL =
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(3).webp"
         private val issueNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
@@ -89,7 +88,7 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 sharedByPaparazzi = true,
                 triggeredByTact = true,
                 notifyTarget = false,
-                imageUrl = image
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
             )
         } else {
             GameEvent.JobDiscovered(
@@ -101,7 +100,7 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 resolvedAt = resolvedAt,
                 sharedByPaparazzi = true,
                 notifyTarget = false,
-                imageUrl = image
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
             )
         }
 

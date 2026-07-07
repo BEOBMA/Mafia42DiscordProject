@@ -4,9 +4,6 @@ import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.definition.list.Detective
-import org.beobma.mafia42discordproject.job.definition.list.Gangster
-import org.beobma.mafia42discordproject.job.definition.list.Shaman
-import org.beobma.mafia42discordproject.job.definition.list.Soldier
 import kotlin.reflect.KClass
 
 class Trap : Ability, JobSpecificExtraAbility {

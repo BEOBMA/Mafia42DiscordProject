@@ -54,14 +54,17 @@ object ProsConsVoteListener : InteractionListener {
                     }
                 }
 
-                val isSuccess = GameManager.receiveProsConsVote(voterId, isPros, expectedDefenseTargetId)
+                val voteResult = GameManager.receiveProsConsVote(voterId, isPros, expectedDefenseTargetId)
 
                 runCatching {
                     deferredResponse.respond {
-                        content = if (isSuccess) {
-                            if (isPros) "✅ **찬성**에 투표하셨습니다." else "✅ **반대**에 투표하셨습니다."
-                        } else {
-                            "❌ 현재 찬반 투표 시간이 아니거나, 이미 투표하여 변경할 수 없습니다."
+                        content = when (voteResult) {
+                            GameManager.VoteSubmissionResult.SUCCESS ->
+                                if (isPros) "✅ **찬성**에 투표하셨습니다." else "✅ **반대**에 투표하셨습니다."
+                            GameManager.VoteSubmissionResult.THREATENED ->
+                                "협박받아 투표할 수 없습니다"
+                            GameManager.VoteSubmissionResult.FAILURE ->
+                                "❌ 현재 찬반 투표 시간이 아니거나, 이미 투표하여 변경할 수 없습니다."
                         }
                     }
                 }.onFailure { error ->

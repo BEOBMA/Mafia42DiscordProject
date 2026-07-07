@@ -1,6 +1,5 @@
 package org.beobma.mafia42discordproject.command
 
-import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager

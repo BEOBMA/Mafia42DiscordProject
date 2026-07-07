@@ -2,9 +2,7 @@ package org.beobma.mafia42discordproject.job.definition.list
 
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.paparazzi.Issue
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.paparazzi.Tact
 import org.beobma.mafia42discordproject.job.definition.Definition
 
 class Paparazzi : Job(), Definition {

@@ -23,14 +23,17 @@ object MainVoteListener : InteractionListener {
 
                 val voterId = interaction.user.id
                 val targetIdString = interaction.values.first()
-                val isSuccess = GameManager.receiveMainVote(voterId, targetIdString)
+                val voteResult = GameManager.receiveMainVote(voterId, targetIdString)
 
                 runCatching {
                     deferredResponse.respond {
-                        content = if (isSuccess) {
-                            "✅ 투표가 정상적으로 접수되었습니다. (다른 사람을 선택하여 표를 바꿀 수 있습니다)"
-                        } else {
-                            "❌ 현재 투표 시간이 아니거나 게임이 진행 중이 아닙니다."
+                        content = when (voteResult) {
+                            GameManager.VoteSubmissionResult.SUCCESS ->
+                                "✅ 투표가 정상적으로 접수되었습니다. (다른 사람을 선택하여 표를 바꿀 수 있습니다)"
+                            GameManager.VoteSubmissionResult.THREATENED ->
+                                "협박받아 투표할 수 없습니다"
+                            GameManager.VoteSubmissionResult.FAILURE ->
+                                "❌ 현재 투표 시간이 아니거나 게임이 진행 중이 아닙니다."
                         }
                     }
                 }.onFailure { error ->
