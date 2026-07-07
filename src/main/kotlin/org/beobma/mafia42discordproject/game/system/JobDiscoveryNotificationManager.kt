@@ -137,6 +137,15 @@ object JobDiscoveryNotificationManager {
                 }
             }
         }
+        if (event.sourceAbilityName == "수습") {
+            return buildString {
+                append("수습당했습니다")
+                event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    appendLine()
+                    append(url)
+                }
+            }
+        }
 
         return buildString {
             append(event.discoverer.member.effectiveName)

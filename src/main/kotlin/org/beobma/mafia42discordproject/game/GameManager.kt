@@ -2016,15 +2016,22 @@ object GameManager {
             SHAMAN_RELAY_COMMAND -> {
                 val memberId = event.member?.id ?: return false
                 val result = relayShamanMessage(memberId, message)
-                result.isSuccess
+                if (result.isSuccess) {
+                    runCatching { event.message.delete("영매 접신 전달 처리") }
+                } else {
+                    event.message.channel.createMessage(result.message)
+                }
+                true
             }
             SHAMANED_RELAY_COMMAND -> {
                 val memberId = event.member?.id ?: return false
                 val result = relayShamanedMessage(memberId, event.message.channelId, message)
                 if (result.isSuccess) {
                     runCatching { event.message.delete("성불 플레이어 강령 전달 처리") }
+                } else {
+                    event.message.channel.createMessage(result.message)
                 }
-                result.isSuccess
+                true
             }
             else -> false
         }
@@ -2219,6 +2226,15 @@ object GameManager {
         val deadChannel = game.deadChannel ?: return SpiritRelayResult(false, "죽은 자들의 채널을 찾을 수 없습니다.")
 
         val relayMessage = "[접신] ${sender.member.effectiveName}: $message"
+        val sendResult = runCatching {
+            deadChannel.createMessage(relayMessage)
+        }
+        if (sendResult.isFailure) {
+            val error = sendResult.exceptionOrNull()
+            println("[GameManager] 접신 메시지 전송 실패: channelId=${deadChannel.id}, senderId=${sender.member.id}, reason=${error?.message}")
+            return SpiritRelayResult(false, "죽은 자들의 채널에 접신 메시지를 보내지 못했습니다. 봇 권한과 채널 설정을 확인해 주세요.")
+        }
+
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
@@ -2228,9 +2244,6 @@ object GameManager {
             recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
             recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
         )
-        runCatching {
-            deadChannel.createMessage(relayMessage)
-        }
         return SpiritRelayResult(true, "죽은 자들의 채널에 접신 메시지를 보냈습니다.")
     }
 
