@@ -1,8 +1,6 @@
 package org.beobma.mafia42discordproject
 
 import dev.kord.common.annotation.KordPreview
-import dev.kord.common.entity.ApplicationCommandType
-import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.guild.VoiceServerUpdateEvent
@@ -11,10 +9,8 @@ import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEve
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.event.user.VoiceStateUpdateEvent
 import dev.kord.core.on
-import kotlinx.coroutines.flow.firstOrNull
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
-import org.beobma.mafia42discordproject.command.DiscordCommand
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
@@ -36,8 +32,6 @@ suspend fun main() {
     LavalinkManager.initialize(kord)
 
     val commands = CommandRegistry.all()
-
-    syncSlashCommands(kord, commands)
 
     kord.on<ReadyEvent> {
         println("✅ 로그인 완료: ${kord.getSelf().tag}")
@@ -100,68 +94,4 @@ suspend fun main() {
     JobPreferenceManager.load()
     BestJobPreferenceManager.load()
     kord.login()
-}
-
-private suspend fun syncSlashCommands(kord: Kord, commands: List<DiscordCommand>) {
-    val guildId = System.getenv("DISCORD_GUILD_ID")
-        ?.toULongOrNull()
-        ?.let(::Snowflake)
-
-    if (guildId != null) {
-        commands.forEach { command ->
-            upsertGuildChatInputCommand(kord, guildId, command)
-        }
-        println("✅ 길드 슬래시 명령어 동기화 완료 (guildId=$guildId)")
-        return
-    }
-
-    commands.forEach { command ->
-        upsertGlobalChatInputCommand(kord, command)
-    }
-    println("✅ 글로벌 슬래시 명령어 동기화 완료")
-    println("ℹ️ 빠른 반영이 필요하면 DISCORD_GUILD_ID를 설정하세요.")
-}
-
-private suspend fun upsertGlobalChatInputCommand(kord: Kord, command: DiscordCommand) {
-    val existingCommand = kord.getGlobalApplicationCommands()
-        .firstOrNull { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-
-    if (existingCommand != null) {
-        val deleteResult = runCatching { existingCommand.delete() }
-        if (deleteResult.isFailure) {
-            println("Failed to delete existing global command: /${command.name}, reason=${deleteResult.exceptionOrNull()?.message}")
-            return
-        }
-        println("Deleted existing global command before recreation: /${command.name}")
-    }
-
-    runCatching {
-        command.registerGlobal(kord)
-    }.onSuccess {
-        println("➕ 글로벌 명령어를 생성했습니다: /${command.name}")
-    }.onFailure { error ->
-        println("⚠️ 글로벌 명령어 생성 실패로 건너뜁니다: /${command.name}, reason=${error.message}")
-    }
-}
-
-private suspend fun upsertGuildChatInputCommand(kord: Kord, guildId: Snowflake, command: DiscordCommand) {
-    val existingCommand = kord.getGuildApplicationCommands(guildId)
-        .firstOrNull { it.type == ApplicationCommandType.ChatInput && it.name == command.name }
-
-    if (existingCommand != null) {
-        val deleteResult = runCatching { existingCommand.delete() }
-        if (deleteResult.isFailure) {
-            println("Failed to delete existing guild command: /${command.name} (guildId=$guildId), reason=${deleteResult.exceptionOrNull()?.message}")
-            return
-        }
-        println("Deleted existing guild command before recreation: /${command.name} (guildId=$guildId)")
-    }
-
-    runCatching {
-        command.registerGuild(kord, guildId)
-    }.onSuccess {
-        println("➕ 길드 명령어를 생성했습니다: /${command.name} (guildId=$guildId)")
-    }.onFailure { error ->
-        println("⚠️ 길드 명령어 생성 실패로 건너뜁니다: /${command.name} (guildId=$guildId), reason=${error.message}")
-    }
 }
