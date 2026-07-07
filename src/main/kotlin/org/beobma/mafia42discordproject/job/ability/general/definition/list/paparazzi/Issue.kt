@@ -22,6 +22,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(144).webp"
 
     companion object {
+        private const val ISSUE_NOTIFICATION_IMAGE_URL =
+            "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(3).webp"
         private val issueNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
@@ -86,7 +88,7 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 sharedByPaparazzi = true,
                 triggeredByTact = true,
                 notifyTarget = false,
-                imageUrl = image
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
             )
         } else {
             GameEvent.JobDiscovered(
@@ -98,7 +100,7 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 resolvedAt = resolvedAt,
                 sharedByPaparazzi = true,
                 notifyTarget = false,
-                imageUrl = image
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
             )
         }
 

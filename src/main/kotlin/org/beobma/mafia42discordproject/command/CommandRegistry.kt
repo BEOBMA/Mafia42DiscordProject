@@ -7,6 +7,7 @@ object CommandRegistry {
         HelloCommand,
         ReadyCommand,
         SpectateCommand,
+        RefreshLobbyCommand,
         GameStartCommand,
         GameStopCommand,
         AbilityUseCommand,

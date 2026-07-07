@@ -32,6 +32,7 @@ import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
 import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
+import org.beobma.mafia42discordproject.game.lobby.LobbyRefreshResult
 import org.beobma.mafia42discordproject.game.lobby.LobbySelectionManager
 import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
@@ -83,10 +84,10 @@ object GameManager {
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
 
-    private const val GAME_MAIN_CHANNEL_ID = 1521943257884528671L
-    private const val GAME_MAFIA_CHANNEL_ID = 1521943318790144021L
-    private const val GAME_COUPLE_CHANNEL_ID = 1521943398540378275L
-    private const val GAME_DEAD_CHANNEL_ID = 1521943426893877359L
+    private const val GAME_MAIN_CHANNEL_ID = 1524098920576319518L
+    private const val GAME_MAFIA_CHANNEL_ID = 1524098952499036320L
+    private const val GAME_COUPLE_CHANNEL_ID = 1524098966139043860L
+    private const val GAME_DEAD_CHANNEL_ID = 1524098974154227773L
     private const val SHAMAN_RELAY_COMMAND = "접신"
     private const val SHAMANED_RELAY_COMMAND = "강령"
     private const val GAME_CHANNEL_SPACER_LINES = 180
@@ -167,6 +168,36 @@ object GameManager {
         return markLobbyParticipation(guild, member, LobbyParticipation.SPECTATOR)
     }
 
+    suspend fun refreshLobby(event: GuildChatInputCommandInteractionCreateEvent): LobbyParticipationResult {
+        val guild = event.interaction.getGuild()
+        val member = event.interaction.user.asMember(guild.id)
+        return refreshLobby(guild, member)
+    }
+
+    suspend fun refreshLobby(event: MessageCreateEvent): LobbyParticipationResult {
+        val guild = event.getGuildOrNull()
+            ?: return LobbyParticipationResult(false, "서버에서만 사용할 수 있는 명령어입니다.")
+        val member = event.member
+            ?: return LobbyParticipationResult(false, "서버 멤버 정보를 가져오지 못했습니다.")
+        return refreshLobby(guild, member)
+    }
+
+    private suspend fun refreshLobby(guild: Guild, member: Member): LobbyParticipationResult {
+        if (currentGame != null) {
+            return LobbyParticipationResult(false, "게임이 진행 중일 때는 대기 목록을 새로고침할 수 없습니다.")
+        }
+
+        val voiceChannelId = member.getVoiceStateOrNull()?.channelId
+            ?: return LobbyParticipationResult(false, "먼저 음성채널에 접속한 뒤 사용해 주세요.")
+        val voiceChannel = guild.getChannelOfOrNull<VoiceChannel>(voiceChannelId)
+        val result = lobbySelectionManager.refreshParticipants(guild, voiceChannelId)
+
+        return LobbyParticipationResult(
+            true,
+            buildLobbyRefreshMessage(voiceChannel?.mention, result)
+        )
+    }
+
     private suspend fun markLobbyParticipation(
         guild: Guild,
         member: Member,
@@ -177,6 +208,31 @@ object GameManager {
         }
 
         return lobbySelectionManager.markParticipation(guild, member, participation)
+    }
+
+    private fun buildLobbyRefreshMessage(
+        voiceChannelMention: String?,
+        result: LobbyRefreshResult
+    ): String {
+        val members = result.members
+        return buildString {
+            appendLine("현재 음성채널 인원으로 대기 목록을 새로고침했습니다.")
+            if (voiceChannelMention != null) {
+                appendLine("음성채널: $voiceChannelMention")
+            }
+            appendLine("플레이어 ${members.readyMembers.size}명, 관전자 ${members.spectatorMembers.size}명")
+            if (result.removedSelectionCount > 0) {
+                appendLine("음성채널에 없는 ${result.removedSelectionCount}명의 선택을 제거했습니다.")
+            }
+            appendLine()
+            appendLine("플레이어")
+            appendLine(DiscordMessageManager.mentions(members.readyMembers).ifBlank { "없음" })
+            if (members.spectatorMembers.isNotEmpty()) {
+                appendLine()
+                appendLine("관전자")
+                append(DiscordMessageManager.mentions(members.spectatorMembers))
+            }
+        }
     }
 
     private suspend fun Game.start(
@@ -208,12 +264,9 @@ object GameManager {
 
         val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
+            val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "/준비", "/관전")
             deferredResponse.respond {
-                content = buildString {
-                    appendLine("음성채널의 모든 사람이 `/준비` 또는 `/관전` 중 하나를 먼저 선택해야 합니다.")
-                    appendLine("아직 선택하지 않은 인원:")
-                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
-                }
+                content = buildReadyRequiredPublicMessage(failedMembers)
             }
             return
         }
@@ -305,12 +358,9 @@ object GameManager {
 
         val lobbyMembers = lobbySelectionManager.collectMembers(guild, voiceChannelId)
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
+            val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "!준비", "!관전")
             event.message.channel.createMessage(
-                buildString {
-                    appendLine("음성채널의 모든 사람이 `!준비` 또는 `!관전` 중 하나를 먼저 선택해야 합니다.")
-                    appendLine("아직 선택하지 않은 인원:")
-                    append(DiscordMessageManager.mentions(lobbyMembers.undecidedMembers))
-                }
+                buildReadyRequiredPublicMessage(failedMembers)
             )
             return
         }
@@ -382,6 +432,37 @@ object GameManager {
                 }
             }
         )
+    }
+
+    private suspend fun sendReadyRequiredDm(
+        members: List<Member>,
+        readyCommand: String,
+        spectatorCommand: String
+    ): List<Member> {
+        val failedMembers = mutableListOf<Member>()
+
+        members.forEach { member ->
+            val message = "${member.mention} 게임에 참여하려면 `$readyCommand`, 관전하려면 `$spectatorCommand`을(를) 선택해 주세요."
+            runCatching {
+                member.getDmChannel().createMessage(message)
+            }.onFailure { error ->
+                failedMembers += member
+                println("⚠️ ${member.effectiveName} 준비 요청 DM 전송 실패: ${error.message}")
+            }
+        }
+
+        return failedMembers
+    }
+
+    private fun buildReadyRequiredPublicMessage(failedMembers: List<Member>): String = buildString {
+        appendLine("음성채널의 모든 사람이 준비 또는 관전 중 하나를 먼저 선택해야 합니다.")
+        append("아직 선택하지 않은 인원에게 준비 요청 DM을 보냈습니다.")
+        if (failedMembers.isNotEmpty()) {
+            appendLine()
+            appendLine()
+            appendLine("DM을 보내지 못한 인원:")
+            append(DiscordMessageManager.mentions(failedMembers))
+        }
     }
 
     private fun buildAssignmentPlayers(members: List<Member>): MutableList<AssignmentPlayer> {

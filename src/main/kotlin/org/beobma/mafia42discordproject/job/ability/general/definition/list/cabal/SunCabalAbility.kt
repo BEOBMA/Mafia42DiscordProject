@@ -32,6 +32,13 @@ class SunCabalAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "해 비밀결사에게만 주어진 능력입니다.")
         }
 
+        val moonCabal = cabal.pairedPlayerId
+            ?.let(game::getPlayer)
+            ?.job as? Cabal
+        if (moonCabal?.role != CabalRole.MOON || !moonCabal.hasFoundSun) {
+            return AbilityResult(false, "달 비밀결사가 해 비밀결사를 먼저 찾기 전까지는 능력을 사용할 수 없습니다.")
+        }
+
         if (target == null) {
             cabal.selectedTargetId = null
             return AbilityResult(true, "밀사 대상을 해제했습니다.")

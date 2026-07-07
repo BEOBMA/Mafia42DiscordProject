@@ -33,12 +33,15 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.doct
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.cabal.SunCabalAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
+import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
@@ -388,6 +391,7 @@ object AbilityUseCommand : DiscordCommand {
         return abilitySource
             .filterIsInstance<ActiveAbility>()
             .filter { it.usablePhase == game.currentPhase }
+            .filter { canUseCabalActiveAbility(game, caster, it) }
             .filter { ability ->
                 if (ability is GodfatherAbility) {
                     GodfatherContactPolicy.canUseExecution(game, caster) &&
@@ -396,6 +400,18 @@ object AbilityUseCommand : DiscordCommand {
                     FrogCurseManager.canUseActiveAbility(caster, ability)
                 }
             }
+    }
+
+    private fun canUseCabalActiveAbility(game: Game, caster: PlayerData, ability: ActiveAbility): Boolean {
+        if (ability !is SunCabalAbility) return true
+
+        val sunCabal = caster.job as? Cabal ?: return true
+        if (sunCabal.role != CabalRole.SUN) return true
+
+        val moonCabal = sunCabal.pairedPlayerId
+            ?.let(game::getPlayer)
+            ?.job as? Cabal
+        return moonCabal?.role == CabalRole.MOON && moonCabal.hasFoundSun
     }
 
     private fun isBlockedByUnwrittenRule(game: Game, directTarget: PlayerData?): Boolean {

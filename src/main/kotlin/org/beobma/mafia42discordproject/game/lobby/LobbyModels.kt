@@ -20,6 +20,11 @@ internal data class VoiceLobbyMembers(
     val undecidedMembers: List<Member>
 )
 
+internal data class LobbyRefreshResult(
+    val members: VoiceLobbyMembers,
+    val removedSelectionCount: Int
+)
+
 data class LobbyParticipationResult(
     val isSuccess: Boolean,
     val message: String

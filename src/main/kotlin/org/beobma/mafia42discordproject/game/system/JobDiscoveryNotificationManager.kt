@@ -95,7 +95,7 @@ object JobDiscoveryNotificationManager {
                         appendLine()
                         append("${event.target.member.effectiveName}님은 ${event.revealedJob.name}입니다.")
                     } else {
-                        append("(${event.target.member.effectiveName})님이 (${event.revealedJob.name})이라는 정보를 공유받았습니다.")
+                        append("${event.target.member.effectiveName}님이 ${event.revealedJob.name}${quotedInfoParticle(event.revealedJob.name)} 정보를 공유받았습니다.")
                     }
                 }
                 else -> {
@@ -113,6 +113,13 @@ object JobDiscoveryNotificationManager {
                 append(url)
             }
         }
+    }
+
+    private fun quotedInfoParticle(value: String): String {
+        val lastChar = value.lastOrNull() ?: return "라는"
+        if (lastChar !in '가'..'힣') return "라는"
+        val hasFinalConsonant = ((lastChar.code - '가'.code) % 28) != 0
+        return if (hasFinalConsonant) "이라는" else "라는"
     }
 
     private fun buildTargetNotificationMessage(event: GameEvent.JobDiscovered): String {
