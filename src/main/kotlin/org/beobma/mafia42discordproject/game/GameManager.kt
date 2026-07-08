@@ -1067,9 +1067,11 @@ object GameManager {
             val unassigned = players.filter { it.assignedJob == null }
             if (unassigned.isEmpty()) return true
 
-            val current = unassigned.minByOrNull { player ->
-                getAllowedJobNames(player).count { name -> (slotCounter[name] ?: 0) > 0 }
-            } ?: return true
+            val current = unassigned
+                .shuffled()
+                .minByOrNull { player ->
+                    getAllowedJobNames(player).count { name -> (slotCounter[name] ?: 0) > 0 }
+                } ?: return true
 
             val weightedCandidates = getAllowedJobNames(current)
                 .filter { name -> (slotCounter[name] ?: 0) > 0 }
