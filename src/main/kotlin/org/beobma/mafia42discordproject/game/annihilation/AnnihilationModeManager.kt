@@ -479,7 +479,7 @@ object AnnihilationModeManager {
         }
 
         game.mainChannel?.createMessage {
-            content = "요원은 20초 안에 조사할 사람을 선택하세요. 선택하지 않으면 요원 자신을 조사한 것으로 처리됩니다."
+            content = "요원은 20초 안에 용의자를 조사할 사람을 선택하세요. 선택하지 않으면 요원이 용의자를 조사하는 것으로 처리됩니다."
             actionRow {
                 stringSelect(agentSelectId(game.dayCount, suspect.member.id)) {
                     placeholder = "요원 조사 대상 선택"
