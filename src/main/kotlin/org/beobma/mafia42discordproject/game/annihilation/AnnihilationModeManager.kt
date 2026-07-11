@@ -519,7 +519,7 @@ object AnnihilationModeManager {
         )
 
         if (suspect.job is Capo) {
-            game.sendMainChannerMessage("카포가 투표로 사망하여 시민팀이 즉시 승리합니다.")
+            game.sendMainChannerMessage("카포가 투표로 사망하여 시민팀이 승리합니다.")
             GameLoopManager.endGame(game, Team.CITIZEN)
             return
         }
@@ -568,7 +568,7 @@ object AnnihilationModeManager {
         )
 
         if (target.job is Agent) {
-            game.sendMainChannerMessage("마피아팀이 요원을 처형하는 데 성공하여 즉시 승리합니다.")
+            game.sendMainChannerMessage("마피아팀이 요원을 처형하는 데 성공하여 승리합니다.")
             GameLoopManager.endGame(game, Team.MAFIA)
         }
         return "${target.member.effectiveName}님을 처형했습니다."
