@@ -585,14 +585,16 @@ object AnnihilationModeManager {
                 mission.location == actorLocation
         }
 
-        val clue = when {
-            actorLocation in state.mafiaExecutionLocationsToday ->
-                "${actorLocation.displayName}에서 오늘 마피아팀의 처형 흔적이 발견되었습니다."
-            actorLocation in state.mafiaMissionLocationsToday ->
-                "${actorLocation.displayName}에서 오늘 마피아팀이 미션을 수행한 흔적이 있습니다."
+        val clue = when (actorLocation) {
+            in state.mafiaExecutionLocationsToday ->
+                "${actorLocation.displayName}에서 오늘 누군가 수상한 행동을 했어."
+
+            in state.mafiaMissionLocationsToday ->
+                "${actorLocation.displayName}에서 수상한 흔적이 있었어."
+
             else -> {
                 val visits = state.visitorsByLocationToday[actorLocation]?.size ?: 0
-                "오늘 ${actorLocation.displayName}에 찾아온 사람은 ${visits}명입니다."
+                "오늘 ${actorLocation.displayName}에 찾아온 사람은 ${visits}명이야."
             }
         }
 
