@@ -109,7 +109,7 @@ object AnnihilationModeManager {
             val roleLine = when (player.job) {
                 is Capo -> "당신은 카포입니다. 낮에 비밀 신원으로 처형을 지시할 수 있습니다."
                 is Soldato -> "당신은 솔다토입니다. 카포를 보조하고 신분증을 훔칠 수 있습니다."
-                is Agent -> "당신은 요원입니다. 증명, 사칭, 합동수사를 사용할 수 있습니다."
+                is Agent -> "당신은 요원입니다. 사망하면 시민팀은 그 즉시 패배합니다."
                 else -> "당신은 시민입니다."
             }
             val message = buildString {
