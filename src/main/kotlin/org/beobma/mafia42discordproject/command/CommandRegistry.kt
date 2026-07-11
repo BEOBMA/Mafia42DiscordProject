@@ -10,6 +10,7 @@ object CommandRegistry {
         RefreshLobbyCommand,
         GameStartCommand,
         GameStopCommand,
+        AnnihilationCommand,
         AbilityUseCommand,
         DayTimeAdjustCommand,
         BestJobCommand,

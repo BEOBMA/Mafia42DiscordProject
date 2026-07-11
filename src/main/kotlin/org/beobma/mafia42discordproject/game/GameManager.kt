@@ -25,6 +25,9 @@ import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuid
 import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
+import org.beobma.mafia42discordproject.game.annihilation.AnnihilationModeManager
+import org.beobma.mafia42discordproject.game.annihilation.Capo
+import org.beobma.mafia42discordproject.game.annihilation.Soldato
 import org.beobma.mafia42discordproject.game.assignment.AssignmentPlayer
 import org.beobma.mafia42discordproject.game.assignment.AssignmentTrace
 import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
@@ -288,8 +291,19 @@ object GameManager {
             return
         }
 
-        val membersWithoutPreference = playerMembers.filter { member ->
-            JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+        if (mode == GameStartMode.ANNIHILATION && playerMembers.size < 4) {
+            deferredResponse.respond {
+                content = "말살 모드는 최소 4명(카포, 솔다토, 요원, 시민 1명)부터 시작할 수 있습니다."
+            }
+            return
+        }
+
+        val membersWithoutPreference = if (mode == GameStartMode.ANNIHILATION) {
+            emptyList()
+        } else {
+            playerMembers.filter { member ->
+                JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+            }
         }
 
         if (membersWithoutPreference.isNotEmpty()) {
@@ -311,6 +325,38 @@ object GameManager {
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
+
+        if (mode == GameStartMode.ANNIHILATION) {
+            this.assignAnnihilationJobs()
+            AnnihilationModeManager.initialize(this)
+            GameReplayLogger.logGameStart(this, mode.displayName)
+            setupGameChannels(this)
+            sendGameChannelSpacer(this)
+            AnnihilationModeManager.sendOpeningDms(this)
+            this.isRunning = true
+            gameLoopJob = gameLoopScope.launch {
+                AnnihilationModeManager.runGameLoop(this@start)
+            }
+            lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
+
+            deferredResponse.respond {
+                content = buildString {
+                    appendLine("현재 음성채널: ${voiceChannel.mention}")
+                    appendLine("플레이어 수: ${playerMembers.size}")
+                    appendLine("관전자 수: ${spectatorMembers.size}")
+                    appendLine("모드: ${mode.displayName}")
+                    appendLine()
+                    appendLine("플레이어")
+                    appendLine(DiscordMessageManager.mentions(playerMembers))
+                    if (spectatorMembers.isNotEmpty()) {
+                        appendLine()
+                        appendLine("관전자")
+                        append(DiscordMessageManager.mentions(spectatorMembers))
+                    }
+                }
+            }
+            return
+        }
 
         val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
@@ -380,8 +426,17 @@ object GameManager {
             return
         }
 
-        val membersWithoutPreference = playerMembers.filter { member ->
-            JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+        if (mode == GameStartMode.ANNIHILATION && playerMembers.size < 4) {
+            event.message.channel.createMessage("말살 모드는 최소 4명(카포, 솔다토, 요원, 시민 1명)부터 시작할 수 있습니다.")
+            return
+        }
+
+        val membersWithoutPreference = if (mode == GameStartMode.ANNIHILATION) {
+            emptyList()
+        } else {
+            playerMembers.filter { member ->
+                JobPreferenceManager.get(member.id.value).isNullOrEmpty()
+            }
         }
 
         if (membersWithoutPreference.isNotEmpty()) {
@@ -403,6 +458,38 @@ object GameManager {
         this.initialPlayerCount = this.playerDatas.size
         this.voiceChannelId = voiceChannelId
         this.applyNextGameMafiaExecutionProtection()
+
+        if (mode == GameStartMode.ANNIHILATION) {
+            this.assignAnnihilationJobs()
+            AnnihilationModeManager.initialize(this)
+            GameReplayLogger.logGameStart(this, mode.displayName)
+            setupGameChannels(this)
+            sendGameChannelSpacer(this)
+            AnnihilationModeManager.sendOpeningDms(this)
+            this.isRunning = true
+            gameLoopJob = gameLoopScope.launch {
+                AnnihilationModeManager.runGameLoop(this@start)
+            }
+            lobbySelectionManager.clearSelections(guild.id, voiceChannelId)
+
+            event.message.channel.createMessage(
+                buildString {
+                    appendLine("현재 음성채널: <#${voiceChannelId.value}>")
+                    appendLine("플레이어 수: ${playerMembers.size}")
+                    appendLine("관전자 수: ${spectatorMembers.size}")
+                    appendLine("모드: ${mode.displayName}")
+                    appendLine()
+                    appendLine("플레이어")
+                    appendLine(DiscordMessageManager.mentions(playerMembers))
+                    if (spectatorMembers.isNotEmpty()) {
+                        appendLine()
+                        appendLine("관전자")
+                        append(DiscordMessageManager.mentions(spectatorMembers))
+                    }
+                }
+            )
+            return
+        }
 
         val assignmentPlayers = buildAssignmentPlayers(playerMembers)
         assignJobs(assignmentPlayers, mode)
@@ -499,6 +586,19 @@ object GameManager {
         assignCabalSunMoonRoles()
         assignCoupleRoles()
         assignMercenaryClient()
+    }
+
+    private fun Game.assignAnnihilationJobs() {
+        val shuffledPlayers = playerDatas.shuffled()
+        shuffledPlayers.forEachIndexed { index, player ->
+            player.job = when (index) {
+                0 -> Capo()
+                1 -> Soldato()
+                2 -> Agent().also { it.abilities.clear(); it.extraAbilities.clear() }
+                else -> Citizen()
+            }
+        }
+        rebuildPlayerIndex()
     }
 
     private fun Game.applyNextGameMafiaExecutionProtection() {
@@ -1777,6 +1877,53 @@ object GameManager {
 
     fun isInCurrentGame(userId: Snowflake): Boolean =
         currentGame?.playerDatas?.any { it.member.id == userId } == true
+
+    suspend fun handleAnnihilationCommand(
+        userId: Snowflake,
+        action: String?,
+        secret: String?,
+        location: String?,
+        location2: String?,
+        location3: String?,
+        targetId: Snowflake?,
+        target2Id: Snowflake?
+    ): String {
+        val game = currentGame ?: return "진행 중인 게임이 없습니다."
+        if (game.mode != GameStartMode.ANNIHILATION) return "현재 게임은 말살 모드가 아닙니다."
+        return AnnihilationModeManager.handleCommand(
+            game = game,
+            userId = userId,
+            action = action,
+            secret = secret,
+            location = location,
+            location2 = location2,
+            location3 = location3,
+            targetId = targetId,
+            target2Id = target2Id
+        )
+    }
+
+    suspend fun receiveAnnihilationMoveSelection(userId: Snowflake, componentId: String): String {
+        val game = currentGame ?: return "진행 중인 게임이 없습니다."
+        if (game.mode != GameStartMode.ANNIHILATION) return "현재 게임은 말살 모드가 아닙니다."
+        return AnnihilationModeManager.receiveMoveSelection(game, userId, componentId)
+    }
+
+    suspend fun receiveAnnihilationVote(voterId: Snowflake, rawValue: String?): String {
+        val game = currentGame ?: return "진행 중인 게임이 없습니다."
+        if (game.mode != GameStartMode.ANNIHILATION) return "현재 게임은 말살 모드가 아닙니다."
+        return AnnihilationModeManager.receiveVote(game, voterId, rawValue)
+    }
+
+    fun receiveAnnihilationAgentInvestigation(
+        userId: Snowflake,
+        componentId: String,
+        rawTargetId: String?
+    ): String {
+        val game = currentGame ?: return "진행 중인 게임이 없습니다."
+        if (game.mode != GameStartMode.ANNIHILATION) return "현재 게임은 말살 모드가 아닙니다."
+        return AnnihilationModeManager.receiveAgentInvestigation(game, userId, componentId, rawTargetId)
+    }
 
     private suspend fun tryStartGameLoopWhenAbilitySelectionCompleted() {
         val game = currentGame ?: return

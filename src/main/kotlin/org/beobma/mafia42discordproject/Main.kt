@@ -18,6 +18,7 @@ import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
 import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
+import org.beobma.mafia42discordproject.listener.AnnihilationInteractionListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
 
@@ -82,6 +83,7 @@ suspend fun main() {
     val interactionListeners = listOf(
         MainVoteListener,
         ProsConsVoteListener,
+        AnnihilationInteractionListener,
         AbilityPickButtonListener
     )
 

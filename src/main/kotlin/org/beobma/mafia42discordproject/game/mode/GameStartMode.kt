@@ -5,7 +5,8 @@ enum class GameStartMode(
     val displayName: String
 ) {
     NORMAL("일반", "일반"),
-    MADNESS("미치광이", "미치광이");
+    MADNESS("미치광이", "미치광이"),
+    ANNIHILATION("말살", "말살 모드");
 
     val typeName: String
         get() = name
@@ -16,6 +17,7 @@ enum class GameStartMode(
             return when (normalized) {
                 "", "일반", "normal" -> NORMAL
                 "미치광이", "madness", "crazy", "mad" -> MADNESS
+                "말살", "말살모드", "annihilation", "eradication" -> ANNIHILATION
                 else -> null
             }
         }

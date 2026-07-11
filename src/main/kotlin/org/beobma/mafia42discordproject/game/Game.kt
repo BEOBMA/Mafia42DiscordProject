@@ -5,6 +5,7 @@ import dev.kord.core.entity.Guild
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.mode.GameStartMode
+import org.beobma.mafia42discordproject.game.annihilation.AnnihilationGameState
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.AttackEvent
@@ -58,6 +59,7 @@ data class Game(
     var dayCount: Int = 0
     var initialPlayerCount: Int = 0
     var mode: GameStartMode = GameStartMode.NORMAL
+    var annihilationState: AnnihilationGameState? = null
     var isCrazyMode: Boolean
         get() = mode == GameStartMode.MADNESS
         set(value) {

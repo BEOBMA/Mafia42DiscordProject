@@ -22,6 +22,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.stopLoopingGameSound
 import org.beobma.mafia42discordproject.game.loop.*
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
@@ -153,6 +154,10 @@ object GameLoopManager {
 
         if (game.currentPhase != GamePhase.DAY) {
             return DayTimeAdjustmentResult(false, "시간 조정은 낮 페이즈에서만 가능합니다.")
+        }
+
+        if (game.mode == GameStartMode.ANNIHILATION) {
+            return DayTimeAdjustmentResult(false, "말살 모드의 낮 시간은 120초 고정이며 연장하거나 단축할 수 없습니다.")
         }
 
         val delta = if (isIncrease) DAY_TIME_ADJUSTMENT_MS else -DAY_TIME_ADJUSTMENT_MS
