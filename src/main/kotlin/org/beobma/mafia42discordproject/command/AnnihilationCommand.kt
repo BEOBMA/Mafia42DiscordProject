@@ -73,6 +73,7 @@ object AnnihilationCommand : DiscordCommand {
         string(ACTION_OPTION_NAME, "행동") {
             required = true
             choice("상태", "상태")
+            choice("도움", "도움")
             choice("처형", "처형")
             choice("탐문", "탐문")
             choice("마피아미션", "마피아미션")
@@ -89,12 +90,15 @@ object AnnihilationCommand : DiscordCommand {
         }
         string(LOCATION_OPTION_NAME, "장소 1") {
             required = false
+            registerLocationChoices()
         }
         string(LOCATION2_OPTION_NAME, "장소 2") {
             required = false
+            registerLocationChoices()
         }
         string(LOCATION3_OPTION_NAME, "장소 3") {
             required = false
+            registerLocationChoices()
         }
         user(TARGET_OPTION_NAME, "대상 A") {
             required = false
@@ -102,6 +106,17 @@ object AnnihilationCommand : DiscordCommand {
         user(TARGET2_OPTION_NAME, "대상 B") {
             required = false
         }
+    }
+
+    private fun dev.kord.rest.builder.interaction.StringChoiceBuilder.registerLocationChoices() {
+        choice("광장", "광장")
+        choice("자료실", "자료실")
+        choice("경찰서", "경찰서")
+        choice("상가", "상가")
+        choice("병원", "병원")
+        choice("편의점", "편의점")
+        choice("주택가", "주택가")
+        choice("골목길", "골목길")
     }
 
     override suspend fun registerGlobal(kord: Kord) {

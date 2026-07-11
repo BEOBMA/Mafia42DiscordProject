@@ -184,6 +184,7 @@ object AnnihilationModeManager {
         }
 
         return when (normalizedAction) {
+            "help", "도움", "도움말" -> buildHelp(game, actor)
             "status", "상태" -> buildStatus(game, actor)
             "execute", "처형", "실행" -> executeBySecret(game, actor, secret)
             "npc", "inquiry", "탐문" -> inquireNpc(game, actor)
@@ -227,7 +228,10 @@ object AnnihilationModeManager {
 
         state.movementSelections[userId] = location
         notifyMafiaMovementIntel(game)
-        return "${location.displayName}(으)로 이동을 선택했습니다."
+        return buildString {
+            appendLine("${location.displayName}(으)로 이동을 선택했습니다.")
+            append(destinationHintFor(game, player, location))
+        }.trim()
     }
 
     suspend fun receiveVote(game: Game, voterId: Snowflake, rawValue: String?): String {
@@ -300,10 +304,16 @@ object AnnihilationModeManager {
         muteAlivePlayersForDay(game)
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = SystemImage.DAY_START.imageUrl,
-            message = "",
+            message = buildString {
+                appendLine("${game.dayCount}일차 낮입니다. 낮 시간은 120초이며 연장할 수 없습니다.")
+                appendLine("수사 진척도: ${state(game)?.citizenProgress ?: 0}/100")
+                appendLine("말살 진척도: ${state(game)?.mafiaProgress ?: 0}/100")
+                append("개인 이동 힌트와 사용 가능한 행동은 `/말살 상태`로 확인할 수 있습니다.")
+            },
             soundPath = DAY_START_SOUND_PATH,
             loopSound = true
         )
+        sendGuideMessage(game, "오늘의 장소별 미션 안내", buildPublicLocationBoard(game))
     }
 
     private suspend fun runDay(game: Game) {
@@ -390,14 +400,18 @@ object AnnihilationModeManager {
             buildString {
                 appendLine("이동 페이즈 #$phase")
                 appendLine("15초 안에 이동할 장소를 선택하세요. 이 시간 동안 낮 타이머는 흐르지 않습니다.")
-                append("현재 위치: ")
-                append(alivePlayers.joinToString(", ") { player ->
+                appendLine("현재 위치: ${alivePlayers.joinToString(", ") { player ->
                     "${player.member.effectiveName}=${currentLocation(state, player).displayName}"
-                })
+                }}")
+                appendLine()
+                append(buildMovementRouteBoard(game, alivePlayers))
             }
         )
         game.mainChannel?.createMessage {
-            content = "갈 장소를 선택하세요. 현재 위치와 연결된 장소만 처리됩니다."
+            content = buildString {
+                appendLine("갈 장소를 선택하세요. 현재 위치와 연결된 장소만 처리됩니다.")
+                append(buildCompactLocationBoard(game))
+            }
             AnnihilationLocation.entries.chunked(4).forEach { rowLocations ->
                 actionRow {
                     rowLocations.forEach { location ->
@@ -453,6 +467,7 @@ object AnnihilationModeManager {
         stealIdentitiesIfEligible(game)
         resolvePendingMovementEvents(game, phase)
         evaluateCitizenMissions(game)
+        sendGuideMessage(game, "현재 위치별 행동 힌트", buildCurrentLocationActionBoard(game))
     }
 
     private suspend fun runAgentInvestigationPhase(game: Game, suspect: PlayerData) {
@@ -753,14 +768,23 @@ object AnnihilationModeManager {
 
     private suspend fun announceDailyMissions(game: Game) {
         val state = state(game) ?: return
-        game.sendMainChannerMessage(
+        sendGuideMessage(
+            game,
+            "오늘의 시민팀 미션",
             buildString {
-                appendLine("오늘의 시민팀 미션")
                 state.citizenMissions.forEach { mission ->
                     appendLine("- [${mission.id}] ${mission.description} (${if (mission.isCompleted) "완료" else "진행 중"})")
                 }
                 appendLine()
-                append("오늘 마피아 NPC 후보 지역: ${state.mafiaNpcLocations.joinToString(", ") { it.displayName }}")
+                appendLine(buildPublicLocationBoard(game))
+            }.trim()
+        )
+        game.mafiaChannel?.createMessage(
+            buildString {
+                appendLine("오늘의 마피아팀 편의 정보")
+                appendLine("NPC 미션 가능 지역: ${state.mafiaNpcLocations.joinToString(", ") { it.displayName }}")
+                appendLine("카포 처형은 공개되었거나 훔쳐 알아낸 비밀 신원으로만 가능합니다.")
+                append(buildMafiaLocationBoard(game))
             }.trim()
         )
     }
@@ -1241,8 +1265,330 @@ object AnnihilationModeManager {
             if (identity?.confirmedCitizen == true) {
                 appendLine("공개 상태: 확실한 시민")
             }
+            appendLine()
+            appendLine("이동 가능 장소")
+            appendLine(connectedLocations(location).joinToString(", ") { it.displayName })
+            appendLine()
+            appendLine("내 이동 힌트")
+            appendLine(buildPersonalRouteHint(game, actor))
+            appendLine()
+            appendLine("현재 위치 행동")
+            appendLine(currentLocationActions(game, actor).ifEmpty { listOf("바로 수행할 특수 행동 없음") }.joinToString("\n") { "- $it" })
+            appendLine()
+            appendLine("사용 가능한 말살 명령")
+            append(availableActionHints(game, actor).joinToString("\n") { "- $it" })
         }.trim()
     }
+
+    private fun buildHelp(game: Game, actor: PlayerData): String {
+        return buildString {
+            appendLine("말살 모드 도움")
+            appendLine("- `/말살 상태`: 내 위치, 이동 가능 장소, 미션 힌트, 사용 가능 행동 확인")
+            appendLine("- `/말살 탐문`: 현재 장소의 NPC 탐문 미션 수행")
+            appendLine("- `/말살 마피아미션`: 마피아팀 NPC 미션 수행")
+            appendLine("- `/말살 처형 secret:비밀 신원`: 카포 처형")
+            appendLine("- `/말살 증명`, `/말살 사칭`, `/말살 합동수사`: 요원 능력")
+            appendLine("- `/말살 카포미션`, `/말살 솔다토미션`: 마피아팀 공개 압박 미션")
+            appendLine()
+            appendLine("현재 내 힌트")
+            append(buildStatus(game, actor))
+        }.trim()
+    }
+
+    private suspend fun sendGuideMessage(game: Game, title: String, body: String) {
+        val content = "## $title\n${body.trim()}".trim()
+        splitDiscordMessage(content).forEach { chunk ->
+            game.sendMainChannerMessage(chunk)
+        }
+    }
+
+    private fun splitDiscordMessage(message: String, maxLength: Int = 1800): List<String> {
+        if (message.length <= maxLength) return listOf(message)
+        val chunks = mutableListOf<String>()
+        var current = StringBuilder()
+        message.lineSequence().forEach { line ->
+            if (current.isNotEmpty() && current.length + line.length + 1 > maxLength) {
+                chunks += current.toString().trimEnd()
+                current = StringBuilder()
+            }
+            if (line.length > maxLength) {
+                line.chunked(maxLength).forEach { chunks += it }
+            } else {
+                current.appendLine(line)
+            }
+        }
+        if (current.isNotBlank()) chunks += current.toString().trimEnd()
+        return chunks
+    }
+
+    private fun buildPublicLocationBoard(game: Game): String {
+        return buildString {
+            appendLine("장소별 공개 미션/이벤트")
+            AnnihilationLocation.entries.forEach { location ->
+                val hints = publicLocationHints(game, location)
+                appendLine("- ${location.displayName}: ${hints.ifEmpty { listOf("표시된 공개 미션 없음") }.joinToString(" / ")}")
+            }
+        }.trim()
+    }
+
+    private fun buildCompactLocationBoard(game: Game): String {
+        return buildString {
+            AnnihilationLocation.entries.forEach { location ->
+                val hints = publicLocationHints(game, location).take(2)
+                if (hints.isNotEmpty()) {
+                    appendLine("- ${location.displayName}: ${hints.joinToString(" / ")}")
+                }
+            }
+        }.trim().ifBlank { "현재 공개 위치 미션은 없습니다." }
+    }
+
+    private fun buildMafiaLocationBoard(game: Game): String {
+        return buildString {
+            AnnihilationLocation.entries.forEach { location ->
+                val hints = mafiaLocationHints(game, location)
+                appendLine("- ${location.displayName}: ${hints.ifEmpty { listOf("특이사항 없음") }.joinToString(" / ")}")
+            }
+        }.trim()
+    }
+
+    private fun publicLocationHints(game: Game, location: AnnihilationLocation): List<String> {
+        val state = state(game) ?: return emptyList()
+        val hints = mutableListOf<String>()
+
+        state.citizenMissions.filterNot { it.isCompleted }.forEach { mission ->
+            when (mission.type) {
+                CitizenMissionType.GO_LOCATION -> {
+                    if (mission.location == location) hints += "미션 #${mission.id}: 시민팀 도착"
+                }
+                CitizenMissionType.NPC_INQUIRY -> {
+                    if (mission.location == location) hints += "미션 #${mission.id}: `/말살 탐문`"
+                }
+                CitizenMissionType.LOST_ITEM -> {
+                    if (mission.location == location && mission.holderId == null) {
+                        hints += "미션 #${mission.id}: 분실물 습득"
+                    }
+                    if (mission.secondLocation == location) {
+                        val holderName = mission.holderId?.let(game::getPlayer)?.member?.effectiveName ?: "습득자"
+                        hints += "미션 #${mission.id}: $holderName 분실물 전달지"
+                    }
+                }
+                CitizenMissionType.MEET_PLAYER -> {
+                    val actor = mission.actorId?.let(game::getPlayer)
+                    val target = mission.targetId?.let(game::getPlayer)
+                    if (actor != null && currentLocation(state, actor) == location) {
+                        hints += "미션 #${mission.id}: ${actor.member.effectiveName} 대기 중"
+                    }
+                    if (target != null && currentLocation(state, target) == location) {
+                        hints += "미션 #${mission.id}: ${target.member.effectiveName} 위치"
+                    }
+                }
+                CitizenMissionType.JOINT_INVESTIGATION -> {
+                    val first = mission.actorId?.let(game::getPlayer)
+                    val second = mission.targetId?.let(game::getPlayer)
+                    if (listOfNotNull(first, second).any { currentLocation(state, it) == location }) {
+                        hints += "합동수사 #${mission.id}: 대상 위치"
+                    }
+                }
+                CitizenMissionType.BE_ALONE -> Unit
+            }
+        }
+
+        state.pendingProofPlan
+            ?.takeIf { !it.resolved && it.location == location }
+            ?.let { hints += "다음 이동 페이즈 협력자" }
+        state.pendingCapoMission
+            ?.takeIf { !it.resolved && location in it.locations }
+            ?.let { hints += "카포 지령 방어 필요" }
+        state.pendingSoldatoMission
+            ?.takeIf { !it.resolved && it.location == location }
+            ?.let { hints += "솔다토 지령 방어 필요" }
+
+        return hints.distinct()
+    }
+
+    private fun mafiaLocationHints(game: Game, location: AnnihilationLocation): List<String> {
+        val state = state(game) ?: return emptyList()
+        val hints = publicLocationHints(game, location).toMutableList()
+        if (location in state.mafiaNpcLocations) {
+            hints += "마피아 NPC 미션 가능"
+        }
+        if (location in state.mafiaExecutionLocationsToday) {
+            hints += "오늘 처형 발생"
+        }
+        if (location in state.mafiaMissionLocationsToday) {
+            hints += "오늘 마피아 미션 수행"
+        }
+        return hints.distinct()
+    }
+
+    private fun buildMovementRouteBoard(game: Game, players: List<PlayerData>): String {
+        return buildString {
+            appendLine("플레이어별 이동 힌트")
+            players.forEach { player ->
+                appendLine("- ${player.member.effectiveName}: ${buildPersonalRouteHint(game, player)}")
+            }
+        }.trim()
+    }
+
+    private fun buildPersonalRouteHint(game: Game, player: PlayerData): String {
+        val state = state(game) ?: return "말살 모드 상태 없음"
+        val current = currentLocation(state, player)
+        return connectedLocations(current)
+            .joinToString(" | ") { location ->
+                "${location.displayName}: ${destinationHintFor(game, player, location)}"
+            }
+    }
+
+    private fun destinationHintFor(game: Game, player: PlayerData, destination: AnnihilationLocation): String {
+        val state = state(game) ?: return "상태 없음"
+        val current = currentLocation(state, player)
+        if (!current.isConnectedTo(destination)) return "이동 불가"
+
+        val hints = mutableListOf<String>()
+        hints += publicLocationHints(game, destination)
+        if (!isMafiaTeam(player)) {
+            hints += citizenRouteHints(game, player, destination)
+        } else {
+            hints += mafiaRouteHints(game, player, destination)
+        }
+
+        return hints.distinct().take(4).joinToString(", ").ifBlank { "특이사항 없음" }
+    }
+
+    private fun citizenRouteHints(game: Game, player: PlayerData, destination: AnnihilationLocation): List<String> {
+        val state = state(game) ?: return emptyList()
+        val hints = mutableListOf<String>()
+        state.citizenMissions.filterNot { it.isCompleted }.forEach { mission ->
+            when (mission.type) {
+                CitizenMissionType.GO_LOCATION -> {
+                    if (mission.location == destination) hints += "도착 미션 가능(+${mission.reward})"
+                }
+                CitizenMissionType.NPC_INQUIRY -> {
+                    if (mission.location == destination) hints += "탐문 가능"
+                }
+                CitizenMissionType.LOST_ITEM -> {
+                    if (mission.location == destination && mission.holderId == null) hints += "분실물 습득 가능"
+                    if (mission.secondLocation == destination && mission.holderId == player.member.id) hints += "분실물 전달 가능"
+                }
+                CitizenMissionType.MEET_PLAYER -> {
+                    val actorMatch = mission.actorId == player.member.id
+                    val targetMatch = mission.targetId == player.member.id
+                    val other = when {
+                        actorMatch -> mission.targetId?.let(game::getPlayer)
+                        targetMatch -> mission.actorId?.let(game::getPlayer)
+                        else -> null
+                    }
+                    if (other != null && !other.state.isDead && currentLocation(state, other) == destination) {
+                        hints += "${other.member.effectiveName}와 접촉 가능"
+                    }
+                }
+                CitizenMissionType.JOINT_INVESTIGATION -> {
+                    val related = mission.actorId == player.member.id || mission.targetId == player.member.id
+                    val otherId = if (mission.actorId == player.member.id) mission.targetId else mission.actorId
+                    val other = otherId?.let(game::getPlayer)
+                    if (related && other != null && !other.state.isDead && currentLocation(state, other) == destination) {
+                        hints += "합동수사 가능(+${mission.reward})"
+                    }
+                }
+                CitizenMissionType.BE_ALONE -> {
+                    val occupants = alivePlayers(game).count { currentLocation(state, it) == destination }
+                    if (occupants == 0 || (occupants == 1 && destination == currentLocation(state, player))) {
+                        hints += "혼자 있기 후보"
+                    }
+                }
+            }
+        }
+        return hints
+    }
+
+    private fun mafiaRouteHints(game: Game, player: PlayerData, destination: AnnihilationLocation): List<String> {
+        val state = state(game) ?: return emptyList()
+        val hints = mutableListOf<String>()
+        if (destination in state.mafiaNpcLocations) {
+            val used = state.mafiaMissionUseCountByPlayer[player.member.id] ?: 0
+            hints += if (used < 2) "마피아 미션 가능(${2 - used}회 남음)" else "마피아 미션 일일 한도 도달"
+        }
+        val stealCandidates = alivePlayers(game)
+            .filterNot(::isMafiaTeam)
+            .filter { target -> currentLocation(state, target) == destination }
+            .filter { target -> (state.samePlaceStreaks[streakKey(player, target)] ?: 0) >= 1 }
+            .map { it.member.effectiveName }
+        if (stealCandidates.isNotEmpty()) {
+            hints += "신분증 탈취 후보: ${stealCandidates.joinToString(", ")}"
+        }
+        if (player.job is Capo) {
+            val knownCount = state.knownIdentityOwnerIdsByMafia.count { ownerId ->
+                game.getPlayer(ownerId)?.state?.isDead == false
+            }
+            hints += "카포 처형용 신원 ${knownCount}개 파악"
+        }
+        return hints
+    }
+
+    private fun buildCurrentLocationActionBoard(game: Game): String {
+        val state = state(game) ?: return "말살 모드 상태 없음"
+        return alivePlayers(game)
+            .joinToString("\n") { player ->
+                val actions = currentLocationActions(game, player)
+                "- ${player.member.effectiveName}(${currentLocation(state, player).displayName}): ${
+                    actions.ifEmpty { listOf("즉시 행동 없음") }.joinToString(", ")
+                }"
+            }
+    }
+
+    private fun currentLocationActions(game: Game, player: PlayerData): List<String> {
+        val state = state(game) ?: return emptyList()
+        val location = currentLocation(state, player)
+        val actions = mutableListOf<String>()
+        if (!isMafiaTeam(player)) {
+            if (state.citizenMissions.any { !it.isCompleted && it.type == CitizenMissionType.NPC_INQUIRY && it.location == location }) {
+                actions += "`/말살 탐문`"
+            }
+            state.citizenMissions
+                .filter { !it.isCompleted && it.type == CitizenMissionType.LOST_ITEM && it.secondLocation == location && it.holderId == player.member.id }
+                .forEach { actions += "분실물 전달 대기" }
+        } else {
+            if (location in state.mafiaNpcLocations && (state.mafiaMissionUseCountByPlayer[player.member.id] ?: 0) < 2) {
+                actions += "`/말살 마피아미션`"
+            }
+            if (player.job is Capo) {
+                actions += "`/말살 처형 secret:<비밀 신원>`"
+            }
+        }
+        return actions.distinct()
+    }
+
+    private fun availableActionHints(game: Game, player: PlayerData): List<String> {
+        val state = state(game) ?: return emptyList()
+        val hints = mutableListOf("`/말살 상태`", "`/말살 도움`")
+        hints += currentLocationActions(game, player)
+        when (player.job) {
+            is Agent -> {
+                if (!state.agentProofUsed) hints += "`/말살 증명`"
+                if (!state.agentImpersonationUsed) hints += "`/말살 사칭`"
+                if (state.agentJointInvestigationDay != game.dayCount) hints += "`/말살 합동수사 target:@A target2:@B`"
+            }
+            is Capo -> {
+                val lastDay = state.capoMissionLastUsedDay
+                if (lastDay == null || game.dayCount - lastDay >= 2) {
+                    hints += "`/말살 카포미션 location:장소1 location2:장소2 location3:장소3`"
+                }
+                hints += "`/말살 직위양도 target:@솔다토`"
+                hints += "`/말살 신분증전달 target:@솔다토 secret:<비밀 신원>`"
+            }
+            is Soldato -> {
+                val lastDay = state.soldatoMissionLastUsedDay
+                if (lastDay == null || game.dayCount - lastDay >= 2) {
+                    hints += "`/말살 솔다토미션 location:장소`"
+                }
+                hints += "`/말살 신분증전달 target:@카포 secret:<비밀 신원>`"
+            }
+        }
+        return hints.distinct()
+    }
+
+    private fun connectedLocations(location: AnnihilationLocation): List<AnnihilationLocation> =
+        AnnihilationLocation.entries.filter { location.isConnectedTo(it) }
 
     private fun currentLocation(state: AnnihilationGameState, player: PlayerData): AnnihilationLocation =
         state.locations[player.member.id] ?: AnnihilationLocation.SQUARE
