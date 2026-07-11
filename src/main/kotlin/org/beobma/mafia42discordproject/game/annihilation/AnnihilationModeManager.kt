@@ -281,14 +281,14 @@ object AnnihilationModeManager {
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
         game.stopLoopingGameSound()
         muteAll(game, mute = true)
-        game.sendMainChannerMessage("${game.dayCount}일차 밤입니다. 말살 모드의 밤은 5초 동안 진행됩니다.")
+        game.sendMainChannerMessage("${game.dayCount}일차 밤입니다.")
     }
 
     private suspend fun startDawn(game: Game) {
         game.currentPhase = GamePhase.DAWN
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 새벽")
         game.stopLoopingGameSound()
-        game.sendMainChannerMessage("새벽입니다. 5초 후 낮이 시작됩니다.")
+        game.sendMainChannerMessage("")
     }
 
     private suspend fun startDay(game: Game) {
@@ -300,7 +300,7 @@ object AnnihilationModeManager {
         muteAlivePlayersForDay(game)
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = SystemImage.DAY_START.imageUrl,
-            message = "${game.dayCount}일차 낮입니다. 낮 시간은 120초이며 연장할 수 없습니다.",
+            message = "",
             soundPath = DAY_START_SOUND_PATH,
             loopSound = true
         )
