@@ -1882,9 +1882,12 @@ object GameManager {
         userId: Snowflake,
         action: String?,
         secret: String?,
+        note: String?,
         location: String?,
         location2: String?,
         location3: String?,
+        anonymousMessage: String?,
+        anonymousAbility: String?,
         targetId: Snowflake?,
         target2Id: Snowflake?
     ): String {
@@ -1895,9 +1898,12 @@ object GameManager {
             userId = userId,
             action = action,
             secret = secret,
+            note = note,
             location = location,
             location2 = location2,
             location3 = location3,
+            anonymousMessage = anonymousMessage,
+            anonymousAbility = anonymousAbility,
             targetId = targetId,
             target2Id = target2Id
         )

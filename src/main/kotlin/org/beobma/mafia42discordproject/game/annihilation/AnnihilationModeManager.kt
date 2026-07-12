@@ -46,11 +46,27 @@ object AnnihilationModeManager {
     private const val DAY_DURATION_MS = 120_000L
     private const val MOVEMENT_INTERVAL_MS = 20_000L
     private const val MOVEMENT_LIMIT_MS = 15_000L
-    private const val VOTE_DURATION_MS = 120_000L
+    private const val VOTE_DURATION_MS = 240_000L
     private const val VOTE_SHORTEN_REMAINING_MS = 10_000L
     private const val AGENT_INVESTIGATION_DURATION_MS = 20_000L
     private const val CAPO_EXECUTION_COOLDOWN_MS = 10_000L
     private const val WIN_PROGRESS = 100
+    private const val MAX_AUTO_COMPLETE_CHOICES = 25
+    private val statusActions = setOf("status", "상태")
+    private val helpActions = setOf("help", "도움", "도움말")
+    private val notebookViewActions = setOf("notebook", "notes", "수첩", "수첩확인")
+    private val notebookAddActions = setOf("notebook-add", "notebook_add", "note", "memo", "수첩작성", "메모")
+    private val notebookPickupActions = setOf("notebook-pickup", "notebook_pickup", "pickup-notebook", "수첩줍기", "수첩획득")
+    private val agentAnonymousMessageActions = setOf(
+        "agent-message",
+        "agent_message",
+        "anonymous-message",
+        "anonymous_message",
+        "익명메시지",
+        "요원메시지"
+    )
+    private val allowedWhileDeadActions = statusActions + helpActions + notebookViewActions
+    private val allowedDuringMovementActions = statusActions + helpActions + notebookViewActions + notebookAddActions
     private val locationVoiceChannelIds: Map<AnnihilationLocation, Snowflake> = mapOf(
         AnnihilationLocation.SQUARE to Snowflake(1525408703459758190L),
         AnnihilationLocation.ARCHIVE to Snowflake(1525408718689271908L),
@@ -71,6 +87,37 @@ object AnnihilationModeManager {
         "라디오", "거울", "지도", "표식", "편지", "문장", "동전", "사진"
     )
 
+    private enum class AnonymousAbilityGroup {
+        MAFIA,
+        AGENT
+    }
+
+    private data class AgentAnonymousMessageTemplate(
+        val text: String,
+        val requiresTarget: Boolean = false,
+        val abilityGroup: AnonymousAbilityGroup? = null
+    )
+
+    private val mafiaAnonymousAbilityOptions = listOf("카포의 지령", "솔다토의 지령")
+    private val agentAnonymousAbilityOptions = listOf("요원의 증명", "요원의 사칭", "요원의 합동수사")
+    private val agentAnonymousMessageTemplates = listOf(
+        AgentAnonymousMessageTemplate("[플레이어 닉네임] 님이 수상하다.", requiresTarget = true),
+        AgentAnonymousMessageTemplate("[플레이어 닉네임] 님의 이야기를 듣고 싶습니다.", requiresTarget = true),
+        AgentAnonymousMessageTemplate("많은 사람이 사망하고 있습니다. 주로 혼자 행동하는 사람이 있나요?"),
+        AgentAnonymousMessageTemplate("신원을 도둑맞은 사람은 말씀해 주세요."),
+        AgentAnonymousMessageTemplate("수상한 사람을 투표로 처형합시다."),
+        AgentAnonymousMessageTemplate("이번엔 투표를 건너뜁시다."),
+        AgentAnonymousMessageTemplate(
+            "[카포, 솔다토의 능력] 발생 중에 어디에 있었는지 정리합시다.",
+            abilityGroup = AnonymousAbilityGroup.MAFIA
+        ),
+        AgentAnonymousMessageTemplate(
+            "[요원의 능력] 발생 시 상황을 알려주세요.",
+            abilityGroup = AnonymousAbilityGroup.AGENT
+        ),
+        AgentAnonymousMessageTemplate("죽은 사람의 수첩을 주운 사람을 말씀해 주세요.")
+    )
+
     fun initialize(game: Game) {
         val state = AnnihilationGameState()
         val usedCodes = mutableSetOf<String>()
@@ -79,8 +126,27 @@ object AnnihilationModeManager {
             state.identities[player.member.id] = SecretIdentity(code)
             state.locations[player.member.id] = AnnihilationLocation.SQUARE
             state.previousLocations[player.member.id] = AnnihilationLocation.SQUARE
+            state.notebookEntriesByOwner[player.member.id] = mutableListOf()
         }
         game.annihilationState = state
+    }
+
+    fun anonymousMessageSuggestions(query: String): List<String> =
+        agentAnonymousMessageTemplates
+            .map { it.text }
+            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+            .take(MAX_AUTO_COMPLETE_CHOICES)
+
+    fun anonymousAbilitySuggestions(selectedMessage: String?, query: String): List<String> {
+        val template = agentAnonymousMessageTemplates.firstOrNull { it.text == selectedMessage?.trim() }
+        val options = when (template?.abilityGroup) {
+            AnonymousAbilityGroup.MAFIA -> mafiaAnonymousAbilityOptions
+            AnonymousAbilityGroup.AGENT -> agentAnonymousAbilityOptions
+            null -> mafiaAnonymousAbilityOptions + agentAnonymousAbilityOptions
+        }
+        return options
+            .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+            .take(MAX_AUTO_COMPLETE_CHOICES)
     }
 
     suspend fun prepareGame(game: Game) {
@@ -158,9 +224,12 @@ object AnnihilationModeManager {
         userId: Snowflake,
         action: String?,
         secret: String?,
+        note: String?,
         location: String?,
         location2: String?,
         location3: String?,
+        anonymousMessage: String?,
+        anonymousAbility: String?,
         targetId: Snowflake?,
         target2Id: Snowflake?
     ): String {
@@ -172,30 +241,44 @@ object AnnihilationModeManager {
             ?: return "게임 참가자만 사용할 수 있습니다."
         val normalizedAction = action?.trim()?.lowercase().orEmpty()
         if (normalizedAction.isBlank()) {
-            return "행동을 입력해 주세요. 예: 상태, 처형, 탐문, 마피아미션, 증명, 사칭, 합동수사, 카포미션, 솔다토미션, 직위양도, 신분증전달"
+            return "행동을 입력해 주세요. 예: 상태, 수첩, 수첩작성, 수첩줍기, 익명메시지, 처형, 탐문, 마피아미션, 증명, 사칭, 합동수사, 카포미션, 솔다토미션, 직위양도, 신분증전달"
         }
 
-        if (normalizedAction !in setOf("status", "상태") && actor.state.isDead) {
+        if (normalizedAction !in allowedWhileDeadActions && actor.state.isDead) {
             return "사망한 플레이어는 말살 모드 행동을 사용할 수 없습니다."
         }
 
-        if (normalizedAction !in setOf("status", "상태") && state(game)?.isMovementPhaseActive == true) {
+        if (normalizedAction !in allowedDuringMovementActions && state(game)?.isMovementPhaseActive == true) {
             return "이동 페이즈 중에는 이동 선택 외 행동을 사용할 수 없습니다."
         }
 
-        return when (normalizedAction) {
-            "help", "도움", "도움말" -> buildHelp(game, actor)
-            "status", "상태" -> buildStatus(game, actor)
-            "execute", "처형", "실행" -> executeBySecret(game, actor, secret)
-            "npc", "inquiry", "탐문" -> inquireNpc(game, actor)
-            "mafia-mission", "mafia_mission", "마피아미션" -> performMafiaMission(game, actor)
-            "prove", "증명" -> useAgentProof(game, actor)
-            "impersonate", "사칭" -> useAgentImpersonation(game, actor)
-            "joint", "합동수사" -> useJointInvestigation(game, actor, targetId, target2Id)
-            "capo-mission", "capo_mission", "카포미션" -> useCapoForcedMission(game, actor, location, location2, location3)
-            "soldato-mission", "soldato_mission", "솔다토미션" -> useSoldatoForcedMission(game, actor, location)
-            "handover", "직위양도" -> handOverCapo(game, actor, targetId)
-            "give-id", "give_id", "신분증전달" -> transferStolenIdentity(game, actor, targetId, secret)
+        return when {
+            normalizedAction in helpActions -> buildHelp(game, actor)
+            normalizedAction in statusActions -> buildStatus(game, actor)
+            normalizedAction in notebookViewActions -> viewNotebook(game, actor, targetId)
+            normalizedAction in notebookAddActions -> addNotebookEntry(game, actor, note)
+            normalizedAction in notebookPickupActions -> pickUpNotebook(game, actor, targetId)
+            normalizedAction in agentAnonymousMessageActions -> sendAgentAnonymousMessage(
+                game = game,
+                actor = actor,
+                rawTemplate = anonymousMessage,
+                rawAbility = anonymousAbility,
+                targetId = targetId
+            )
+            normalizedAction in setOf("execute", "처형", "실행") -> executeBySecret(game, actor, secret)
+            normalizedAction in setOf("npc", "inquiry", "탐문") -> inquireNpc(game, actor)
+            normalizedAction in setOf("mafia-mission", "mafia_mission", "마피아미션") -> performMafiaMission(game, actor)
+            normalizedAction in setOf("prove", "증명") -> useAgentProof(game, actor)
+            normalizedAction in setOf("impersonate", "사칭") -> useAgentImpersonation(game, actor)
+            normalizedAction in setOf("joint", "합동수사") -> useJointInvestigation(game, actor, targetId, target2Id)
+            normalizedAction in setOf("capo-mission", "capo_mission", "카포미션") -> {
+                useCapoForcedMission(game, actor, location, location2, location3)
+            }
+            normalizedAction in setOf("soldato-mission", "soldato_mission", "솔다토미션") -> {
+                useSoldatoForcedMission(game, actor, location)
+            }
+            normalizedAction in setOf("handover", "직위양도") -> handOverCapo(game, actor, targetId)
+            normalizedAction in setOf("give-id", "give_id", "신분증전달") -> transferStolenIdentity(game, actor, targetId, secret)
             else -> "알 수 없는 말살 모드 행동입니다."
         }
     }
@@ -277,6 +360,121 @@ object AnnihilationModeManager {
         if (state.agentInvestigationChoiceId != null) return "이미 조사 대상을 선택했습니다."
         state.agentInvestigationChoiceId = target.member.id
         return "${target.member.effectiveName}님을 조사 대상으로 선택했습니다."
+    }
+
+    private fun addNotebookEntry(game: Game, actor: PlayerData, rawNote: String?): String {
+        val state = state(game) ?: return "말살 모드 게임이 아닙니다."
+        val note = rawNote?.trim().orEmpty()
+        if (note.isBlank()) return "수첩에 추가할 메모를 입력해 주세요."
+        state.notebookEntriesByOwner.getOrPut(actor.member.id) { mutableListOf() } += note
+        return buildString {
+            appendLine("수첩에 메모를 추가했습니다.")
+            appendLine()
+            append(formatNotebook(game, actor))
+        }.trim()
+    }
+
+    private fun viewNotebook(game: Game, actor: PlayerData, targetId: Snowflake?): String {
+        val state = state(game) ?: return "말살 모드 게임이 아닙니다."
+        val owner = targetId?.let(game::getPlayer) ?: actor
+        val canRead = owner.member.id == actor.member.id ||
+            owner.member.id in state.notebookOwnerIdsByHolder[actor.member.id].orEmpty()
+        if (!canRead) {
+            return "해당 플레이어의 수첩을 보유하고 있지 않습니다."
+        }
+
+        val heldNotebookNames = state.notebookOwnerIdsByHolder[actor.member.id]
+            .orEmpty()
+            .mapNotNull(game::getPlayer)
+            .map { it.member.effectiveName }
+
+        return buildString {
+            append(formatNotebook(game, owner))
+            if (targetId == null && heldNotebookNames.isNotEmpty()) {
+                appendLine()
+                appendLine()
+                appendLine("보유한 사망자 수첩: ${heldNotebookNames.joinToString(", ")}")
+                append("다른 수첩은 `/말살 수첩 target:@플레이어`로 확인할 수 있습니다.")
+            }
+        }.trim()
+    }
+
+    private fun pickUpNotebook(game: Game, actor: PlayerData, targetId: Snowflake?): String {
+        val state = state(game) ?: return "말살 모드 게임이 아닙니다."
+        val location = currentLocation(state, actor)
+        val droppedOwnerIds = state.droppedNotebookLocationsByOwner
+            .filterValues { it == location }
+            .keys
+            .toList()
+        if (droppedOwnerIds.isEmpty()) {
+            return "현재 위치에 주울 수 있는 수첩이 없습니다."
+        }
+
+        val ownerId = when {
+            targetId != null -> {
+                if (targetId !in droppedOwnerIds) return "해당 플레이어의 수첩은 현재 위치에 떨어져 있지 않습니다."
+                targetId
+            }
+            droppedOwnerIds.size == 1 -> droppedOwnerIds.first()
+            else -> {
+                val names = droppedOwnerIds.mapNotNull(game::getPlayer).joinToString(", ") { it.member.effectiveName }
+                return "현재 위치에 수첩이 여러 권 있습니다. target으로 하나를 선택해 주세요: $names"
+            }
+        }
+
+        val owner = game.getPlayer(ownerId) ?: return "수첩 주인을 찾을 수 없습니다."
+        state.droppedNotebookLocationsByOwner.remove(ownerId)
+        state.notebookOwnerIdsByHolder.getOrPut(actor.member.id) { mutableSetOf() } += ownerId
+
+        return buildString {
+            appendLine("${owner.member.effectiveName}님의 수첩을 주웠습니다.")
+            appendLine()
+            append(formatNotebook(game, owner))
+        }.trim()
+    }
+
+    private suspend fun sendAgentAnonymousMessage(
+        game: Game,
+        actor: PlayerData,
+        rawTemplate: String?,
+        rawAbility: String?,
+        targetId: Snowflake?
+    ): String {
+        if (actor.job !is Agent) return "요원만 익명 메시지를 보낼 수 있습니다."
+        if (game.currentPhase != GamePhase.VOTE) return "요원 익명 메시지는 투표 시간에만 보낼 수 있습니다."
+
+        val templateText = rawTemplate?.trim().orEmpty()
+        val template = agentAnonymousMessageTemplates.firstOrNull { it.text == templateText }
+            ?: return "자동완성으로 제공된 익명 메시지만 선택할 수 있습니다."
+        val target = if (template.requiresTarget) {
+            targetId?.let(game::getPlayer) ?: return "메시지에 넣을 플레이어를 선택해 주세요."
+        } else {
+            targetId?.let(game::getPlayer)
+        }
+        if (target?.state?.isDead == true) {
+            return "사망한 플레이어는 익명 메시지의 플레이어 대상으로 선택할 수 없습니다."
+        }
+
+        val message = when (template.abilityGroup) {
+            AnonymousAbilityGroup.MAFIA -> {
+                val ability = rawAbility?.trim().orEmpty()
+                if (ability !in mafiaAnonymousAbilityOptions) {
+                    return "카포/솔다토 능력은 자동완성으로 제공된 텍스트만 선택할 수 있습니다."
+                }
+                template.text.replace("[카포, 솔다토의 능력]", ability)
+            }
+            AnonymousAbilityGroup.AGENT -> {
+                val ability = rawAbility?.trim().orEmpty()
+                if (ability !in agentAnonymousAbilityOptions) {
+                    return "요원 능력은 자동완성으로 제공된 텍스트만 선택할 수 있습니다."
+                }
+                template.text.replace("[요원의 능력]", ability)
+            }
+            null -> template.text
+        }.replace("[플레이어 닉네임]", target?.member?.effectiveName.orEmpty())
+
+        game.sendMainChannerMessage("익명 메시지\n$message")
+        return "익명 메시지를 보냈습니다."
     }
 
     private suspend fun startNight(game: Game) {
@@ -467,6 +665,7 @@ object AnnihilationModeManager {
         stealIdentitiesIfEligible(game)
         resolvePendingMovementEvents(game, phase)
         evaluateCitizenMissions(game)
+        notifyLocationFindings(game)
         sendGuideMessage(game, "현재 위치별 행동 힌트", buildCurrentLocationActionBoard(game))
     }
 
@@ -645,7 +844,7 @@ object AnnihilationModeManager {
         if (game.currentPhase != GamePhase.DAY) return "사칭은 낮에만 사용할 수 있습니다."
         state.agentImpersonationUsed = true
         state.executionBlockedMovementPhase = state.movementPhaseNumber + 1
-        game.sendMainChannerMessage("요원의 사칭: 다음 이동 페이즈 전까지 마피아팀은 처형할 수 없습니다.")
+        game.sendMainChannerMessage("요원의 사칭: 다음 이동 페이즈 전까지 마피아팀은 누군가를 처형할 수 없습니다.")
         return "사칭을 사용했습니다."
     }
 
@@ -1133,8 +1332,15 @@ object AnnihilationModeManager {
 
     private suspend fun killPlayer(game: Game, victim: PlayerData, isVoteDeath: Boolean) {
         if (victim.state.isDead) return
+        val state = state(game)
+        val deathLocation = state?.let { currentLocation(it, victim) }
         victim.state.isDead = true
         victim.state.diedDayCount = game.dayCount
+        val droppedNotebookOwnerIds = if (state != null && deathLocation != null) {
+            dropNotebooksAtLocation(state, victim, deathLocation)
+        } else {
+            emptyList()
+        }
         runCatching {
             victim.member.edit {
                 muted = true
@@ -1146,6 +1352,9 @@ object AnnihilationModeManager {
             }
         }
         game.deadChannel?.createMessage(victim.member.mention)
+        if (deathLocation != null) {
+            notifyPlayersAtLocationAboutDeath(game, victim, deathLocation, droppedNotebookOwnerIds)
+        }
         GameReplayLogger.log(
             game = game,
             type = ReplayLogType.DEATH,
@@ -1153,6 +1362,52 @@ object AnnihilationModeManager {
             title = if (isVoteDeath) "투표 사망" else "말살",
             body = "${victim.member.effectiveName} 사망"
         )
+    }
+
+    private fun dropNotebooksAtLocation(
+        state: AnnihilationGameState,
+        victim: PlayerData,
+        location: AnnihilationLocation
+    ): List<Snowflake> {
+        val droppedOwnerIds = mutableListOf<Snowflake>()
+
+        state.notebookOwnerIdsByHolder.values.forEach { it.remove(victim.member.id) }
+        state.droppedNotebookLocationsByOwner[victim.member.id] = location
+        droppedOwnerIds += victim.member.id
+
+        val carriedNotebookOwnerIds = state.notebookOwnerIdsByHolder.remove(victim.member.id).orEmpty()
+        carriedNotebookOwnerIds.forEach { ownerId ->
+            state.droppedNotebookLocationsByOwner[ownerId] = location
+            droppedOwnerIds += ownerId
+        }
+
+        return droppedOwnerIds.distinct()
+    }
+
+    private suspend fun notifyPlayersAtLocationAboutDeath(
+        game: Game,
+        victim: PlayerData,
+        location: AnnihilationLocation,
+        droppedNotebookOwnerIds: List<Snowflake>
+    ) {
+        val state = state(game) ?: return
+        val witnesses = alivePlayers(game).filter { currentLocation(state, it) == location }
+        if (witnesses.isEmpty()) return
+
+        val droppedNames = droppedNotebookOwnerIds
+            .mapNotNull(game::getPlayer)
+            .joinToString(", ") { it.member.effectiveName }
+        val message = buildString {
+            appendLine("${location.displayName}에서 ${victim.member.effectiveName}님이 사망했습니다.")
+            if (droppedNames.isNotBlank()) {
+                appendLine("${droppedNames}님의 수첩이 이 위치에 떨어졌습니다.")
+                append("`/말살 수첩줍기 target:@플레이어`로 수첩을 주울 수 있습니다.")
+            }
+        }.trim()
+
+        witnesses.forEach { witness ->
+            sendPrivateAnnihilationNotice(game, witness, message, "말살 수첩")
+        }
     }
 
     private fun returnStolenIdentitiesHeldBy(game: Game, holder: PlayerData) {
@@ -1241,6 +1496,34 @@ object AnnihilationModeManager {
         game.mafiaChannel?.createMessage("이동 페이즈 정보\n$lines")
     }
 
+    private suspend fun notifyLocationFindings(game: Game) {
+        alivePlayers(game).forEach { player ->
+            val findings = privateLocationFindings(game, player)
+            if (findings.isEmpty()) return@forEach
+            val state = state(game) ?: return@forEach
+            val location = currentLocation(state, player)
+            val message = buildString {
+                appendLine("${location.displayName}에서 발견한 단서")
+                findings.forEach { appendLine("- $it") }
+            }.trim()
+            sendPrivateAnnihilationNotice(game, player, message, "말살 위치 단서")
+        }
+    }
+
+    private suspend fun sendPrivateAnnihilationNotice(
+        game: Game,
+        player: PlayerData,
+        message: String,
+        title: String
+    ) {
+        runCatching {
+            GameReplayLogger.logDirectMessage(game, player, message, title)
+            player.member.getDmChannel().createMessage(message)
+        }.onFailure { error ->
+            println("말살 모드 비공개 안내 전송 실패(${player.member.effectiveName}): ${error.message}")
+        }
+    }
+
     private fun buildStatus(game: Game, actor: PlayerData): String {
         val state = state(game) ?: return "말살 모드 상태가 없습니다."
         val identity = state.identities[actor.member.id]
@@ -1267,6 +1550,11 @@ object AnnihilationModeManager {
             if (identity?.confirmedCitizen == true) {
                 appendLine("공개 상태: 확실한 시민")
             }
+            privateLocationFindings(game, actor).takeIf { it.isNotEmpty() }?.let { findings ->
+                appendLine()
+                appendLine("현재 위치 단서")
+                findings.forEach { appendLine("- $it") }
+            }
             appendLine()
             appendLine("이동 가능 장소")
             appendLine(connectedLocations(location).joinToString(", ") { it.displayName })
@@ -1286,6 +1574,10 @@ object AnnihilationModeManager {
         return buildString {
             appendLine("말살 모드 도움")
             appendLine("- `/말살 상태`: 내 위치, 이동 가능 장소, 미션 힌트, 사용 가능 행동 확인")
+            appendLine("- `/말살 수첩`: 내 수첩 확인, `/말살 수첩 target:@플레이어`: 주운 수첩 확인")
+            appendLine("- `/말살 수첩작성 note:메모`: 수첩에 메모 누적")
+            appendLine("- `/말살 수첩줍기 target:@플레이어`: 현재 위치에 떨어진 사망자 수첩 습득")
+            appendLine("- `/말살 익명메시지`: 투표 시간에 요원이 정해진 문구로 익명 메시지 발송")
             appendLine("- `/말살 탐문`: 현재 장소의 NPC 탐문 미션 수행")
             appendLine("- `/말살 마피아미션`: 마피아팀 NPC 미션 수행")
             appendLine("- `/말살 처형 secret:비밀 신원`: 카포 처형")
@@ -1562,13 +1854,17 @@ object AnnihilationModeManager {
 
     private fun availableActionHints(game: Game, player: PlayerData): List<String> {
         val state = state(game) ?: return emptyList()
-        val hints = mutableListOf("`/말살 상태`", "`/말살 도움`")
+        val hints = mutableListOf("`/말살 상태`", "`/말살 도움`", "`/말살 수첩`", "`/말살 수첩작성 note:<메모>`")
         hints += currentLocationActions(game, player)
+        if (state.droppedNotebookLocationsByOwner.values.any { it == currentLocation(state, player) }) {
+            hints += "`/말살 수첩줍기 target:@플레이어`"
+        }
         when (player.job) {
             is Agent -> {
                 if (!state.agentProofUsed) hints += "`/말살 증명`"
                 if (!state.agentImpersonationUsed) hints += "`/말살 사칭`"
                 if (state.agentJointInvestigationDay != game.dayCount) hints += "`/말살 합동수사 target:@A target2:@B`"
+                if (game.currentPhase == GamePhase.VOTE) hints += "`/말살 익명메시지 message:<자동완성 문구>`"
             }
             is Capo -> {
                 val lastDay = state.capoMissionLastUsedDay
@@ -1587,6 +1883,41 @@ object AnnihilationModeManager {
             }
         }
         return hints.distinct()
+    }
+
+    private fun formatNotebook(game: Game, owner: PlayerData): String {
+        val state = state(game) ?: return "말살 모드 상태 없음"
+        val entries = state.notebookEntriesByOwner[owner.member.id].orEmpty()
+        return buildString {
+            appendLine("${owner.member.effectiveName}님의 수첩")
+            if (entries.isEmpty()) {
+                append("작성된 메모가 없습니다.")
+            } else {
+                append(entries.joinToString("\n"))
+            }
+        }.trim()
+    }
+
+    private fun privateLocationFindings(game: Game, player: PlayerData): List<String> {
+        val state = state(game) ?: return emptyList()
+        val location = currentLocation(state, player)
+        val deadHere = game.playerDatas
+            .filter { it.state.isDead && currentLocation(state, it) == location }
+            .map { it.member.effectiveName }
+        val notebooksHere = state.droppedNotebookLocationsByOwner
+            .filterValues { it == location }
+            .keys
+            .mapNotNull(game::getPlayer)
+            .map { it.member.effectiveName }
+
+        return buildList {
+            if (deadHere.isNotEmpty()) {
+                add("${deadHere.joinToString(", ")}님의 시체가 있습니다.")
+            }
+            if (notebooksHere.isNotEmpty()) {
+                add("${notebooksHere.joinToString(", ")}님의 수첩이 떨어져 있습니다. `/말살 수첩줍기 target:@플레이어`로 주울 수 있습니다.")
+            }
+        }
     }
 
     private fun connectedLocations(location: AnnihilationLocation): List<AnnihilationLocation> =
