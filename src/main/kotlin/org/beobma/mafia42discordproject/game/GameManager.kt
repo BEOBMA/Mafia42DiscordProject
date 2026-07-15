@@ -102,10 +102,13 @@ object GameManager {
     private const val AGENT_JOB_NAME = "요원"
     private const val NURSE_JOB_NAME = "간호사"
     private const val CITIZEN_JOB_NAME = "시민"
+    private const val COUPLE_JOB_NAME = "연인"
+    private const val CABAL_JOB_NAME = "비밀결사"
     private const val MENTAL_PATIENT_JOB_NAME = MentalPatient.JOB_NAME
     private const val GAME_END_VOICE_DISCONNECT_DELAY_MS = 10_000L
 
     private val policeJobNames = setOf(POLICE_JOB_NAME, INSPECTOR_JOB_NAME, AGENT_JOB_NAME, "자경단원")
+    private val pairAssignmentJobNames = setOf(COUPLE_JOB_NAME, CABAL_JOB_NAME)
     private val abilitySelectionSessions: MutableMap<Snowflake, AbilitySelectionSession> = ConcurrentHashMap()
     private val abilitySelectionSessionMutex = Mutex()
     private var abilitySelectionInitializationInProgress: Boolean = false
@@ -607,21 +610,25 @@ object GameManager {
             ?.takeIf { targetId -> playerDatas.any { player -> player.member.id == targetId } }
     }
 
-    private fun normalizeSevenPlayerPreferences(
+    private fun normalizeLowPlayerPreferences(
         players: MutableList<AssignmentPlayer>,
         trace: AssignmentTrace,
         mode: GameStartMode
     ) {
-        if (players.size != SEVEN_PLAYER_COUNT) return
+        if (players.size > SEVEN_PLAYER_COUNT) return
+        val isSevenPlayerGame = players.size == SEVEN_PLAYER_COUNT
 
-        val police = JobManager.findByName(POLICE_JOB_NAME) ?: run {
-            trace.add("[7인 규칙] 경찰 직업 정의를 찾지 못해 요원 선호 변환을 건너뜁니다.")
-            return
+        val police = if (isSevenPlayerGame) {
+            JobManager.findByName(POLICE_JOB_NAME) ?: run {
+                trace.add("[7인 규칙] 경찰 직업 정의를 찾지 못해 요원 선호 변환을 건너뜁니다.")
+                null
+            }
+        } else {
+            null
         }
-        val nurseReplacementCandidates = getNonFixedJobCandidates(SEVEN_PLAYER_COUNT)
+        val specialReplacementCandidates = getNonFixedJobCandidates(players.size)
             .filter { candidate -> candidate.name != CITIZEN_JOB_NAME }
-            .filterNot { candidate -> isPairAssignmentJob(candidate.name) }
-        val usedNurseReplacementJobNames = mutableSetOf<String>()
+        val usedSpecialReplacementJobNames = mutableSetOf<String>()
 
         fun addDistinct(target: MutableList<Job>, job: Job) {
             if (target.none { it.name == job.name }) {
@@ -629,48 +636,66 @@ object GameManager {
             }
         }
 
-        fun pickNurseReplacement(existingNames: Set<String>): Job? {
-            val unusedCandidates = nurseReplacementCandidates.filter { candidate ->
-                candidate.name !in usedNurseReplacementJobNames && candidate.name !in existingNames
+        fun pickSpecialReplacement(existingNames: Set<String>): Job? {
+            val unusedCandidates = specialReplacementCandidates.filter { candidate ->
+                candidate.name !in usedSpecialReplacementJobNames && candidate.name !in existingNames
             }
-            val fallbackCandidates = nurseReplacementCandidates.filter { candidate ->
+            val fallbackCandidates = specialReplacementCandidates.filter { candidate ->
                 candidate.name !in existingNames
             }
             val picked = unusedCandidates.randomOrNull()
                 ?: fallbackCandidates.randomOrNull()
-                ?: nurseReplacementCandidates.randomOrNull()
+                ?: specialReplacementCandidates.randomOrNull()
             if (picked != null) {
-                usedNurseReplacementJobNames += picked.name
+                usedSpecialReplacementJobNames += picked.name
             }
             return picked
         }
 
-        val doctorRule = if (mode == GameStartMode.MADNESS) {
-            "의사는 미치광이 모드에서 고정 배정하고"
-        } else {
-            "의사는 배정하지 않고"
+        if (isSevenPlayerGame) {
+            val doctorRule = if (mode == GameStartMode.MADNESS) {
+                "의사는 미치광이 모드에서 고정 배정하고"
+            } else {
+                "의사는 배정하지 않고"
+            }
+            trace.add("[7인 규칙] $doctorRule, 요원 선호는 경찰로, 간호사 선호는 중복 없는 특수 직업으로 변환합니다.")
         }
-        trace.add("[7인 규칙] $doctorRule, 요원 선호는 경찰로, 간호사 선호는 중복 없는 특수 직업으로 변환합니다.")
+        trace.add("[7인 이하 규칙] 연인/비밀결사 선호는 무작위 특수 직업 선호로 변환합니다.")
 
         players.indices.forEach { index ->
             val player = players[index]
             val normalizedPreferences = mutableListOf<Job>()
             var nurseReplacementForPlayer: Job? = null
+            val pairReplacementByName = mutableMapOf<String, Job>()
 
             player.preferences.forEach { preference ->
                 when (preference.name) {
-                    AGENT_JOB_NAME -> {
+                    AGENT_JOB_NAME -> if (isSevenPlayerGame && police != null) {
                         addDistinct(normalizedPreferences, police)
                         trace.add("[7인 규칙] ${player.name}: 요원 선호 -> 경찰")
+                    } else {
+                        addDistinct(normalizedPreferences, preference)
                     }
 
-                    NURSE_JOB_NAME -> {
+                    NURSE_JOB_NAME -> if (isSevenPlayerGame) {
                         val replacement = nurseReplacementForPlayer
-                            ?: pickNurseReplacement(normalizedPreferences.map { it.name }.toSet())
+                            ?: pickSpecialReplacement(normalizedPreferences.map { it.name }.toSet())
                         if (replacement != null) {
                             nurseReplacementForPlayer = replacement
                             addDistinct(normalizedPreferences, replacement)
                             trace.add("[7인 규칙] ${player.name}: 간호사 선호 -> ${replacement.name}")
+                        }
+                    } else {
+                        addDistinct(normalizedPreferences, preference)
+                    }
+
+                    in pairAssignmentJobNames -> {
+                        val replacement = pairReplacementByName[preference.name]
+                            ?: pickSpecialReplacement(normalizedPreferences.map { it.name }.toSet())
+                        if (replacement != null) {
+                            pairReplacementByName[preference.name] = replacement
+                            addDistinct(normalizedPreferences, replacement)
+                            trace.add("[7인 이하 규칙] ${player.name}: ${preference.name} 선호 -> ${replacement.name}")
                         }
                     }
 
@@ -678,11 +703,20 @@ object GameManager {
                 }
             }
 
-            val normalizedBestJob = when (player.bestJob?.name) {
-                AGENT_JOB_NAME -> police
-                NURSE_JOB_NAME -> nurseReplacementForPlayer
-                    ?: pickNurseReplacement(normalizedPreferences.map { it.name }.toSet())
-                    ?: player.bestJob
+            val normalizedBestJob = when (val bestJobName = player.bestJob?.name) {
+                AGENT_JOB_NAME -> if (isSevenPlayerGame && police != null) police else player.bestJob
+                NURSE_JOB_NAME -> if (isSevenPlayerGame) {
+                    nurseReplacementForPlayer
+                        ?: pickSpecialReplacement(normalizedPreferences.map { it.name }.toSet())
+                        ?: player.bestJob
+                } else {
+                    player.bestJob
+                }
+                in pairAssignmentJobNames -> {
+                    pairReplacementByName[bestJobName]
+                        ?: pickSpecialReplacement(normalizedPreferences.map { it.name }.toSet())
+                        ?: player.bestJob
+                }
                 else -> player.bestJob
             }
 
@@ -698,6 +732,9 @@ object GameManager {
         excluded += policeJobNames
         if (playerCount == SEVEN_PLAYER_COUNT) {
             excluded += NURSE_JOB_NAME
+        }
+        if (playerCount <= SEVEN_PLAYER_COUNT) {
+            excluded += pairAssignmentJobNames
         }
         return excluded
     }
@@ -997,7 +1034,7 @@ object GameManager {
             trace.add("[오류] 의사 직업 정의를 찾지 못했습니다.")
             return trace
         }
-        normalizeSevenPlayerPreferences(players, trace, mode)
+        normalizeLowPlayerPreferences(players, trace, mode)
 
         val policePool = allJobs.filter { job ->
             job.name in policeJobNames && !(players.size == SEVEN_PLAYER_COUNT && job.name == AGENT_JOB_NAME)
@@ -1097,7 +1134,7 @@ object GameManager {
         val selected = mutableListOf<Job>()
         val selectedJobNames = mutableSetOf<String>()
         var assignedSlots = 0
-        fun slotsFor(job: Job): Int = if (job.name == "연인" || job.name == "비밀결사") 2 else 1
+        fun slotsFor(job: Job): Int = if (isPairAssignmentJob(job.name)) 2 else 1
         val preferredPlayerCountByName = players
             .flatMap { player -> player.preferences.map(Job::name).distinct() }
             .groupingBy { it }
@@ -1225,7 +1262,7 @@ object GameManager {
     }
 
     private fun isPairAssignmentJob(jobName: String): Boolean {
-        return jobName == "연인" || jobName == "비밀결사"
+        return jobName in pairAssignmentJobNames
     }
 
     private fun resolveRequiredRoleCounts(
@@ -1252,7 +1289,12 @@ object GameManager {
                     doctorCount = if (mode == GameStartMode.MADNESS) 1 else 0,
                     policeCount = 1
                 )
-                6 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 1, doctorCount = 1, policeCount = 1)
+                6 -> RequiredRoleCounts(
+                    mafiaCount = 1,
+                    assistantCount = 1,
+                    doctorCount = if (mode == GameStartMode.MADNESS) 1 else 0,
+                    policeCount = 1
+                )
                 5, 4 -> RequiredRoleCounts(mafiaCount = 1, assistantCount = 0, doctorCount = 1, policeCount = 1)
                 else -> {
                     val mafia = if (playerCount >= 2) 1 else 0
@@ -1332,10 +1374,7 @@ object GameManager {
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
             val selectionJob = getAbilitySelectionDisplayJob(player) ?: job
-            val pool = AbilityManager.getAvailableExtraAbilitiesFor(selectionJob)
-                .distinctBy(Ability::name)
-                .shuffled()
-                .toMutableList()
+            val pool = buildAvailableExtraAbilityPool(job, selectionJob)
 
             val session = AbilitySelectionSession(
                 playerJob = job,
@@ -1412,6 +1451,17 @@ object GameManager {
 
     private fun getAbilitySelectionDisplayJob(player: PlayerData): Job? {
         return (player.job as? MentalPatient)?.displayedJob
+    }
+
+    private fun buildAvailableExtraAbilityPool(playerJob: Job, selectionJob: Job): MutableList<Ability> {
+        return AbilityManager.getAvailableExtraAbilitiesFor(selectionJob)
+            .asSequence()
+            .filter { ability ->
+                playerJob !is MentalPatient || MentalPatient.isActuallyAvailableUtilityAbility(ability)
+            }
+            .distinctBy(Ability::name)
+            .shuffled()
+            .toMutableList()
     }
 
     private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
@@ -1661,10 +1711,7 @@ object GameManager {
         val virtualPlayers = players.filter { it.memberId == null }
         virtualPlayers.forEach { virtualPlayer ->
             val assignedJob = virtualPlayer.assignedJob ?: return@forEach
-            val pool = AbilityManager.getAvailableExtraAbilitiesFor(assignedJob)
-                .distinctBy(Ability::name)
-                .shuffled()
-                .toMutableList()
+            val pool = buildAvailableExtraAbilityPool(assignedJob, assignedJob)
 
             val selected = mutableListOf<Ability>()
             repeat(EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
@@ -1767,8 +1814,7 @@ object GameManager {
         val completedRounds = minOf(playerJob.extraAbilities.size, EXTRA_ABILITY_SELECTION_REPEAT_COUNT)
         if (completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) return null
 
-        val availablePool = AbilityManager.getAvailableExtraAbilitiesFor(selectionJob)
-            .distinctBy(Ability::name)
+        val availablePool = buildAvailableExtraAbilityPool(playerJob, selectionJob)
             .filterNot { ability -> ability.name in alreadySelectedNames }
             .toMutableList()
         if (availablePool.isEmpty()) return null
