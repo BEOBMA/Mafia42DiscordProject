@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 class Assistant : Ability, JobSpecificExtraAbility {
     override val name: String = "조수"
-    override val description: String = "'트릭' 능력이 발동되지 않은 상태에서 '트릭' 대상이 사망할 경우, 대상을 변경할 수 있다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(134).webp"
+    override val description: String = "'트릭' 능력이 발동하고 바꿔치기에 성공한 경우 자신이 바꿔치기한 대상에게 투표하는 찬반 투표 수가 2개로 집계된다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/magician_ability_assistant.webp"
     override val targetJob: List<KClass<out Job>> = listOf(Magician::class)
 }

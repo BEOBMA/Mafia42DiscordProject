@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 class Xray : Ability, JobSpecificExtraAbility {
     override val name: String = "투시"
-    override val description: String = "트릭에 성공했을 때 그 사람의 직업을 알아낸다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(13).png"
+    override val description: String = "'트릭' 능력이 발동하고 바꿔치기에 성공한 경우, 그 사람의 직업을 알아낸다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/magician_ability_xray.webp"
     override val targetJob: List<KClass<out Job>> = listOf(Magician::class)
 }

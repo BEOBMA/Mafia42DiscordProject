@@ -35,6 +35,7 @@ internal const val WITCH_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supab
 internal const val SWINDLER_CONTACT_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(25).webp"
 internal const val SPY_ASSASSIN_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(29).webp"
 internal const val MAD_SCIENTIST_REVIVE_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(1).webp"
+internal const val MAGICIAN_TRICK_SUCCESS_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/magician_ability_image.webp"
 
 private const val SOUND_BASE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/sound"
 internal const val NIGHT_START_SOUND_PATH = "$SOUND_BASE_URL/mafia%20(5).mp3"

@@ -44,6 +44,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.hack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.InspectorInvestigation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Assistant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Xray
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
@@ -1546,6 +1548,13 @@ object GameLoopManager {
         game.currentProsConsVotes.clear()
         game.hostessFirstVoteTargetByDay.clear()
         game.defenseTargetId = null
+        game.playerDatas.forEach { player ->
+            val magician = player.job as? Magician ?: return@forEach
+            magician.trickSubstitutedTargetId = null
+            if (!magician.hasUsedTrick) {
+                magician.trickTargetId = null
+            }
+        }
         muteSpectators(game)
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
@@ -1626,10 +1635,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (politicianTarget != null) {
-                mainChannel.createMessage(
-                    "${politicianTarget.member.effectiveName}의 최후의 변론"
-                )
-                politicianTarget
+                resolveMagicianTrickSubstitution(game, politicianTarget)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1645,10 +1651,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (judgeTarget != null) {
-                mainChannel.createMessage(
-                    "${judgeTarget.member.effectiveName}의 최후의 변론"
-                )
-                judgeTarget
+                resolveMagicianTrickSubstitution(game, judgeTarget)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1773,7 +1776,7 @@ object GameLoopManager {
                         )
                         return null
                     }
-                    return juryResolved
+                    return resolveMagicianTrickSubstitution(game, juryResolved)
                 }
             }
             game.sendMainChannelMessageWithImage(
@@ -1791,7 +1794,51 @@ object GameLoopManager {
             )
             return null
         }
-        return finalTarget
+        return resolveMagicianTrickSubstitution(game, finalTarget)
+    }
+
+    private suspend fun resolveMagicianTrickSubstitution(game: Game, originalTarget: PlayerData): PlayerData {
+        val magician = originalTarget.job as? Magician ?: return originalTarget
+        if (originalTarget.state.isDead || magician.hasUsedTrick) return originalTarget
+
+        val substitute = magician.trickTargetId
+            ?.let(game::getPlayer)
+            ?.takeUnless { it.state.isDead }
+            ?.takeUnless { it.member.id == originalTarget.member.id }
+            ?: return originalTarget
+
+        magician.hasUsedTrick = true
+        magician.trickSubstitutedTargetId = substitute.member.id
+        magician.trickTargetId = substitute.member.id
+        originalTarget.state.isJobPubliclyRevealed = true
+        game.publiclyRevealedJobNames += magician.name
+
+        val publicMessage =
+            "마술사 (${originalTarget.member.effectiveName})님이 최다 득표자를 ${substitute.member.effectiveName}님으로 바꿔치기했습니다!"
+        game.sendMainChannelMessageWithImage(
+            imageLink = MAGICIAN_TRICK_SUCCESS_IMAGE_URL,
+            message = publicMessage
+        )
+        GameReplayLogger.log(
+            game = game,
+            type = ReplayLogType.ABILITY_USED,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "트릭",
+            body = publicMessage,
+            actor = originalTarget,
+            imageUrls = listOf(MAGICIAN_TRICK_SUCCESS_IMAGE_URL)
+        )
+
+        if (originalTarget.allAbilities.any { it is Xray }) {
+            val jobName = substitute.job?.name ?: "알 수 없음"
+            val xrayMessage = "그 사람의 직업은 $jobName 입니다."
+            GameReplayLogger.logDirectMessage(game, originalTarget, xrayMessage, "투시")
+            runCatching {
+                originalTarget.member.getDmChannel().createMessage(xrayMessage)
+            }
+        }
+
+        return substitute
     }
 
     private fun buildMainVoteStatusContent(
@@ -2050,11 +2097,11 @@ object GameLoopManager {
         val prosCount = prosConsVotes
             .filterValues { it }
             .keys
-            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, target, gangsterTransferredVoteWeights) }
         val consCount = prosConsVotes
             .filterValues { !it }
             .keys
-            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, target, gangsterTransferredVoteWeights) }
         val aggregateDecision = prosCount > consCount
         val judgePlayer = findProsConsJudge(game, prosConsVotes, aggregateDecision)
         val judgeVote = judgePlayer?.let { prosConsVotes[it.member.id] }
@@ -2266,6 +2313,7 @@ object GameLoopManager {
     private fun calculateProsConsVoteWeight(
         game: Game,
         voterId: Snowflake,
+        defenseTarget: PlayerData,
         transferredVoteWeights: Map<Snowflake, Int>
     ): Int {
         val voter = game.getPlayer(voterId) ?: return 0
@@ -2274,7 +2322,18 @@ object GameLoopManager {
         if (game.activeThreatenedVoters.containsKey(voter.member.id)) return 0
 
         val baseWeight = if (hasPoliticianAbility(voter)) 2 else 1
-        return baseWeight + (transferredVoteWeights[voter.member.id] ?: 0)
+        val magician = voter.job as? Magician
+        val assistantWeight = if (
+            magician != null &&
+            magician.trickSubstitutedTargetId == defenseTarget.member.id &&
+            voter.allAbilities.any { it is Assistant } &&
+            !FrogCurseManager.shouldSuppressPassive(voter)
+        ) {
+            1
+        } else {
+            0
+        }
+        return baseWeight + assistantWeight + (transferredVoteWeights[voter.member.id] ?: 0)
     }
 
     private fun hasPoliticianAbility(player: PlayerData): Boolean {
