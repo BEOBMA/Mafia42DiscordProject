@@ -1,0 +1,2816 @@
+{
+    "schemaVersion": 1,
+    "generatedAtMillis": 1784127769709,
+    "endReason": "WIN_CONDITION_MET",
+    "winningTeamName": "마피아 팀",
+    "guildId": "1524098356777975818",
+    "guildName": "마피아42",
+    "replayStartedAtMillis": 1784127101408,
+    "dayCount": 3,
+    "initialPlayerCount": 6,
+    "players": [
+        {
+            "id": "1491689338268811354",
+            "name": "박종건",
+            "jobName": "파파라치",
+            "isDead": true
+        },
+        {
+            "id": "534697977923764244",
+            "name": "주녁",
+            "jobName": "마피아",
+            "isDead": false
+        },
+        {
+            "id": "777116116379500554",
+            "name": "k1m_2sue",
+            "jobName": "판사",
+            "isDead": true
+        },
+        {
+            "id": "1406571254156234762",
+            "name": "창탱이",
+            "jobName": "해커",
+            "isDead": true
+        },
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "jobName": "형사",
+            "isDead": true
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "jobName": "과학자",
+            "isDead": false
+        }
+    ],
+    "logs": [
+        {
+            "sequence": 1,
+            "timestampMillis": 1784127101816,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "SYSTEM_INTERNAL",
+            "title": "게임 시작",
+            "body": "모드: 일반\n참가자 6명\n- 박종건: 파파라치\n- 주녁: 마피아\n- k1m_2sue: 판사\n- 창탱이: 해커\n- BEOBMA: 형사\n- 은지: 과학자",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 2,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(56).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(144).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(171).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(130).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(127).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 3,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(89).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(162).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(141).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(172).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(131).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 4,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(88).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(97).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(171).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(118).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(141).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 5,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(62).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(109).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(154).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(196).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 6,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/inspector_card.webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_1.webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(127).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(182).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_2.webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 7,
+            "timestampMillis": 1784127161401,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업/능력 안내",
+            "body": "",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(42).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(155).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(187).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(189).webp",
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(141).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 8,
+            "timestampMillis": 1784127166161,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 밤",
+            "body": "1일차 밤",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 9,
+            "timestampMillis": 1784127166161,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "밤이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 10,
+            "timestampMillis": 1784127174573,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 수사\n대상: 박종건\n결과: 성공\n그 사람의 직업은 파파라치.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 11,
+            "timestampMillis": 1784127174573,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "그 사람의 직업은 파파라치.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 12,
+            "timestampMillis": 1784127174573,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 결과",
+            "body": "BEOBMA님이 당신의 정체를 알아냈습니다!\nBEOBMA님은 형사입니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(3).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 13,
+            "timestampMillis": 1784127180886,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 처형\n대상: BEOBMA\n결과: 성공\nBEOBMA 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 14,
+            "timestampMillis": 1784127180886,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "BEOBMA 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 15,
+            "timestampMillis": 1784127194657,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "유언 작성",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 본인\n내용: 판사 정보원, 확성기, 유언",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 16,
+            "timestampMillis": 1784127194657,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "유언을 작성했습니다. 이번 밤에 사망하면 공개됩니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 17,
+            "timestampMillis": 1784127201138,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 작성",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 박종건\n내용: 나 형사 너 파파라치 나 죽으면 퍼경판임 유품 들긴 했음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 18,
+            "timestampMillis": 1784127201336,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "유언 작성",
+            "body": "보낸 사람: 은지\n받은 사람/곳: 본인\n내용: 유빈이는 마피아라는 사실 두둔!! 알고계셨습니까?!",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 19,
+            "timestampMillis": 1784127201337,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "유언을 작성했습니다. 이번 밤에 사망하면 공개됩니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 20,
+            "timestampMillis": 1784127210545,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "CHAT_PUBLIC",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "PUBLIC",
+            "title": "확성기",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 공개 채널 (박종건, 주녁, k1m_2sue, 창탱이, BEOBMA, 은지)\n내용: 창현 맢임",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "PUBLIC"
+                },
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "PUBLIC"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "PUBLIC"
+                },
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "PUBLIC"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "PUBLIC"
+                },
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "PUBLIC"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 21,
+            "timestampMillis": 1784127223459,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "밀서는 게임 중 1회만 보낼 수 있습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 22,
+            "timestampMillis": 1784127231817,
+            "dayCount": 1,
+            "phase": "NIGHT",
+            "type": "DEATH",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "BEOBMA 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 23,
+            "timestampMillis": 1784127234120,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "BEOBMA님의 유품을 통해 직업이 형사(이)라고 밝혀졌습니다!",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(48).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 24,
+            "timestampMillis": 1784127234464,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "DEATH",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "BEOBMA 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 25,
+            "timestampMillis": 1784127234464,
+            "dayCount": 1,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "BEOBMA이(가) 살해당했습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(33).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 26,
+            "timestampMillis": 1784127240146,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 낮",
+            "body": "1일차 낮",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 27,
+            "timestampMillis": 1784127240146,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "낮이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 28,
+            "timestampMillis": 1784127240675,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 알림",
+            "body": "형사 BEOBMA님이 조사를 마쳤습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_1_image.webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 29,
+            "timestampMillis": 1784127241419,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 결과",
+            "body": "그 사람의 직업은 파파라치.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_1_image.webp"
+            ],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 30,
+            "timestampMillis": 1784127242359,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 배달",
+            "body": "[밀서 도착]\n보낸 사람: BEOBMA\n받은 사람/곳: 박종건\n내용: 나 형사 너 파파라치 나 죽으면 퍼경판임 유품 들긴 했음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 31,
+            "timestampMillis": 1784127242360,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 배달",
+            "body": "[밀서 전성]\n보낸 사람: BEOBMA\n받은 사람/곳: 박종건\n내용: 나 형사 너 파파라치 나 죽으면 퍼경판임 유품 들긴 했음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 32,
+            "timestampMillis": 1784127243721,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "지령 결과",
+            "body": "경찰 계열 직업이 없습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 33,
+            "timestampMillis": 1784127252358,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 34,
+            "timestampMillis": 1784127322258,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "ABILITY_USED",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 해킹\n대상: 박종건\n결과: 성공\n박종건님을 해킹 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 35,
+            "timestampMillis": 1784127322258,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "박종건님을 해킹 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 36,
+            "timestampMillis": 1784127323322,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "1일차 투표",
+            "body": "1일차 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 37,
+            "timestampMillis": 1784127323322,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "투표 시간입니다. 의심되는 사람을 투표하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 38,
+            "timestampMillis": 1784127332601,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "은지 -> 은지",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 39,
+            "timestampMillis": 1784127334008,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "k1m_2sue -> k1m_2sue",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 40,
+            "timestampMillis": 1784127340551,
+            "dayCount": 1,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "창탱이 -> 박종건",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 41,
+            "timestampMillis": 1784127358624,
+            "dayCount": 1,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "처형될 대상을 고르지 못했습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 42,
+            "timestampMillis": 1784127359056,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "2일차 밤",
+            "body": "2일차 밤",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 43,
+            "timestampMillis": 1784127359056,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "밤이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 44,
+            "timestampMillis": 1784127359474,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "정보원 결과",
+            "body": "정보원에 의해 현재 2명의 마피아팀이 살아있을 것이 밝혀졌습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 45,
+            "timestampMillis": 1784127360287,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "정보원 결과",
+            "body": "정보원에 의해 현재 2명의 마피아팀이 살아있을 것이 밝혀졌습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 46,
+            "timestampMillis": 1784127361094,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 정보",
+            "body": "창탱이 -> 박종건: 파파라치",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 47,
+            "timestampMillis": 1784127361094,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 알림",
+            "body": "해커 창탱이님이 자신의 정보를 전송하였습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(11).png"
+            ],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 48,
+            "timestampMillis": 1784127361094,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 결과",
+            "body": "창탱이님이 당신의 정체를 알아냈습니다!\n창탱이님은 해커입니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(3).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 49,
+            "timestampMillis": 1784127362109,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "직업 발견 결과",
+            "body": "해킹 완료. 박종건님은 파파라치입니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(6).webp"
+            ],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 50,
+            "timestampMillis": 1784127367905,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 51,
+            "timestampMillis": 1784127383371,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 처형\n대상: 창탱이\n실제 적용 대상: 박종건\n결과: 성공\n창탱이 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 52,
+            "timestampMillis": 1784127383371,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "창탱이 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 53,
+            "timestampMillis": 1784127410178,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 작성",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 창탱이\n내용: 은지가 조사직인데 정보온게 없음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                },
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 54,
+            "timestampMillis": 1784127417825,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "DIRECT_MESSAGE",
+            "title": "유언 작성",
+            "body": "보낸 사람: 은지\n받은 사람/곳: 본인\n내용: 도청유언정보사탐 첫날 창현이 노손 최대보조고려",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 55,
+            "timestampMillis": 1784127417825,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "유언을 작성했습니다. 이번 밤에 사망하면 공개됩니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 56,
+            "timestampMillis": 1784127426943,
+            "dayCount": 2,
+            "phase": "NIGHT",
+            "type": "DEATH",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "박종건 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 57,
+            "timestampMillis": 1784127430049,
+            "dayCount": 2,
+            "phase": "DAWN",
+            "type": "DEATH",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "박종건 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 58,
+            "timestampMillis": 1784127430049,
+            "dayCount": 2,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "박종건이(가) 살해당했습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(33).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 59,
+            "timestampMillis": 1784127434910,
+            "dayCount": 2,
+            "phase": "DAWN",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 60,
+            "timestampMillis": 1784127435867,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "2일차 낮",
+            "body": "2일차 낮",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 61,
+            "timestampMillis": 1784127435869,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "낮이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 62,
+            "timestampMillis": 1784127436420,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 배달",
+            "body": "[밀서 도착]\n보낸 사람: 박종건\n받은 사람/곳: 창탱이\n내용: 은지가 조사직인데 정보온게 없음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 63,
+            "timestampMillis": 1784127436420,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "밀서 배달",
+            "body": "[밀서 전성]\n보낸 사람: 박종건\n받은 사람/곳: 창탱이\n내용: 은지가 조사직인데 정보온게 없음",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 64,
+            "timestampMillis": 1784127438172,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 65,
+            "timestampMillis": 1784127501833,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "2일차 투표",
+            "body": "2일차 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 66,
+            "timestampMillis": 1784127501833,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "투표 시간입니다. 의심되는 사람을 투표하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 67,
+            "timestampMillis": 1784127508046,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "주녁 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 68,
+            "timestampMillis": 1784127509191,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "은지 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 69,
+            "timestampMillis": 1784127509490,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "창탱이 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 70,
+            "timestampMillis": 1784127533217,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "k1m_2sue -> 주녁",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 71,
+            "timestampMillis": 1784127538514,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 최후 변론",
+            "body": "창탱이 최후 변론",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 72,
+            "timestampMillis": 1784127538514,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이의 최후의 변론",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(1).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 73,
+            "timestampMillis": 1784127556443,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 찬반 투표",
+            "body": "창탱이 찬반 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 74,
+            "timestampMillis": 1784127561620,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "창탱이: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 75,
+            "timestampMillis": 1784127561909,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "k1m_2sue: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 76,
+            "timestampMillis": 1784127562191,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "은지: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 77,
+            "timestampMillis": 1784127563254,
+            "dayCount": 2,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "주녁: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 78,
+            "timestampMillis": 1784127568936,
+            "dayCount": 2,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이님의 처형이 부결되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 79,
+            "timestampMillis": 1784127569257,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "3일차 밤",
+            "body": "3일차 밤",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 80,
+            "timestampMillis": 1784127569257,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "밤이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(7).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 81,
+            "timestampMillis": 1784127570029,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "DIRECT_MESSAGE",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "DIRECT_MESSAGE",
+            "title": "정보원 결과",
+            "body": "정보원에 의해 현재 2명의 마피아팀이 살아있을 것이 밝혀졌습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DIRECT_MESSAGE"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 82,
+            "timestampMillis": 1784127582459,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "ABILITY_USED",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "능력 사용",
+            "body": "능력: 처형\n대상: k1m_2sue\n결과: 성공\nk1m_2sue 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 83,
+            "timestampMillis": 1784127582459,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "EPHEMERAL",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "k1m_2sue 님을 처형 대상으로 지정했습니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 84,
+            "timestampMillis": 1784127635600,
+            "dayCount": 3,
+            "phase": "NIGHT",
+            "type": "DEATH",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "k1m_2sue 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 85,
+            "timestampMillis": 1784127639317,
+            "dayCount": 3,
+            "phase": "DAWN",
+            "type": "DEATH",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "PUBLIC",
+            "title": "사망",
+            "body": "k1m_2sue 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 86,
+            "timestampMillis": 1784127639317,
+            "dayCount": 3,
+            "phase": "DAWN",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "k1m_2sue이(가) 살해당했습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(33).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 87,
+            "timestampMillis": 1784127645210,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "3일차 낮",
+            "body": "3일차 낮",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 88,
+            "timestampMillis": 1784127645210,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "낮이 되었습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(15).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 89,
+            "timestampMillis": 1784127657495,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 90,
+            "timestampMillis": 1784127658802,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 91,
+            "timestampMillis": 1784127687667,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 92,
+            "timestampMillis": 1784127691181,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "EPHEMERAL",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "개인 응답",
+            "body": "남은 시간이 0초 이하가 되어 즉시 다음 페이즈로 넘어갑니다.",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 93,
+            "timestampMillis": 1784127691530,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 94,
+            "timestampMillis": 1784127691555,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "3일차 투표",
+            "body": "3일차 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 95,
+            "timestampMillis": 1784127691556,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "투표 시간입니다. 의심되는 사람을 투표하세요.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 96,
+            "timestampMillis": 1784127691869,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 97,
+            "timestampMillis": 1784127692904,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "은지님이 시간을 단축시켰습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 98,
+            "timestampMillis": 1784127697907,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "은지 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 99,
+            "timestampMillis": 1784127698527,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "주녁 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 100,
+            "timestampMillis": 1784127698864,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 101,
+            "timestampMillis": 1784127699142,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "VOTE_CAST",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "본투표",
+            "body": "창탱이 -> 창탱이",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 102,
+            "timestampMillis": 1784127700620,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 103,
+            "timestampMillis": 1784127704544,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 104,
+            "timestampMillis": 1784127705456,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 105,
+            "timestampMillis": 1784127707802,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 106,
+            "timestampMillis": 1784127712272,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 107,
+            "timestampMillis": 1784127712881,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 108,
+            "timestampMillis": 1784127713461,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 109,
+            "timestampMillis": 1784127722104,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 110,
+            "timestampMillis": 1784127723517,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "777116116379500554",
+            "actorName": "k1m_2sue",
+            "actorJobName": "판사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: k1m_2sue\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 111,
+            "timestampMillis": 1784127724341,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "CHAT_DEAD",
+            "actorId": "1491689338268811354",
+            "actorName": "박종건",
+            "actorJobName": "파파라치",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: 박종건\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 112,
+            "timestampMillis": 1784127728323,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 최후 변론",
+            "body": "창탱이 최후 변론",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 113,
+            "timestampMillis": 1784127728323,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이의 최후의 변론",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(1).png"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 114,
+            "timestampMillis": 1784127735647,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "CHAT_DEAD",
+            "actorId": "597040055474978816",
+            "actorName": "BEOBMA",
+            "actorJobName": "형사",
+            "visibility": "DEAD_CHANNEL",
+            "title": "사망자 채팅",
+            "body": "보낸 사람: BEOBMA\n받은 사람/곳: 사망자 채널 (박종건, k1m_2sue, BEOBMA)\n내용: (내용 없음)",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1491689338268811354",
+                    "name": "박종건",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "777116116379500554",
+                    "name": "k1m_2sue",
+                    "scope": "DEAD_CHANNEL"
+                },
+                {
+                    "id": "597040055474978816",
+                    "name": "BEOBMA",
+                    "scope": "DEAD_CHANNEL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 115,
+            "timestampMillis": 1784127746896,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PHASE_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "창탱이 찬반 투표",
+            "body": "창탱이 찬반 투표",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 116,
+            "timestampMillis": 1784127754181,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "534697977923764244",
+            "actorName": "주녁",
+            "actorJobName": "마피아",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "주녁: 찬성",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697977923764244",
+                    "name": "주녁",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 117,
+            "timestampMillis": 1784127754648,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "534697552201777162",
+            "actorName": "은지",
+            "actorJobName": "과학자",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "은지: 찬성",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "534697552201777162",
+                    "name": "은지",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 118,
+            "timestampMillis": 1784127755339,
+            "dayCount": 3,
+            "phase": "VOTE",
+            "type": "PROS_CONS_VOTE",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "EPHEMERAL",
+            "title": "찬반 투표",
+            "body": "창탱이: 반대",
+            "imageUrls": [],
+            "recipients": [
+                {
+                    "id": "1406571254156234762",
+                    "name": "창탱이",
+                    "scope": "EPHEMERAL"
+                }
+            ],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 119,
+            "timestampMillis": 1784127764298,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "DEATH",
+            "actorId": "1406571254156234762",
+            "actorName": "창탱이",
+            "actorJobName": "해커",
+            "visibility": "PUBLIC",
+            "title": "처형",
+            "body": "창탱이 사망",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 120,
+            "timestampMillis": 1784127764298,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이님이 투표로 처형당하였습니다.",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(44).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 121,
+            "timestampMillis": 1784127764621,
+            "dayCount": 3,
+            "phase": "DAY",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "창탱이님의 유품을 통해 직업이 해커(이)라고 밝혀졌습니다!",
+            "imageUrls": [
+                "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(48).webp"
+            ],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 122,
+            "timestampMillis": 1784127766067,
+            "dayCount": 3,
+            "phase": "END",
+            "type": "GAME_END",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "승리",
+            "body": "마피아 팀 승리: 도시를 장악하고 마피아 팀이 승리했습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 123,
+            "timestampMillis": 1784127766067,
+            "dayCount": 3,
+            "phase": "END",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "마피아 팀 승리: 도시를 장악하고 마피아 팀이 승리했습니다.",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 124,
+            "timestampMillis": 1784127766530,
+            "dayCount": 3,
+            "phase": "END",
+            "type": "SYSTEM_RESULT",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "공개 메시지",
+            "body": "## 플레이어 직업 공개\n1. 박종건 - 파파라치 (사망)\n2. 주녁 - 마피아 (생존)\n3. k1m_2sue - 판사 (사망)\n4. 창탱이 - 해커 (사망)\n5. BEOBMA - 형사 (사망)\n6. 은지 - 과학자 (생존)",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        }
+    ]
+}
