@@ -10,7 +10,7 @@ import org.beobma.mafia42discordproject.game.GameManager
 
 object ShamanedRelayCommand : DiscordCommand {
     override val name: String = "spirit-relay"
-    override val description: String = "성불된 사망자가 강령 메시지를 전달합니다."
+    override val description: String = "성불된 사망자가 강령 메시지를 죽은 자들의 채널로 전달합니다."
     override val koreanName: String = "강령"
     override val aliases: Set<String> = setOf("강령")
     private const val MESSAGE_OPTION_NAME = "message"
@@ -19,7 +19,6 @@ object ShamanedRelayCommand : DiscordCommand {
         val message = event.interaction.command.strings[MESSAGE_OPTION_NAME].orEmpty()
         val result = GameManager.relayShamanedMessage(
             memberId = event.interaction.user.id,
-            channelId = event.interaction.channelId,
             message = message
         )
         DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = !result.isSuccess)
@@ -29,7 +28,6 @@ object ShamanedRelayCommand : DiscordCommand {
         val memberId = event.member?.id ?: return
         val result = GameManager.relayShamanedMessage(
             memberId = memberId,
-            channelId = event.message.channelId,
             message = args.joinToString(" ")
         )
         event.message.channel.createMessage(result.message)

@@ -31,10 +31,16 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.agen
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.detective.DetectiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.doctor.DoctorAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.HackerAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.InspectorInvestigation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.PoliceAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.ReporterAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.cabal.SunCabalAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.UnwrittenRule
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.SoulRelease
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.vigilante.VigilantePurgeDayAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
@@ -218,10 +224,6 @@ object AbilityUseCommand : DiscordCommand {
             }
         }
 
-        if (result.isSuccess && (selectedAbility is NurseAbility || selectedAbility is DoctorAbility)) {
-            GameLoopManager.notifyNurseDoctorContactImmediately(game)
-        }
-
         if (result.isSuccess && selectedAbility is MafiaAbility && target != null) {
             notifyMafiaTargetSelection(game, caster, target, previousMafiaTarget)
         }
@@ -305,12 +307,20 @@ object AbilityUseCommand : DiscordCommand {
         }
 
         return when (selectedAbility) {
-            is FortunetellerAbility -> buildMentalPatientFortuneResult(target)
+            is PoliceAbility -> buildMentalPatientMafiaCheckResult(caster, target, abilityName = "수색")
+            is VigilantePurgeDayAbility -> buildMentalPatientMafiaCheckResult(caster, target, abilityName = "숙청")
+            is NurseAbility -> buildMentalPatientDoctorCheckResult(game, caster, target)
+            is SpyAbility -> buildMentalPatientJobDiscoveryResult(game, caster, target, "첩보")
+            is ReporterAbility -> buildMentalPatientJobDiscoveryResult(game, caster, target, "특종")
+            is InspectorInvestigation -> buildMentalPatientJobDiscoveryResult(game, caster, target, "수사")
+            is HackerAbility -> buildMentalPatientJobDiscoveryResult(game, caster, target, "해킹")
+            is SoulRelease -> buildMentalPatientSoulReleaseResult(game, target)
+            is FortunetellerAbility -> buildMentalPatientFortuneResult(game, target)
             is MentalistAbility -> buildMentalPatientMentalistResult(game, caster, target)
             is AdministratorAbility -> {
                 val jobName = selectedJobName?.takeIf { it.isNotBlank() }
                     ?: return AbilityResult(true, "이번 밤의 조회 대상을 해제했습니다.")
-                AbilityResult(true, "$jobName 직업을 조회 대상으로 선택했습니다.")
+                buildMentalPatientAdministratorResult(game, caster, jobName)
             }
             else -> {
                 val targetName = target?.member?.effectiveName
@@ -324,7 +334,108 @@ object AbilityUseCommand : DiscordCommand {
         }
     }
 
-    private fun buildMentalPatientFortuneResult(target: PlayerData?): AbilityResult {
+    private fun buildMentalPatientMafiaCheckResult(
+        caster: PlayerData,
+        target: PlayerData?,
+        abilityName: String
+    ): AbilityResult {
+        val checkedTarget = validateMentalPatientInvestigationTarget(target) ?: return targetRequiredFailure(abilityName)
+        if (abilityName == "숙청" && checkedTarget.member.id == caster.member.id) {
+            return AbilityResult(false, "자기 자신은 대상으로 지정할 수 없습니다.")
+        }
+
+        val isMafia = kotlin.random.Random.nextBoolean()
+        val result = if (isMafia) "마피아 입니다." else "마피아가 아닙니다."
+        return AbilityResult(true, "${checkedTarget.member.effectiveName}님은 $result")
+    }
+
+    private fun buildMentalPatientDoctorCheckResult(
+        game: Game,
+        caster: PlayerData,
+        target: PlayerData?
+    ): AbilityResult {
+        val checkedTarget = validateMentalPatientInvestigationTarget(target)
+            ?: return AbilityResult(false, "처방 대상을 지정해야 합니다.")
+        if (checkedTarget.member.id == caster.member.id) {
+            return AbilityResult(false, "자기 자신은 처방 대상으로 지정할 수 없습니다.")
+        }
+
+        val doctorJobName = JobManager.findByName("의사")?.name ?: "의사"
+        val shownJobName = if (kotlin.random.Random.nextBoolean()) {
+            doctorJobName
+        } else {
+            randomDisplayedJobName(game) { it != doctorJobName }
+                ?: randomJobName { it != doctorJobName }
+                ?: doctorJobName
+        }
+
+        return AbilityResult(
+            true,
+            "${checkedTarget.member.effectiveName}님을 처방 대상으로 지정했습니다.\n${checkedTarget.member.effectiveName}님의 직업은 $shownJobName"
+        )
+    }
+
+    private fun buildMentalPatientJobDiscoveryResult(
+        game: Game,
+        caster: PlayerData,
+        target: PlayerData?,
+        abilityName: String
+    ): AbilityResult {
+        val checkedTarget = validateMentalPatientInvestigationTarget(target) ?: return targetRequiredFailure(abilityName)
+        if (checkedTarget.member.id == caster.member.id && abilityName in setOf("첩보", "해킹")) {
+            return AbilityResult(false, "자기 자신은 조사할 수 없습니다.")
+        }
+
+        val shownJobName = randomDisplayedJobName(game) ?: randomJobName() ?: "시민"
+        val message = when (abilityName) {
+            "첩보" -> "${checkedTarget.member.effectiveName}님의 직업은 $shownJobName"
+            "특종" -> "특종입니다! ${checkedTarget.member.effectiveName}님이 $shownJobName(이)라는 소식입니다!"
+            "수사" -> "그 사람의 직업은 $shownJobName."
+            "해킹" -> "${checkedTarget.member.effectiveName}님의 직업은 $shownJobName"
+            else -> "${checkedTarget.member.effectiveName}님의 직업은 $shownJobName"
+        }
+        return AbilityResult(true, message)
+    }
+
+    private fun buildMentalPatientSoulReleaseResult(game: Game, target: PlayerData?): AbilityResult {
+        if (target == null) {
+            return AbilityResult(false, "성불할 대상을 지정해야 합니다.")
+        }
+        if (!target.state.isDead) {
+            return AbilityResult(false, "사망한 플레이어만 성불할 수 있습니다.")
+        }
+
+        val shownJobName = randomDisplayedJobName(game) ?: randomJobName() ?: "시민"
+        return AbilityResult(
+            true,
+            "${target.member.effectiveName}님을 성불했습니다.\n${target.member.effectiveName}님의 직업은 $shownJobName 입니다."
+        )
+    }
+
+    private fun buildMentalPatientAdministratorResult(
+        game: Game,
+        caster: PlayerData,
+        selectedJobName: String
+    ): AbilityResult {
+        val selectedJob = JobManager.findByName(selectedJobName)
+            ?: return AbilityResult(false, "선택한 직업을 찾을 수 없습니다.")
+        val hasCooperation = caster.allAbilities.any { it is Cooperation }
+        val hasIdentification = caster.allAbilities.any { it is Identification }
+        if (!AdministratorInvestigationPolicy.isJobSelectable(selectedJob, hasCooperation, hasIdentification)) {
+            return AbilityResult(false, "현재 보유한 능력으로는 해당 직업을 조회할 수 없습니다.")
+        }
+
+        val candidates = game.playerDatas.filter { !it.state.isDead }
+        val selectedPlayerName = candidates.randomOrNull()?.member?.effectiveName
+        val hasResult = selectedPlayerName != null && kotlin.random.Random.nextBoolean()
+        return if (hasResult) {
+            AbilityResult(true, "${selectedPlayerName}님이 ${selectedJobName}로 조회되었습니다.")
+        } else {
+            AbilityResult(true, "$selectedJobName 직업과 일치하는 내용이 없습니다.")
+        }
+    }
+
+    private fun buildMentalPatientFortuneResult(game: Game, target: PlayerData?): AbilityResult {
         if (target == null) {
             return AbilityResult(false, "운세 대상을 지정해야 합니다.")
         }
@@ -332,15 +443,15 @@ object AbilityUseCommand : DiscordCommand {
             return AbilityResult(false, "사망한 플레이어는 운세 대상으로 지정할 수 없습니다.")
         }
 
-        val firstJob = randomFortuneCandidateJobName() ?: "시민"
+        val firstJob = randomDisplayedJobName(game) ?: randomJobName() ?: "시민"
         val firstIsEvil = JobManager.findByName(firstJob) is Evil
-        val secondJob = JobManager.getAll()
-            .filter { it.name != MentalPatient.JOB_NAME }
-            .filter { (it is Evil) != firstIsEvil }
-            .map { it.name }
-            .distinct()
-            .randomOrNull()
-            ?: firstJob
+        val secondJob = randomDisplayedJobName(game) { jobName ->
+            val job = JobManager.findByName(jobName)
+            job != null && job.name != firstJob && (job is Evil) != firstIsEvil
+        } ?: randomJobName { jobName ->
+            val job = JobManager.findByName(jobName)
+            job != null && job.name != firstJob && (job is Evil) != firstIsEvil
+        } ?: firstJob
         val shownJobs = listOf(firstJob, secondJob).shuffled()
 
         return AbilityResult(
@@ -349,11 +460,21 @@ object AbilityUseCommand : DiscordCommand {
         )
     }
 
-    private fun randomFortuneCandidateJobName(): String? {
+    private fun randomDisplayedJobName(game: Game, predicate: (String) -> Boolean = { true }): String? {
+        return game.playerDatas
+            .mapNotNull { FrogCurseManager.displayedJob(it)?.name }
+            .filter { it != MentalPatient.JOB_NAME }
+            .distinct()
+            .filter(predicate)
+            .randomOrNull()
+    }
+
+    private fun randomJobName(predicate: (String) -> Boolean = { true }): String? {
         return JobManager.getAll()
             .filter { it.name != MentalPatient.JOB_NAME }
             .map { it.name }
             .distinct()
+            .filter(predicate)
             .randomOrNull()
     }
 
@@ -383,6 +504,25 @@ object AbilityUseCommand : DiscordCommand {
             true,
             "관찰 결과: ${comparisonName}님과 ${target.member.effectiveName}님은 서로 **${relation}**입니다."
         )
+    }
+
+    private fun validateMentalPatientInvestigationTarget(target: PlayerData?): PlayerData? {
+        if (target == null) return null
+        if (target.state.isDead) return null
+        return target
+    }
+
+    private fun targetRequiredFailure(abilityName: String): AbilityResult {
+        val message = when (abilityName) {
+            "수색" -> "수색할 대상을 지정해야 합니다."
+            "숙청" -> "확인할 대상을 지정해야 합니다."
+            "첩보" -> "첩보 대상을 지정해야 합니다."
+            "특종" -> "취재할 대상을 지정해야 합니다."
+            "수사" -> "수사할 대상을 지정해야 합니다."
+            "해킹" -> "해킹할 대상을 지정해야 합니다."
+            else -> "조사할 대상을 지정해야 합니다."
+        }
+        return AbilityResult(false, message)
     }
 
     private fun getUsableActiveAbilities(game: Game, caster: PlayerData): List<ActiveAbility> {

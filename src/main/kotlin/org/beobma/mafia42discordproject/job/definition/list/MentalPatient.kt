@@ -2,11 +2,8 @@ package org.beobma.mafia42discordproject.job.definition.list
 
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
+import org.beobma.mafia42discordproject.job.ability.CommonAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.ability.general.list.Megaphone
-import org.beobma.mafia42discordproject.job.ability.general.list.Perjury
-import org.beobma.mafia42discordproject.job.ability.general.list.SecretLetter
-import org.beobma.mafia42discordproject.job.ability.general.list.Will
 import org.beobma.mafia42discordproject.job.definition.Definition
 
 class MentalPatient : Job(), Definition {
@@ -20,7 +17,7 @@ class MentalPatient : Job(), Definition {
     var displayedJob: Job? = null
 
     fun activeAbilitySourceAbilities(): List<Ability> {
-        return (displayedJob?.abilities ?: emptyList()) + extraAbilities
+        return (displayedJob?.abilities ?: emptyList()) + extraAbilities.filter(::isActuallyAvailableUtilityAbility)
     }
 
     fun abilitiesExposedToGameSystems(): List<Ability> {
@@ -31,10 +28,7 @@ class MentalPatient : Job(), Definition {
         const val JOB_NAME: String = "정신병자"
 
         fun isActuallyAvailableUtilityAbility(ability: Ability): Boolean {
-            return ability is Megaphone ||
-                ability is SecretLetter ||
-                ability is Will ||
-                ability is Perjury
+            return ability is CommonAbility
         }
     }
 }

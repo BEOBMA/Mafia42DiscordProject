@@ -112,6 +112,9 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
                 inspector.pendingInvestigationTargetId = null
 
                 val target = game.getPlayer(targetId) ?: return@forEach
+                if (inspectorPlayer in deadPlayers || inspectorPlayer.state.isDead) {
+                    return@forEach
+                }
                 if (target in deadPlayers || target.state.isDead) {
                     sendDm(game, inspectorPlayer, "${target.member.effectiveName}님 수사에 실패했습니다.", "형사 수사 실패")
                     return@forEach

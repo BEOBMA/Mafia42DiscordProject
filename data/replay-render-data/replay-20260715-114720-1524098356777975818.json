@@ -1,0 +1,89 @@
+{
+    "schemaVersion": 1,
+    "generatedAtMillis": 1784116040775,
+    "endReason": "FORCED_STOP",
+    "winningTeamName": null,
+    "guildId": "1524098356777975818",
+    "guildName": "마피아42",
+    "replayStartedAtMillis": 1784115957017,
+    "dayCount": 0,
+    "initialPlayerCount": 7,
+    "players": [
+        {
+            "id": "777116116379500554",
+            "name": "k1m_2sue",
+            "jobName": "경찰",
+            "isDead": false
+        },
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "jobName": "청부업자",
+            "isDead": false
+        },
+        {
+            "id": "704301844968505365",
+            "name": "샤벳",
+            "jobName": "도굴꾼",
+            "isDead": false
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "jobName": "마피아",
+            "isDead": false
+        },
+        {
+            "id": "1491689338268811354",
+            "name": "박종건",
+            "jobName": "판사",
+            "isDead": false
+        },
+        {
+            "id": "1406571254156234762",
+            "name": "창탱이",
+            "jobName": "해커",
+            "isDead": false
+        },
+        {
+            "id": "505648737767653397",
+            "name": "꺼억",
+            "jobName": "영매",
+            "isDead": false
+        }
+    ],
+    "logs": [
+        {
+            "sequence": 1,
+            "timestampMillis": 1784115957738,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "SYSTEM_INTERNAL",
+            "title": "게임 시작",
+            "body": "모드: 일반\n참가자 7명\n- k1m_2sue: 경찰\n- BEOBMA: 청부업자\n- 샤벳: 도굴꾼\n- 은지: 마피아\n- 박종건: 판사\n- 창탱이: 해커\n- 꺼억: 영매",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 2,
+            "timestampMillis": 1784116038278,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_END",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "게임 종료",
+            "body": "FORCED_STOP",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        }
+    ]
+}

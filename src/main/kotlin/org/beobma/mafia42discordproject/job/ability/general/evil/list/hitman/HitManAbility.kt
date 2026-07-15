@@ -165,7 +165,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (!firstCorrect || !secondCorrect) return
         if (listOf(firstContract, secondContract).any { it.isUnkillableEvilGuess() }) return
 
-        killByContract(game, listOf(firstTarget, secondTarget))
+        killByContract(game, caster, listOf(firstTarget, secondTarget))
     }
 
     private data class ContractTarget(
@@ -195,12 +195,13 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         }
     }
 
-    private suspend fun killByContract(game: Game, targets: List<PlayerData>) {
+    private suspend fun killByContract(game: Game, caster: PlayerData, targets: List<PlayerData>) {
         val aliveTargets = targets.distinctBy { it.member.id }.filterNot { it.state.isDead }
         if (aliveTargets.isEmpty()) return
 
         aliveTargets.forEach { target ->
             game.pendingNightDeathPlayerIds += target.member.id
+            game.pendingNightDeathSourceByPlayerId[target.member.id] = caster.member.id
             if (target !in game.nightDeathCandidates) {
                 game.nightDeathCandidates += target
             }

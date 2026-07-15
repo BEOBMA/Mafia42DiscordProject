@@ -22,6 +22,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.stopLoopingGameSound
 import org.beobma.mafia42discordproject.game.loop.*
+import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
@@ -43,6 +44,8 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.hack
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.InspectorInvestigation
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.GovernmentAuthority
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.judge.JudgeAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Assistant
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Xray
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Explosion
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.martyr.Flash
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
@@ -153,6 +156,10 @@ object GameLoopManager {
 
         if (game.currentPhase != GamePhase.DAY) {
             return DayTimeAdjustmentResult(false, "시간 조정은 낮 페이즈에서만 가능합니다.")
+        }
+
+        if (game.mode == GameStartMode.ANNIHILATION) {
+            return DayTimeAdjustmentResult(false, "말살 모드의 낮 시간은 120초 고정이며 연장하거나 단축할 수 없습니다.")
         }
 
         val delta = if (isIncrease) DAY_TIME_ADJUSTMENT_MS else -DAY_TIME_ADJUSTMENT_MS
@@ -342,6 +349,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
+        game.pendingNightDeathSourceByPlayerId.clear()
         game.nightEvents.clear()
         game.pendingBeastmanTameIds.clear()
         game.pendingWitchCurseByCaster.clear()
@@ -441,21 +449,39 @@ object GameLoopManager {
 
     suspend fun resolveNightPhase(game: Game): NightResolutionSummary {
         val blockedAttacks = mutableListOf<AttackEvent>()
+        val successfulAttacks = linkedSetOf<AttackEvent>()
         val protectedMafiaExecutionBlockedAttacks = mutableSetOf<AttackEvent>()
         val beastmanAgilityBlockedMafiaAttacks = mutableSetOf<AttackEvent>()
+        val fixedNightDeathPlayers = linkedSetOf<PlayerData>().apply {
+            game.pendingNightDeathPlayerIds
+                .mapNotNull(game::getPlayer)
+                .filterTo(this) { !it.state.isDead }
+        }
         val playersToDie = linkedSetOf<PlayerData>().apply {
-            addAll(game.nightDeathCandidates)
+            addAll(fixedNightDeathPlayers)
+        }
+        fun rebuildPlayersToDieFromAttackResults() {
+            playersToDie.clear()
+            playersToDie += fixedNightDeathPlayers.filterNot { it.state.isDead }
+            successfulAttacks
+                .map { it.target }
+                .filterTo(playersToDie) { !it.state.isDead }
         }
         game.doctorSavedTargetTonight = null
 
         resolveGangsterThreats(game)
         resolveNursePrescriptions(game)
-        resolveDoctorHeals(game)
+        val finalHealEvents = resolveDoctorHeals(game)
         resolveAdministratorInvestigations(game)
-        val healedTargetsTonight = game.nightEvents
-            .filterIsInstance<GameEvent.PlayerHealed>()
-            .map { it.target }
-            .toMutableSet()
+        val healEventsTonight = finalHealEvents.toMutableList()
+        fun rememberHealEvents(events: List<GameEvent>) {
+            events.filterIsInstance<GameEvent.PlayerHealed>()
+                .forEach { event ->
+                    if (event !in healEventsTonight) {
+                        healEventsTonight += event
+                    }
+                }
+        }
 
         game.nightAttacks.forEach { (attackKey, attackEvent) ->
             val target = attackEvent.target
@@ -464,7 +490,6 @@ object GameLoopManager {
             if (attackKey == "MAFIA_TEAM" && game.mafiaExecutionProtectedTargetId == target.member.id) {
                 blockedAttacks += attackEvent
                 protectedMafiaExecutionBlockedAttacks += attackEvent
-                playersToDie.remove(target)
                 return@forEach
             }
 
@@ -474,33 +499,40 @@ object GameLoopManager {
                     beastmanAgilityBlockedMafiaAttacks += attackEvent
                     tameBeastmanByBarbarismIfNeeded(game, target)
                 }
-                playersToDie.remove(target)
                 return@forEach
             }
 
             // 패시브(방탄 등)가 방어력(healTier)에 개입할 기회를 주기 위한 평가 이벤트 통보
             game.nightEvents += GameEvent.BeforeAttackEvaluated(attackEvent)
             val processedEvents = dispatchEvents(game)
-            processedEvents
-                .filterIsInstance<GameEvent.PlayerHealed>()
-                .forEach { healedTargetsTonight += it.target }
+            rememberHealEvents(processedEvents)
 
             if (target.state.healTier.level >= attackEvent.attackTier.level) {
                 blockedAttacks += attackEvent
-                playersToDie.remove(target)
 
-                val healedByDoctor = target in healedTargetsTonight
-                if (healedByDoctor) {
+                val blockingHealEvents = healEventsTonight.filter { healEvent ->
+                    healEvent.target == target && healEvent.defenseTier.level >= attackEvent.attackTier.level
+                }
+                if (blockingHealEvents.isNotEmpty()) {
                     game.doctorSavedTargetTonight = target
+                    blockingHealEvents.forEach { healEvent ->
+                        game.nightEvents += GameEvent.HealSucceeded(
+                            healer = healEvent.healer,
+                            target = healEvent.target,
+                            blockedAttack = attackEvent
+                        )
+                    }
                 }
             } else {
+                successfulAttacks += attackEvent
                 playersToDie += target
             }
         }
 
         resolveReporterScoops(game)
-        resolveMercenaryAttackOrder(game, blockedAttacks, playersToDie)
-        resolveVigilanteAttackOrder(game, blockedAttacks, playersToDie)
+        resolveMercenaryAttackOrder(game, blockedAttacks, successfulAttacks)
+        resolveVigilanteAttackOrder(game, blockedAttacks, successfulAttacks)
+        rebuildPlayersToDieFromAttackResults()
         resolveMercenaryContractDeaths(game, blockedAttacks, playersToDie)
 
         resolveMartyrNightExplosions(game, playersToDie)
@@ -519,7 +551,12 @@ object GameLoopManager {
             selectedMafiaTarget?.let { target ->
                 SwindlerManager.shouldTriggerNegotiation(game, target)?.let { (swindlerPlayer, swindlerWasMafiaTarget) ->
                     if (swindlerWasMafiaTarget) {
-                        playersToDie.remove(swindlerPlayer)
+                        successfulAttacks.remove(mafiaAttack)
+                        if (swindlerPlayer !in fixedNightDeathPlayers &&
+                            successfulAttacks.none { it.target == swindlerPlayer }
+                        ) {
+                            playersToDie.remove(swindlerPlayer)
+                        }
                         game.concealmentForcedQuietNight = true
                         swindlerNegotiationBlockedExecution = true
                     }
@@ -531,13 +568,13 @@ object GameLoopManager {
             val failedAttacks = mutableListOf<AttackEvent>()
 
             allMafiaTeamAttacks.forEach { attack ->
-                val targetSurvived = attack.target !in playersToDie
-                if (targetSurvived) {
-                    failedAttacks += attack
-                } else {
+                val attackSucceeded = attack in successfulAttacks
+                if (attackSucceeded) {
                     atLeastOneMafiaExecutionSucceeded = true
                     registerCoupleResentment(game, attack)
                     applyMafiaExecutionSuccessEffects(game, attack)
+                } else {
+                    failedAttacks += attack
                 }
             }
 
@@ -548,6 +585,7 @@ object GameLoopManager {
                     if (attack in beastmanAgilityBlockedMafiaAttacks) return@forEach
                     if (!swindlerNegotiationBlockedExecution) {
                         applyMafiaExecutionFailureEffects(game, attack)
+                        applyCalmFromHealEvents(game, attack.target, healEventsTonight)
                     }
                 }
             }
@@ -558,8 +596,9 @@ object GameLoopManager {
             game.mafiaAttackFailedPreviousNight = false
             game.mafiaExecutionSucceededLastNight = false
         }
-        resolveBeastmanCravingTaming(game, mafiaAttack, blockedAttacks, playersToDie)
-        applyTravelCompanionPenalty(game, playersToDie, mafiaAttack)
+        resolveBeastmanCravingTaming(game, mafiaAttack, successfulAttacks, playersToDie)
+        applyTravelCompanionPenalty(game, successfulAttacks, mafiaAttack)
+        resolveNurseDoctorContactsFromFinalHeals(game, finalHealEvents, playersToDie)
         InspectorInvestigation.resolveNightInvestigations(game, playersToDie)
 
         playersToDie.forEach { victim ->
@@ -600,6 +639,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
+        game.pendingNightDeathSourceByPlayerId.clear()
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
@@ -1305,13 +1345,12 @@ object GameLoopManager {
     private fun resolveBeastmanCravingTaming(
         game: Game,
         mafiaAttack: AttackEvent?,
-        blockedAttacks: List<AttackEvent>,
+        successfulAttacks: Set<AttackEvent>,
         playersToDie: Set<PlayerData>
     ) {
         val executedTarget = mafiaAttack
-            ?.takeIf { it !in blockedAttacks }
+            ?.takeIf { it in successfulAttacks }
             ?.target
-            ?.takeIf { it in playersToDie }
 
         game.playerDatas.forEach { player ->
             val beastman = player.job as? Beastman ?: return@forEach
@@ -1367,6 +1406,8 @@ object GameLoopManager {
                 beastmanPlayer.member.getDmChannel().createMessage("$BEASTMAN_TAMED_IMAGE_URL\n길들여졌습니다.")
             }
 
+            announceMafiaSupportContact(game, beastmanPlayer, BEASTMAN_TAMED_IMAGE_URL)
+
             mafiaPlayers.forEach { mafiaPlayer ->
                 GameReplayLogger.logDirectMessage(
                     game = game,
@@ -1379,6 +1420,8 @@ object GameLoopManager {
                 }
             }
         }
+
+        refreshMafiaChannelContactState(game)
     }
 
     private suspend fun notifyBeastmanRoarAtFirstDay(game: Game) {
@@ -1507,6 +1550,13 @@ object GameLoopManager {
         game.currentProsConsVotes.clear()
         game.hostessFirstVoteTargetByDay.clear()
         game.defenseTargetId = null
+        game.playerDatas.forEach { player ->
+            val magician = player.job as? Magician ?: return@forEach
+            magician.trickSubstitutedTargetId = null
+            if (!magician.hasUsedTrick) {
+                magician.trickTargetId = null
+            }
+        }
         muteSpectators(game)
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
@@ -1587,10 +1637,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (politicianTarget != null) {
-                mainChannel.createMessage(
-                    "${politicianTarget.member.effectiveName}의 최후의 변론"
-                )
-                politicianTarget
+                resolveMagicianTrickSubstitution(game, politicianTarget)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1606,10 +1653,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (judgeTarget != null) {
-                mainChannel.createMessage(
-                    "${judgeTarget.member.effectiveName}의 최후의 변론"
-                )
-                judgeTarget
+                resolveMagicianTrickSubstitution(game, judgeTarget)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1734,7 +1778,7 @@ object GameLoopManager {
                         )
                         return null
                     }
-                    return juryResolved
+                    return resolveMagicianTrickSubstitution(game, juryResolved)
                 }
             }
             game.sendMainChannelMessageWithImage(
@@ -1752,7 +1796,51 @@ object GameLoopManager {
             )
             return null
         }
-        return finalTarget
+        return resolveMagicianTrickSubstitution(game, finalTarget)
+    }
+
+    private suspend fun resolveMagicianTrickSubstitution(game: Game, originalTarget: PlayerData): PlayerData {
+        val magician = originalTarget.job as? Magician ?: return originalTarget
+        if (originalTarget.state.isDead || magician.hasUsedTrick) return originalTarget
+
+        val substitute = magician.trickTargetId
+            ?.let(game::getPlayer)
+            ?.takeUnless { it.state.isDead }
+            ?.takeUnless { it.member.id == originalTarget.member.id }
+            ?: return originalTarget
+
+        magician.hasUsedTrick = true
+        magician.trickSubstitutedTargetId = substitute.member.id
+        magician.trickTargetId = substitute.member.id
+        originalTarget.state.isJobPubliclyRevealed = true
+        game.publiclyRevealedJobNames += magician.name
+
+        val publicMessage =
+            "마술사 (${originalTarget.member.effectiveName})님이 최다 득표자를 ${substitute.member.effectiveName}님으로 바꿔치기했습니다!"
+        game.sendMainChannelMessageWithImage(
+            imageLink = MAGICIAN_TRICK_SUCCESS_IMAGE_URL,
+            message = publicMessage
+        )
+        GameReplayLogger.log(
+            game = game,
+            type = ReplayLogType.ABILITY_USED,
+            visibility = ReplayVisibility.PUBLIC,
+            title = "트릭",
+            body = publicMessage,
+            actor = originalTarget,
+            imageUrls = listOf(MAGICIAN_TRICK_SUCCESS_IMAGE_URL)
+        )
+
+        if (originalTarget.allAbilities.any { it is Xray }) {
+            val jobName = substitute.job?.name ?: "알 수 없음"
+            val xrayMessage = "그 사람의 직업은 $jobName 입니다."
+            GameReplayLogger.logDirectMessage(game, originalTarget, xrayMessage, "투시")
+            runCatching {
+                originalTarget.member.getDmChannel().createMessage(xrayMessage)
+            }
+        }
+
+        return substitute
     }
 
     private fun buildMainVoteStatusContent(
@@ -2011,11 +2099,11 @@ object GameLoopManager {
         val prosCount = prosConsVotes
             .filterValues { it }
             .keys
-            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, target, gangsterTransferredVoteWeights) }
         val consCount = prosConsVotes
             .filterValues { !it }
             .keys
-            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, gangsterTransferredVoteWeights) }
+            .sumOf { voterId -> calculateProsConsVoteWeight(game, voterId, target, gangsterTransferredVoteWeights) }
         val aggregateDecision = prosCount > consCount
         val judgePlayer = findProsConsJudge(game, prosConsVotes, aggregateDecision)
         val judgeVote = judgePlayer?.let { prosConsVotes[it.member.id] }
@@ -2170,8 +2258,11 @@ object GameLoopManager {
         resolveTerminalSpecialWin(game)?.let { return it }
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
-        val mafiaCount = alivePlayers.count { player -> isMafiaTeamForWinCondition(game, player) }
-        val citizenCount = alivePlayers.sumOf { player ->
+        val countableAlivePlayers = alivePlayers.filterNot { player ->
+            isPendingEscapedMafiaTeamForWinCondition(game, player)
+        }
+        val mafiaCount = countableAlivePlayers.count { player -> isMafiaTeamForWinCondition(game, player) }
+        val citizenCount = countableAlivePlayers.sumOf { player ->
             if (isMafiaTeamForWinCondition(game, player)) {
                 0
             } else {
@@ -2182,7 +2273,7 @@ object GameLoopManager {
                 }
             }
         }
-        val aliveCabals = alivePlayers.count { it.job is Cabal }
+        val aliveCabals = countableAlivePlayers.count { it.job is Cabal }
 
         val activeMercenaryExecution = game.playerDatas.any { player ->
             val mercenary = player.job as? Mercenary ?: return@any false
@@ -2209,6 +2300,11 @@ object GameLoopManager {
         return player.state.hasContactedMafiaByInformant || hasContactedMafiaByJobState(game, player)
     }
 
+    private fun isPendingEscapedMafiaTeamForWinCondition(game: Game, player: PlayerData): Boolean {
+        return player.member.id in game.pendingEscapedPlayerIds &&
+            isMafiaTeamForWinCondition(game, player)
+    }
+
     private fun findAliveDictatorshipPolitician(game: Game): PlayerData? {
         val aliveCitizens = game.playerDatas.filter { !it.state.isDead && it.job !is Evil }
         if (aliveCitizens.size != 1) return null
@@ -2229,6 +2325,7 @@ object GameLoopManager {
     private fun calculateProsConsVoteWeight(
         game: Game,
         voterId: Snowflake,
+        defenseTarget: PlayerData,
         transferredVoteWeights: Map<Snowflake, Int>
     ): Int {
         val voter = game.getPlayer(voterId) ?: return 0
@@ -2237,7 +2334,18 @@ object GameLoopManager {
         if (game.activeThreatenedVoters.containsKey(voter.member.id)) return 0
 
         val baseWeight = if (hasPoliticianAbility(voter)) 2 else 1
-        return baseWeight + (transferredVoteWeights[voter.member.id] ?: 0)
+        val magician = voter.job as? Magician
+        val assistantWeight = if (
+            magician != null &&
+            magician.trickSubstitutedTargetId == defenseTarget.member.id &&
+            voter.allAbilities.any { it is Assistant } &&
+            !FrogCurseManager.shouldSuppressPassive(voter)
+        ) {
+            1
+        } else {
+            0
+        }
+        return baseWeight + assistantWeight + (transferredVoteWeights[voter.member.id] ?: 0)
     }
 
     private fun hasPoliticianAbility(player: PlayerData): Boolean {
@@ -3051,7 +3159,7 @@ object GameLoopManager {
     private fun resolveMercenaryAttackOrder(
         game: Game,
         blockedAttacks: List<AttackEvent>,
-        playersToDie: MutableSet<PlayerData>
+        successfulAttacks: MutableSet<AttackEvent>
     ) {
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
         if (mafiaAttack in blockedAttacks) return
@@ -3071,20 +3179,12 @@ object GameLoopManager {
             if (hasResolute) return@forEach
 
             cancelledAttackKeys += attackKey
-            val target = mercenaryAttack.target
-            val hasOtherUnblockedAttack = game.nightAttacks.any { (otherKey, otherAttack) ->
-                otherKey != attackKey &&
-                    otherAttack.target == target &&
-                    otherAttack !in blockedAttacks
-            }
-            if (!hasOtherUnblockedAttack) {
-                playersToDie.remove(target)
-            }
         }
 
         cancelledAttackKeys.forEach { attackKey ->
             val cancelledAttack = game.nightAttacks.remove(attackKey) ?: return@forEach
-            game.nightDeathCandidates.remove(cancelledAttack.target)
+            successfulAttacks.remove(cancelledAttack)
+            removeNightDeathCandidateIfNoSourceRemains(game, cancelledAttack.target)
         }
     }
 
@@ -3092,7 +3192,7 @@ object GameLoopManager {
     private fun resolveVigilanteAttackOrder(
         game: Game,
         blockedAttacks: List<AttackEvent>,
-        playersToDie: MutableSet<PlayerData>
+        successfulAttacks: MutableSet<AttackEvent>
     ) {
         val mafiaAttack = game.nightAttacks["MAFIA_TEAM"] ?: return
         if (mafiaAttack in blockedAttacks) return
@@ -3113,20 +3213,20 @@ object GameLoopManager {
             if (hasResolute) return@forEach
 
             cancelledAttackKeys += attackKey
-            val target = vigilanteAttack.target
-            val hasOtherUnblockedAttack = game.nightAttacks.any { (otherKey, otherAttack) ->
-                otherKey != attackKey &&
-                    otherAttack.target == target &&
-                    otherAttack !in blockedAttacks
-            }
-            if (!hasOtherUnblockedAttack) {
-                playersToDie.remove(target)
-            }
         }
 
         cancelledAttackKeys.forEach { attackKey ->
             val cancelledAttack = game.nightAttacks.remove(attackKey) ?: return@forEach
-            game.nightDeathCandidates.remove(cancelledAttack.target)
+            successfulAttacks.remove(cancelledAttack)
+            removeNightDeathCandidateIfNoSourceRemains(game, cancelledAttack.target)
+        }
+    }
+
+    private fun removeNightDeathCandidateIfNoSourceRemains(game: Game, target: PlayerData) {
+        val hasAttackSource = game.nightAttacks.values.any { attack -> attack.target == target }
+        val hasFixedNightDeathSource = target.member.id in game.pendingNightDeathPlayerIds
+        if (!hasAttackSource && !hasFixedNightDeathSource) {
+            game.nightDeathCandidates.remove(target)
         }
     }
     private fun resolveMercenaryContractDeaths(
@@ -3144,9 +3244,10 @@ object GameLoopManager {
             if (!mercenary.hasReceivedContract || mercenary.hasExecutionAuthority) return@forEach
             if (client !in playersToDie) return@forEach
 
-            val killingAttack = unblockedAttacks.firstOrNull { it.target == client } ?: return@forEach
+            val killingAttack = unblockedAttacks.firstOrNull { it.target == client }
+            val pendingNightDeathKillerId = game.pendingNightDeathSourceByPlayerId[client.member.id]
             mercenary.hasExecutionAuthority = true
-            mercenary.clientKilledByPlayerId = killingAttack.attacker.member.id
+            mercenary.clientKilledByPlayerId = killingAttack?.attacker?.member?.id ?: pendingNightDeathKillerId
             sendCabalDm(
                 game,
                 mercenaryPlayer,
@@ -3190,46 +3291,47 @@ object GameLoopManager {
         }
     }
 
-    suspend fun notifyNurseDoctorContactImmediately(game: Game) {
-        val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
+    private suspend fun resolveNurseDoctorContactsFromFinalHeals(
+        game: Game,
+        finalHealEvents: List<GameEvent.PlayerHealed>,
+        playersToDie: Set<PlayerData>
+    ) {
+        finalHealEvents.forEach { healEvent ->
+            val doctorPlayer = healEvent.healer
+            val nursePlayer = healEvent.target
+
+            if (doctorPlayer in playersToDie || nursePlayer in playersToDie) return@forEach
+            if (doctorPlayer.state.isDead || nursePlayer.state.isDead) return@forEach
+            if (doctorPlayer.job !is Doctor || nursePlayer.job !is Nurse) return@forEach
+
+            notifyNurseDoctorContact(game, doctorPlayer, nursePlayer)
+        }
+    }
+
+    private suspend fun notifyNurseDoctorContact(game: Game, doctorPlayer: PlayerData, nursePlayer: PlayerData) {
         val doctorJob = doctorPlayer.job as? Doctor ?: return
+        val nurseJob = nursePlayer.job as? Nurse ?: return
 
-        game.playerDatas.forEach { nursePlayer ->
-            if (nursePlayer.state.isDead) return@forEach
-            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+        val firstContact = !nurseJob.hasContactedDoctor
+        nurseJob.hasContactedDoctor = true
+        nurseJob.contactedDoctorId = doctorPlayer.member.id
+        doctorJob.hasContactedNurse = true
 
-            val targetId = nurseJob.prescribedTargetId ?: return@forEach
-            val target = game.getPlayer(targetId) ?: return@forEach
-            if (target.state.isDead) return@forEach
+        if (!firstContact) return
 
-            val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
-            val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
-            if (!contactedByNurseTarget && !contactedByDoctorTarget) return@forEach
-
-            val firstContact = !nurseJob.hasContactedDoctor
-            nurseJob.hasContactedDoctor = true
-            nurseJob.contactedDoctorId = doctorPlayer.member.id
-            doctorJob.hasContactedNurse = true
-
-            if (!firstContact) return@forEach
-
-            val nurseMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${mention(doctorPlayer)})님과 접선했습니다."
-            val doctorMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${mention(nursePlayer)})님과 접선했습니다."
-            runCatching {
-                GameReplayLogger.logDirectMessage(game, nursePlayer, nurseMessage, "간호사 접선")
-                nursePlayer.member.getDmChannel().createMessage(nurseMessage)
-            }
-            runCatching {
-                GameReplayLogger.logDirectMessage(game, doctorPlayer, doctorMessage, "간호사 접선")
-                doctorPlayer.member.getDmChannel().createMessage(doctorMessage)
-            }
+        val nurseMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n의사 (${mention(doctorPlayer)})님과 접선했습니다."
+        val doctorMessage = "$NURSE_DOCTOR_CONTACT_IMAGE_URL\n간호사 (${mention(nursePlayer)})님과 접선했습니다."
+        runCatching {
+            GameReplayLogger.logDirectMessage(game, nursePlayer, nurseMessage, "간호사 접선")
+            nursePlayer.member.getDmChannel().createMessage(nurseMessage)
+        }
+        runCatching {
+            GameReplayLogger.logDirectMessage(game, doctorPlayer, doctorMessage, "간호사 접선")
+            doctorPlayer.member.getDmChannel().createMessage(doctorMessage)
         }
     }
 
     private fun resolveNursePrescriptions(game: Game) {
-        val doctorPlayer = game.playerDatas.firstOrNull { it.job is Doctor } ?: return
-        val doctorJob = doctorPlayer.job as? Doctor ?: return
-
         game.playerDatas.forEach { nursePlayer ->
             if (nursePlayer.state.isDead) return@forEach
             val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
@@ -3250,24 +3352,17 @@ object GameLoopManager {
                     notifyTarget = false
                 )
             }
-
-            val contactedByNurseTarget = target.member.id == doctorPlayer.member.id
-            val contactedByDoctorTarget = doctorJob.currentHealTarget == nursePlayer.member.id
-            if (contactedByNurseTarget || contactedByDoctorTarget) {
-                nurseJob.hasContactedDoctor = true
-                nurseJob.contactedDoctorId = doctorPlayer.member.id
-                doctorJob.hasContactedNurse = true
-            }
         }
     }
 
-    private fun resolveDoctorHeals(game: Game) {
+    private fun resolveDoctorHeals(game: Game): List<GameEvent.PlayerHealed> {
         val healers = game.playerDatas.filter { player ->
             val isDoctor = player.job is Doctor
             val isInheritedNurse = (player.job as? Nurse)?.canUseInheritedHeal == true
             val isStolenDoctor = (player.job as? Thief)?.stolenHealTargetId != null
             isDoctor || isInheritedNurse || isStolenDoctor
         }
+        val healEvents = mutableListOf<GameEvent.PlayerHealed>()
 
         healers.forEach { player ->
             if (player.state.isDead) return@forEach
@@ -3301,27 +3396,47 @@ object GameLoopManager {
 
             target.state.healTier = maxOf(target.state.healTier, healEvent.defenseTier)
 
-            if (player.allAbilities.any { it is Calm }) {
-                // NOTE: 현재는 마피아의 독살(중독)만 해로운 효과로 구현되어 있어 해당 상태만 해제한다.
-                // 이후 해로운 효과(예: 저주, 봉인, 추가 상태이상 등)가 확장되면 여기에서 함께 정리한다.
-                target.state.isPoisoned = false
-                target.state.poisonedDeathDay = null
-                target.state.isThreatened = false
-                game.activeThreatenedVoters.remove(target.member.id)
-                game.playerDatas.forEach { gangsterOwner ->
-                    val gangsterJob = gangsterOwner.job as? Gangster ?: return@forEach
-                    gangsterJob.threatenedTargetIdsTonight.remove(target.member.id)
-                }
-                game.playerDatas.forEach { thiefOwner ->
-                    val thiefJob = thiefOwner.job as? Thief ?: return@forEach
-                    thiefJob.stolenThreatenedTargetIdsTonight.remove(target.member.id)
-                }
-            }
+            applyCalmHarmfulEffectRemoval(game, player, target)
 
             game.nightEvents += healEvent
+            healEvents += healEvent
             doctorJob?.currentHealTarget = null
             nurseJob?.currentHealTarget = null
             thiefJob?.stolenHealTargetId = null
+        }
+
+        return healEvents
+    }
+
+    private fun applyCalmFromHealEvents(
+        game: Game,
+        target: PlayerData,
+        healEvents: List<GameEvent.PlayerHealed>
+    ) {
+        healEvents
+            .filter { healEvent -> healEvent.target == target }
+            .forEach { healEvent ->
+                applyCalmHarmfulEffectRemoval(game, healEvent.healer, target)
+            }
+    }
+
+    private fun applyCalmHarmfulEffectRemoval(game: Game, healer: PlayerData, target: PlayerData) {
+        if (healer.allAbilities.none { it is Calm }) return
+
+        // NOTE: 현재는 마피아의 독살(중독)과 건달의 협박만 해로운 효과로 구현되어 있어 해당 상태를 해제한다.
+        // 이후 해로운 효과(예: 저주, 봉인, 추가 상태이상 등)가 확장되면 여기에서 함께 정리한다.
+        target.state.isPoisoned = false
+        target.state.poisonedDeathDay = null
+        game.pendingPoisonNotifications.remove(target.member.id)
+        target.state.isThreatened = false
+        game.activeThreatenedVoters.remove(target.member.id)
+        game.playerDatas.forEach { gangsterOwner ->
+            val gangsterJob = gangsterOwner.job as? Gangster ?: return@forEach
+            gangsterJob.threatenedTargetIdsTonight.remove(target.member.id)
+        }
+        game.playerDatas.forEach { thiefOwner ->
+            val thiefJob = thiefOwner.job as? Thief ?: return@forEach
+            thiefJob.stolenThreatenedTargetIdsTonight.remove(target.member.id)
         }
     }
 
@@ -3375,11 +3490,11 @@ object GameLoopManager {
 
     private fun applyTravelCompanionPenalty(
         game: Game,
-        playersToDie: Set<PlayerData>,
+        successfulAttacks: Set<AttackEvent>,
         mafiaAttack: AttackEvent?
     ) {
         val attack = mafiaAttack ?: return
-        if (attack.target !in playersToDie) return
+        if (attack !in successfulAttacks) return
 
         val deadGangster = attack.target
         val gangsterJob = deadGangster.job as? Gangster ?: return

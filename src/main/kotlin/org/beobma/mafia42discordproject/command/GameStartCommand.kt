@@ -26,7 +26,7 @@ object GameStartCommand : DiscordCommand {
         val rawMode = args.firstOrNull()
         val mode = GameStartMode.parse(rawMode)
         if (rawMode != null && mode == null) {
-            event.message.channel.createMessage("사용법: !게임시작 [일반|미치광이]")
+            event.message.channel.createMessage("사용법: !게임시작 [일반|미치광이|말살]")
             return
         }
         GameManager.start(event, mode ?: GameStartMode.NORMAL)
@@ -37,6 +37,7 @@ object GameStartCommand : DiscordCommand {
             required = false
             choice("일반", GameStartMode.NORMAL.optionValue)
             choice("미치광이", GameStartMode.MADNESS.optionValue)
+            choice("말살", GameStartMode.ANNIHILATION.optionValue)
         }
     }
 
