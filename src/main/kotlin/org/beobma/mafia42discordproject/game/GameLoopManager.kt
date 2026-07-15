@@ -349,6 +349,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
+        game.pendingNightDeathSourceByPlayerId.clear()
         game.nightEvents.clear()
         game.pendingBeastmanTameIds.clear()
         game.pendingWitchCurseByCaster.clear()
@@ -638,6 +639,7 @@ object GameLoopManager {
         game.nightAttacks.clear()
         game.nightDeathCandidates.clear()
         game.pendingNightDeathPlayerIds.clear()
+        game.pendingNightDeathSourceByPlayerId.clear()
         game.nightEvents.clear()
         game.playerDatas.forEach { player ->
             (player.job as? Doctor)?.currentHealTarget = null
@@ -2290,7 +2292,9 @@ object GameLoopManager {
     private fun isMafiaTeamForWinCondition(game: Game, player: PlayerData): Boolean {
         val job = player.job
         if (job is Mafia) return true
-        return job is Evil && job !is Villain
+        if (job !is Evil || job is Villain) return false
+
+        return player.state.hasContactedMafiaByInformant || hasContactedMafiaByJobState(game, player)
     }
 
     private fun findAliveDictatorshipPolitician(game: Game): PlayerData? {
@@ -3232,9 +3236,10 @@ object GameLoopManager {
             if (!mercenary.hasReceivedContract || mercenary.hasExecutionAuthority) return@forEach
             if (client !in playersToDie) return@forEach
 
-            val killingAttack = unblockedAttacks.firstOrNull { it.target == client } ?: return@forEach
+            val killingAttack = unblockedAttacks.firstOrNull { it.target == client }
+            val pendingNightDeathKillerId = game.pendingNightDeathSourceByPlayerId[client.member.id]
             mercenary.hasExecutionAuthority = true
-            mercenary.clientKilledByPlayerId = killingAttack.attacker.member.id
+            mercenary.clientKilledByPlayerId = killingAttack?.attacker?.member?.id ?: pendingNightDeathKillerId
             sendCabalDm(
                 game,
                 mercenaryPlayer,

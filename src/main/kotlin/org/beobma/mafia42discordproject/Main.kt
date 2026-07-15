@@ -60,8 +60,8 @@ suspend fun main() {
 
         val commandName = tokens.first().lowercase()
         val command = CommandRegistry.find(commandName) ?: return@on
-        if (command != DebugCommand) GameManager.recordReplayChat(this)
         if (GameManager.handleSpiritCommands(this, commandName, tokens.drop(1))) return@on
+        if (command != DebugCommand) GameManager.recordReplayChat(this)
         if (command != DebugCommand && GameManager.enforceDeadPlayerChatRestriction(this)) return@on
         command.handleMessage(this, tokens.drop(1))
     }

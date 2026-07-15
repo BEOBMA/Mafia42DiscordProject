@@ -107,24 +107,7 @@ object GameReplayLogger {
         recipients: List<ReplayRecipient> = emptyList(),
         recipientDescription: String? = null
     ) {
-        val type = when (visibility) {
-            ReplayVisibility.MAFIA_CHANNEL -> ReplayLogType.CHAT_MAFIA
-            ReplayVisibility.COUPLE_CHANNEL -> ReplayLogType.CHAT_COUPLE
-            ReplayVisibility.DEAD_CHANNEL -> ReplayLogType.CHAT_DEAD
-            else -> ReplayLogType.CHAT_PUBLIC
-        }
-        val destination = recipientDescription
-            ?: recipients.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name }
-            ?: visibilityDestination(visibility)
-        log(
-            game = game,
-            type = type,
-            visibility = visibility,
-            title = title,
-            body = formatChatBody(actor, destination, body),
-            actor = actor,
-            recipients = recipients
-        )
+        // Player chat contents are intentionally excluded from replay archives.
     }
 
     private fun chatTitle(visibility: ReplayVisibility): String = when (visibility) {

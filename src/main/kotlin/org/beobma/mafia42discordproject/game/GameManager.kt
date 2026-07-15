@@ -2295,7 +2295,7 @@ object GameManager {
         val message = args.joinToString(" ").trim()
 
         return when (commandName) {
-            SHAMAN_RELAY_COMMAND -> {
+            SHAMAN_RELAY_COMMAND, "shaman-relay" -> {
                 val memberId = event.member?.id ?: return false
                 val result = relayShamanMessage(memberId, message)
                 if (result.isSuccess) {
@@ -2305,9 +2305,9 @@ object GameManager {
                 }
                 true
             }
-            SHAMANED_RELAY_COMMAND -> {
+            SHAMANED_RELAY_COMMAND, "spirit-relay" -> {
                 val memberId = event.member?.id ?: return false
-                val result = relayShamanedMessage(memberId, event.message.channelId, message)
+                val result = relayShamanedMessage(memberId, message)
                 if (result.isSuccess) {
                     runCatching { event.message.delete("성불 플레이어 강령 전달 처리") }
                 } else {
@@ -2529,16 +2529,22 @@ object GameManager {
         return SpiritRelayResult(true, "죽은 자들의 채널에 접신 메시지를 보냈습니다.")
     }
 
-    fun relayShamanedMessage(
-        memberId: Snowflake,
-        channelId: Snowflake,
-        message: String
-    ): SpiritRelayResult {
+    suspend fun relayShamanedMessage(memberId: Snowflake, message: String): SpiritRelayResult {
         val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
         val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "메시지를 입력해 주세요.")
-        if (channelId != Snowflake(GAME_DEAD_CHANNEL_ID)) return SpiritRelayResult(false, "죽은 자들의 채널에서만 사용할 수 있습니다.")
         if (!sender.state.isDead || !sender.state.isShamaned) return SpiritRelayResult(false, "성불된 사망자만 사용할 수 있습니다.")
+
+        val deadChannel = game.deadChannel ?: return SpiritRelayResult(false, "죽은 자들의 채널을 찾을 수 없습니다.")
+        val relayMessage = "[강령] ${sender.member.effectiveName}: $message"
+        val sendResult = runCatching {
+            deadChannel.createMessage(relayMessage)
+        }
+        if (sendResult.isFailure) {
+            val error = sendResult.exceptionOrNull()
+            println("[GameManager] 강령 메시지 전송 실패: channelId=${deadChannel.id}, senderId=${sender.member.id}, reason=${error?.message}")
+            return SpiritRelayResult(false, "죽은 자들의 채널에 강령 메시지를 보내지 못했습니다. 봇 권한과 채널 설정을 확인해 주세요.")
+        }
 
         val manifestShamans = shamanedRelayRecipients(game)
         GameReplayLogger.logChat(
@@ -2547,9 +2553,8 @@ object GameManager {
             body = message,
             visibility = ReplayVisibility.DEAD_CHANNEL,
             title = "강령",
-            recipients = manifestShamans.map { GameReplayLogger.recipient(it, ReplayVisibility.DIRECT_MESSAGE) },
-            recipientDescription = manifestShamans.joinToString(", ") { it.member.effectiveName }
-                .ifBlank { "수신자 없음" }
+            recipients = replayRecipientsFor(game, ReplayVisibility.DEAD_CHANNEL),
+            recipientDescription = replayRecipientDescription(game, ReplayVisibility.DEAD_CHANNEL)
         )
         relayShamanedPlayerMessage(game, sender, message, manifestShamans)
         return SpiritRelayResult(true, "강령 메시지를 전달했습니다.")
@@ -2595,7 +2600,6 @@ object GameManager {
         watchers.forEach { watcher ->
             runCatching {
                 val replayMessage = "[도청] ${sender.member.effectiveName}: ${event.message.content}"
-                GameReplayLogger.logDirectMessage(game, watcher, replayMessage, "도청")
                 watcher.member.getDmChannel().createMessage(replayMessage)
             }
         }
@@ -2633,7 +2637,6 @@ object GameManager {
             gameLoopScope.launch {
                 runCatching {
                     val replayMessage = "[도청] ${event.chatSender.member.effectiveName}: ${event.chat}"
-                    GameReplayLogger.logDirectMessage(game, watcher, replayMessage, "도청")
                     watcher.member.getDmChannel().createMessage(replayMessage)
                 }
             }
@@ -2660,7 +2663,6 @@ object GameManager {
             gameLoopScope.launch {
                 runCatching {
                     val replayMessage = replayCommunicationBody(sender, listOf(shaman), message)
-                    GameReplayLogger.logDirectMessage(game, shaman, replayMessage, "강령")
                     shaman.member.getDmChannel().createMessage(replayMessage)
                 }
             }

@@ -101,6 +101,7 @@ data class Game(
     var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
     val pendingEscapedPlayerIds: MutableSet<Snowflake> = mutableSetOf()
     val pendingNightDeathPlayerIds: MutableSet<Snowflake> = mutableSetOf()
+    val pendingNightDeathSourceByPlayerId: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val publiclyRevealedAbilityTargetIds: MutableSet<Snowflake> = mutableSetOf()
     val publiclyRevealedJobNames: MutableSet<String> = mutableSetOf()
     val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
