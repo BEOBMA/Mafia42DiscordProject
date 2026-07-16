@@ -32,6 +32,7 @@ import org.beobma.mafia42discordproject.game.assignment.AssignmentPlayer
 import org.beobma.mafia42discordproject.game.assignment.AssignmentTrace
 import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
 import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
+import org.beobma.mafia42discordproject.game.assignment.buildJobSelectionWeightByName
 import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
@@ -1124,12 +1125,9 @@ object GameManager {
     ): List<Job> {
         val excludedJobNames = buildNonFixedExcludedJobNames(players.size)
         val allCandidates = getNonFixedJobCandidates(players.size)
-        val preferenceWeightByName = players
-            .flatMap { it.preferences }
-            .asSequence()
-            .filter { job -> job !is Evil && job.name !in excludedJobNames }
-            .groupingBy(Job::name)
-            .eachCount()
+        val selectionWeightByName = buildJobSelectionWeightByName(players) { job ->
+            job !is Evil && job.name !in excludedJobNames
+        }
 
         val selected = mutableListOf<Job>()
         val selectedJobNames = mutableSetOf<String>()
@@ -1149,10 +1147,10 @@ object GameManager {
                     if (candidate.name in selectedJobNames) return@filter false
                     if (requiredSlots > remaining) return@filter false
                     if (requiredSlots == 2 && (preferredPlayerCountByName[candidate.name] ?: 0) < 2) return@filter false
-                    if ((preferenceWeightByName[candidate.name] ?: 0) <= 0) return@filter false
+                    if ((selectionWeightByName[candidate.name] ?: 0) <= 0) return@filter false
                     true
                 }
-                .map { it to (preferenceWeightByName[it.name] ?: 0) }
+                .map { it to (selectionWeightByName[it.name] ?: 0) }
 
             if (weightedEligible.isEmpty()) break
 
@@ -1311,16 +1309,16 @@ object GameManager {
         policePool: List<Job>,
         trace: AssignmentTrace
     ): Job {
-        val preferenceCountByName = players
-            .flatMap { player -> player.preferences.map(Job::name) }
-            .groupingBy { it }
-            .eachCount()
+        val policePoolNames = policePool.map(Job::name).toSet()
+        val selectionWeightByName = buildJobSelectionWeightByName(players) { job ->
+            job.name in policePoolNames
+        }
         val weightedPoliceJobs = policePool.map { policeJob ->
-            val weight = preferenceCountByName[policeJob.name] ?: 0
+            val weight = selectionWeightByName[policeJob.name] ?: 0
             policeJob to weight
         }
         val weightSummary = weightedPoliceJobs.joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
-        trace.add("[1단계] 경찰계열 후보 가중치: $weightSummary")
+        trace.add("[1단계] 경찰계열 후보 가중치(선호+보석): $weightSummary")
 
         val picked = pickByWeight(weightedPoliceJobs) ?: policePool.random()
         trace.add("[1단계] 경찰계열 고정 직업 선택: ${picked.name}")
@@ -1332,16 +1330,16 @@ object GameManager {
         assistantPool: List<Job>,
         trace: AssignmentTrace
     ): Job {
-        val preferenceCountByName = players
-            .flatMap { player -> player.preferences.map(Job::name) }
-            .groupingBy { it }
-            .eachCount()
+        val assistantPoolNames = assistantPool.map(Job::name).toSet()
+        val selectionWeightByName = buildJobSelectionWeightByName(players) { job ->
+            job.name in assistantPoolNames
+        }
         val weightedAssistantJobs = assistantPool.map { assistantJob ->
-            val weight = preferenceCountByName[assistantJob.name] ?: 0
+            val weight = selectionWeightByName[assistantJob.name] ?: 0
             assistantJob to weight
         }
         val weightSummary = weightedAssistantJobs.joinToString(", ") { (job, weight) -> "${job.name}($weight)" }
-        trace.add("[1단계] 보조계열 후보 가중치: $weightSummary")
+        trace.add("[1단계] 보조계열 후보 가중치(선호+보석): $weightSummary")
 
         val picked = pickByWeight(weightedAssistantJobs) ?: assistantPool.random()
         trace.add("[1단계] 보조계열 고정 직업 선택: ${picked.name}")
