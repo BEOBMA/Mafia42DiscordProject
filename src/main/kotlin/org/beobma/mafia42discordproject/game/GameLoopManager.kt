@@ -431,6 +431,13 @@ object GameLoopManager {
                 allowed = Permissions(Permission.ReadMessageHistory, Permission.UseApplicationCommands)
                 denied = Permissions(Permission.SendMessages)
             }
+
+            game.playerDatas.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    allowed = Permissions()
+                    denied = Permissions()
+                }
+            }
         }
         updateMafiaChannelPermissions(game, mafiaChannel, isNight = true)
         updateCoupleChannelPermissions(game, coupleChannel, isNight = true)
@@ -1768,7 +1775,7 @@ object GameLoopManager {
         if (maxVotedPlayers.size > 1) {
             val halfThreshold = (alivePlayers.size + 1) / 2
             if (maxVotes < halfThreshold) {
-                val juryResolved = resolveJuryTarget(game, maxVotedPlayers)
+                val juryResolved = resolveJuryTarget(game, maxVotedPlayers, mainVoteSnapshot)
                 if (juryResolved != null) {
                     game.sendMainChannerMessage("배심원의 결정으로 인해 투표 대상이 정해졌습니다!")
                     if (isInnocentTarget(game, juryResolved)) {
@@ -1902,12 +1909,17 @@ object GameLoopManager {
         }
     }
 
-    private fun resolveJuryTarget(game: Game, tiedTargets: List<PlayerData>): PlayerData? {
+    private fun resolveJuryTarget(
+        game: Game,
+        tiedTargets: List<PlayerData>,
+        mainVoteSnapshot: Map<Snowflake, String>
+    ): PlayerData? {
         val juryVoteCounts = mutableMapOf<PlayerData, Int>()
-        game.currentMainVotes.forEach { (voterId, targetIdString) ->
+        mainVoteSnapshot.forEach { (voterId, targetIdString) ->
             val voter = game.getPlayer(voterId) ?: return@forEach
-            if (voter.state.isDead || voter.allAbilities.none { it is Jury }) return@forEach
-            val target = game.getPlayer(Snowflake(targetIdString)) ?: return@forEach
+            if (!isEffectiveJuryVoter(game, voter)) return@forEach
+            val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@forEach
+            val target = game.getPlayer(targetId) ?: return@forEach
             if (target !in tiedTargets) return@forEach
             juryVoteCounts[target] = (juryVoteCounts[target] ?: 0) + 1
         }
@@ -1916,6 +1928,22 @@ object GameLoopManager {
         val maxJuryVotes = juryVoteCounts.values.maxOrNull() ?: return null
         val topTargets = juryVoteCounts.filterValues { it == maxJuryVotes }.keys
         return topTargets.singleOrNull()
+    }
+
+    private fun isEffectiveJuryVoter(game: Game, voter: PlayerData): Boolean {
+        return !voter.state.isDead &&
+            hasJuryAbility(voter) &&
+            voter.member.id !in game.permanentlyDisenfranchisedVoters &&
+            !game.activeThreatenedVoters.containsKey(voter.member.id)
+    }
+
+    private fun hasJuryAbility(player: PlayerData): Boolean {
+        return player.allAbilities.any { it is Jury }
+    }
+
+    private fun canSpeakDuringDefense(player: PlayerData, target: PlayerData): Boolean {
+        return !shouldRestrictCommunication(player) &&
+            (player.member.id == target.member.id || hasJuryAbility(player))
     }
 
     private fun isInnocentTarget(game: Game, candidate: PlayerData): Boolean {
@@ -2048,15 +2076,21 @@ object GameLoopManager {
                 denied = Permissions(Permission.SendMessages)
             }
 
-            if (!target.state.isSilenced) {
-                addMemberOverwrite(target.member.id) {
-                    allowed = Permissions(Permission.SendMessages)
+            game.playerDatas.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    if (canSpeakDuringDefense(player, target)) {
+                        allowed = Permissions(Permission.SendMessages)
+                        denied = Permissions()
+                    } else {
+                        allowed = Permissions()
+                        denied = Permissions(Permission.SendMessages)
+                    }
                 }
             }
         }
 
         game.playerDatas.forEach { player ->
-            val shouldMute = shouldRestrictCommunication(player) || player.member.id != target.member.id
+            val shouldMute = !canSpeakDuringDefense(player, target)
             runCatching {
                 player.member.edit {
                     muted = shouldMute
@@ -2084,6 +2118,20 @@ object GameLoopManager {
             }
         }
         muteSpectators(game)
+
+        mainChannel.edit {
+            addRoleOverwrite(game.guild.id) {
+                allowed = Permissions(Permission.ReadMessageHistory)
+                denied = Permissions(Permission.SendMessages)
+            }
+
+            game.playerDatas.forEach { player ->
+                addMemberOverwrite(player.member.id) {
+                    allowed = Permissions()
+                    denied = Permissions()
+                }
+            }
+        }
 
         mainChannel.createMessage {
             actionRow {
