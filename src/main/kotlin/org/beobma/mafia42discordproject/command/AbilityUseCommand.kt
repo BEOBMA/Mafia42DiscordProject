@@ -172,6 +172,10 @@ object AbilityUseCommand : DiscordCommand {
             return
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
+        if (isBlockedByBlessing(game, target, effectiveTarget)) {
+            DiscordMessageManager.respondEphemeral(event, "축복으로 오늘은 해당 플레이어를 대상으로 지정할 수 없습니다.")
+            return
+        }
         if (effectiveTarget != null && GameLoopManager.isMadScientistDistortionHidden(effectiveTarget)) {
             DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
             return
@@ -560,6 +564,15 @@ object AbilityUseCommand : DiscordCommand {
         val target = directTarget ?: return false
         if (target.member.id != blockedTargetId) return false
         return target.allAbilities.any { it is UnwrittenRule }
+    }
+
+    private fun isBlockedByBlessing(
+        game: Game,
+        directTarget: PlayerData?,
+        effectiveTarget: PlayerData?
+    ): Boolean {
+        return game.isBlessingProtectedTarget(directTarget) ||
+            game.isBlessingProtectedTarget(effectiveTarget)
     }
 
     private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {

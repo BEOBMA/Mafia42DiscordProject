@@ -54,7 +54,6 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.politician.PoliticianAbility
-import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
@@ -215,7 +214,8 @@ object GameLoopManager {
         durationMillis: Long,
         midpointAction: (suspend () -> Unit)? = null,
         beforeEndAction: (suspend () -> Unit)? = null,
-        beforeEndOffsetMillis: Long = 0L
+        beforeEndOffsetMillis: Long = 0L,
+        stopLoopingSoundOnEnd: Boolean = true
     ) {
         val initialDuration = durationMillis.coerceAtLeast(0L)
         val now = System.currentTimeMillis()
@@ -273,7 +273,9 @@ object GameLoopManager {
         }
 
         updateTimeStatusMessageAtZero(game, label)
-        game.stopLoopingGameSound()
+        if (stopLoopingSoundOnEnd) {
+            game.stopLoopingGameSound()
+        }
         synchronized(countdownLock) {
             activeCountdown = null
         }
@@ -336,6 +338,7 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
+        game.clearExpiredBlessingProtectedTargets()
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
         if (game.dayCount > 1) {
             game.mafiaExecutionProtectedTargetId = null
@@ -776,17 +779,15 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val hasBlessing = priestPlayer.allAbilities.any { it is Blessing }
-            if (!hasBlessing) {
-                target.job = Citizen()
-            }
+            val wasMadScientist = target.job is MadScientist
+            target.job = Citizen()
 
             target.state.isDead = false
             target.state.diedDayCount = null
             target.state.isShamaned = false
             target.state.isPoisoned = false
             target.state.poisonedDeathDay = null
-            if (target.job is MadScientist) {
+            if (wasMadScientist) {
                 target.state.pendingMadScientistRevivalNight = null
                 target.state.pendingMadScientistPublicRevealNight = null
                 target.state.isMadScientistDistortionHidden = false
@@ -1567,6 +1568,7 @@ object GameLoopManager {
         muteSpectators(game)
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
+        val selectableVoteTargets = alivePlayers.filterNot { game.isBlessingProtectedTarget(it) }
 
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png",
@@ -1575,13 +1577,17 @@ object GameLoopManager {
             soundVolume = 50,
             loopSound = true
         )
-        mainChannel.createMessage {
-            actionRow {
-                stringSelect("main_vote_select") {
-                    placeholder = "처형할 플레이어 선택"
-                    alivePlayers.forEach { player ->
-                        option(player.member.effectiveName, player.member.id.toString()) {
-                            description = "이 플레이어에게 투표합니다."
+        if (selectableVoteTargets.isEmpty()) {
+            mainChannel.createMessage("축복으로 투표 가능한 대상이 없습니다.")
+        } else {
+            mainChannel.createMessage {
+                actionRow {
+                    stringSelect("main_vote_select") {
+                        placeholder = "처형할 플레이어 선택"
+                        selectableVoteTargets.forEach { player ->
+                            option(player.member.effectiveName, player.member.id.toString()) {
+                                description = "이 플레이어에게 투표합니다."
+                            }
                         }
                     }
                 }
@@ -2745,7 +2751,7 @@ object GameLoopManager {
             runPhaseCountdown(game, "낮", discussionMillis)
 
             startVotePhase(game)
-            runPhaseCountdown(game, "투표", VOTE_DURATION_MS)
+            runPhaseCountdown(game, "투표", VOTE_DURATION_MS, stopLoopingSoundOnEnd = false)
 
             val target = resolveVotePhase(game)
             if (target != null) {
@@ -2756,6 +2762,8 @@ object GameLoopManager {
                 runPhaseCountdown(game, "찬반 투표", PROS_CONS_VOTE_DURATION_MS)
 
                 resolveExecutionPhase(game, target)
+            } else {
+                game.stopLoopingGameSound()
             }
 
             checkWinCondition(game)?.let { winner ->
