@@ -99,7 +99,7 @@ data class Game(
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
     var defenseTargetId: Snowflake? = null
     var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
-    val blessingProtectedTargetDays: MutableMap<Snowflake, Int> = mutableMapOf()
+    val blessingProtectedUntilNightDays: MutableMap<Snowflake, Int> = mutableMapOf()
     val pendingEscapedPlayerIds: MutableSet<Snowflake> = mutableSetOf()
     val pendingNightDeathPlayerIds: MutableSet<Snowflake> = mutableSetOf()
     val pendingNightDeathSourceByPlayerId: MutableMap<Snowflake, Snowflake> = mutableMapOf()
@@ -130,16 +130,19 @@ data class Game(
     val hostessFirstVoteTargetByDay: MutableMap<Snowflake, Snowflake> = mutableMapOf()
 
     fun markBlessingProtectedTarget(player: PlayerData) {
-        blessingProtectedTargetDays[player.member.id] = dayCount
+        blessingProtectedUntilNightDays[player.member.id] = dayCount + 1
     }
 
     fun isBlessingProtectedTarget(player: PlayerData?): Boolean {
         if (player == null) return false
-        return blessingProtectedTargetDays[player.member.id] == dayCount
+        val protectedUntilNightDay = blessingProtectedUntilNightDays[player.member.id] ?: return false
+        return dayCount <= protectedUntilNightDay
     }
 
     fun clearExpiredBlessingProtectedTargets() {
-        blessingProtectedTargetDays.entries.removeIf { (_, protectedDay) -> protectedDay < dayCount }
+        blessingProtectedUntilNightDays.entries.removeIf { (_, protectedUntilNightDay) ->
+            protectedUntilNightDay <= dayCount
+        }
     }
 
     fun replacePlayers(players: MutableList<PlayerData>) {

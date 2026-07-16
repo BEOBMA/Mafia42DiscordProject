@@ -32,8 +32,6 @@ object MainVoteListener : InteractionListener {
                                 "✅ 투표가 정상적으로 접수되었습니다. (다른 사람을 선택하여 표를 바꿀 수 있습니다)"
                             GameManager.VoteSubmissionResult.THREATENED ->
                                 "협박받아 투표할 수 없습니다"
-                            GameManager.VoteSubmissionResult.PROTECTED ->
-                                "축복으로 오늘은 해당 플레이어를 투표 대상으로 지목할 수 없습니다."
                             GameManager.VoteSubmissionResult.FAILURE ->
                                 "❌ 현재 투표 시간이 아니거나 게임이 진행 중이 아닙니다."
                         }

@@ -54,6 +54,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Autopsy
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.Confidential
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.politician.PoliticianAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Blessing
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Apostle
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.prophet.Pioneer
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.BreakingNews
@@ -338,7 +339,6 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.currentPhase = GamePhase.NIGHT
         game.dayCount += 1
-        game.clearExpiredBlessingProtectedTargets()
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
         if (game.dayCount > 1) {
             game.mafiaExecutionProtectedTargetId = null
@@ -672,6 +672,7 @@ object GameLoopManager {
 
     suspend fun resolveDawnPhase(game: Game, summary: NightResolutionSummary = game.lastNightSummary) {
         game.currentPhase = GamePhase.DAWN
+        game.clearExpiredBlessingProtectedTargets()
         val hadSoldierBulletproofTrigger = summary.processedEvents.any { event ->
             event is GameEvent.JobDiscovered && event.sourceAbilityName == "방탄" && event.isPublicReveal
         }
@@ -797,6 +798,9 @@ object GameLoopManager {
             }
             game.publiclyRevealedAbilityTargetIds += target.member.id
             priestPlayer.job?.name?.let { game.publiclyRevealedJobNames += it }
+            if (priestPlayer.allAbilities.any { it is Blessing }) {
+                game.markBlessingProtectedTarget(target)
+            }
 
             game.sendMainChannelMessageWithImageAndSound(
                 imageLink = SystemImage.PRIEST_RESURRECTION.imageUrl,
@@ -1568,7 +1572,6 @@ object GameLoopManager {
         muteSpectators(game)
 
         val alivePlayers = game.playerDatas.filter { !it.state.isDead }
-        val selectableVoteTargets = alivePlayers.filterNot { game.isBlessingProtectedTarget(it) }
 
         game.sendMainChannelMessageWithImageAndSound(
             imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(10).png",
@@ -1577,17 +1580,13 @@ object GameLoopManager {
             soundVolume = 50,
             loopSound = true
         )
-        if (selectableVoteTargets.isEmpty()) {
-            mainChannel.createMessage("축복으로 투표 가능한 대상이 없습니다.")
-        } else {
-            mainChannel.createMessage {
-                actionRow {
-                    stringSelect("main_vote_select") {
-                        placeholder = "처형할 플레이어 선택"
-                        selectableVoteTargets.forEach { player ->
-                            option(player.member.effectiveName, player.member.id.toString()) {
-                                description = "이 플레이어에게 투표합니다."
-                            }
+        mainChannel.createMessage {
+            actionRow {
+                stringSelect("main_vote_select") {
+                    placeholder = "처형할 플레이어 선택"
+                    alivePlayers.forEach { player ->
+                        option(player.member.effectiveName, player.member.id.toString()) {
+                            description = "이 플레이어에게 투표합니다."
                         }
                     }
                 }

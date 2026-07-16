@@ -173,7 +173,7 @@ object AbilityUseCommand : DiscordCommand {
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         if (isBlockedByBlessing(game, target, effectiveTarget)) {
-            DiscordMessageManager.respondEphemeral(event, "축복으로 오늘은 해당 플레이어를 대상으로 지정할 수 없습니다.")
+            DiscordMessageManager.respondEphemeral(event, "축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
             return
         }
         if (effectiveTarget != null && GameLoopManager.isMadScientistDistortionHidden(effectiveTarget)) {

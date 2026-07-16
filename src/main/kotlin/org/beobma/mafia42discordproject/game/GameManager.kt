@@ -71,7 +71,6 @@ object GameManager {
     enum class VoteSubmissionResult {
         SUCCESS,
         THREATENED,
-        PROTECTED,
         FAILURE
     }
 
@@ -2446,9 +2445,6 @@ object GameManager {
         }
         if (sender.allAbilities.none { it is Perjury }) return SpiritRelayResult(false, "위증 능력이 없습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증 대상으로 지정할 수 없습니다.")
-        if (game.isBlessingProtectedTarget(target)) {
-            return SpiritRelayResult(false, "축복으로 오늘은 해당 플레이어를 위증 대상으로 지정할 수 없습니다.")
-        }
         game.currentFakeVotes[sender.member.id] = target.member.id
         return SpiritRelayResult(true, "${target.member.effectiveName}님에게 가짜 투표를 행사했습니다. (집계에만 반영)")
     }
@@ -2685,7 +2681,6 @@ object GameManager {
             val targetId = runCatching { Snowflake(targetIdString) }.getOrNull() ?: return@synchronized VoteSubmissionResult.FAILURE
             val target = game.getPlayer(targetId) ?: return@synchronized VoteSubmissionResult.FAILURE
             if (target.state.isDead) return@synchronized VoteSubmissionResult.FAILURE
-            if (game.isBlessingProtectedTarget(target)) return@synchronized VoteSubmissionResult.PROTECTED
             if (
                 GameLoopManager.isMadScientistDistortionHidden(voter) &&
                 voter.member.id == target.member.id

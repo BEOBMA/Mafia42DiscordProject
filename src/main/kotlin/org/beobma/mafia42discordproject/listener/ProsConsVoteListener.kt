@@ -63,8 +63,6 @@ object ProsConsVoteListener : InteractionListener {
                                 if (isPros) "✅ **찬성**에 투표하셨습니다." else "✅ **반대**에 투표하셨습니다."
                             GameManager.VoteSubmissionResult.THREATENED ->
                                 "협박받아 투표할 수 없습니다"
-                            GameManager.VoteSubmissionResult.PROTECTED ->
-                                "축복으로 오늘은 해당 플레이어를 투표 대상으로 지목할 수 없습니다."
                             GameManager.VoteSubmissionResult.FAILURE ->
                                 "❌ 현재 찬반 투표 시간이 아니거나, 이미 투표하여 변경할 수 없습니다."
                         }

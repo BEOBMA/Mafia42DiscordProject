@@ -42,9 +42,6 @@ class Resurrection : ActiveAbility, JobUniqueAbility {
 
         priestJob?.pendingResurrectionTargetId = effectiveTarget.member.id
         thiefJob?.stolenPriestResurrectionTargetId = effectiveTarget.member.id
-        if (caster.allAbilities.any { it is Blessing }) {
-            game.markBlessingProtectedTarget(effectiveTarget)
-        }
         caster.state.hasUsedOneTimeAbility = true
 
         return AbilityResult(true, "${target.member.effectiveName}님을 소생 대상으로 지정했습니다.")
