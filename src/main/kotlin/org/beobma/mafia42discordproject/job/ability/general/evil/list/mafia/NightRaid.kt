@@ -4,14 +4,18 @@ import org.beobma.mafia42discordproject.game.DawnPresentation
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
-import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.Job
+import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
+import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import kotlin.reflect.KClass
 
-class NightRaid : JobUniqueAbility, PassiveAbility {
+class NightRaid : JobSpecificExtraAbility, PassiveAbility {
     override val name: String = "야습"
     override val description: String = "첫번째 밤에 치료 상태의 의사를 처형할 경우, 치료 효과를 무시하며 의사의 정체가 모두에게 밝혀진다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(122).webp"
+    override val targetJob: List<KClass<out Job>> = listOf(Mafia::class)
 
     private val nightRaidImageUrl = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(36).webp"
 

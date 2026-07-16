@@ -12,8 +12,8 @@ import kotlin.random.Random
 
 class MentalistAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "관찰"
-    override val description: String = "낮마다 다른 플레이어들의 대화를 선택해 서로 다른 팀인지 확인하고, 앞서 선택한 플레이어와 같은 팀이 나올 때까지 이를 반복한다."
-    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(108).webp"
+    override val description: String = "낮마다 최대 2번, 다른 플레이어들의 대화를 선택해 서로 다른 팀인지 확인하고, 앞서 선택한 플레이어와 같은 팀이 나올 때까지 이를 반복한다."
+    override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mentalist_ability_image.webp"
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -39,19 +39,24 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
         if (mentalist.isObservationResolvedToday) {
             return AbilityResult(false, "오늘은 이미 같은 팀을 확인했습니다.")
         }
+        if (mentalist.observationUsesToday >= MAX_OBSERVATION_USES_PER_DAY) {
+            return AbilityResult(false, "오늘은 이미 관찰을 2번 사용했습니다.")
+        }
 
         val initialTargetId = mentalist.initialObservationTargetId
         if (initialTargetId == null) {
             mentalist.initialObservationTargetId = target.member.id
             mentalist.lastObservationTargetId = target.member.id
+            mentalist.observationUsesToday += 1
             return AbilityResult(
                 true,
                 "${target.member.effectiveName}님을 첫 관찰 대상으로 지정했습니다. 한 번 더 관찰을 사용해 다른 플레이어를 선택하세요."
             )
         }
 
-        if (target.member.id == initialTargetId) {
-            return AbilityResult(false, "처음 관찰한 플레이어와는 비교할 수 없습니다.")
+        val previousTargetId = mentalist.lastObservationTargetId ?: initialTargetId
+        if (target.member.id == previousTargetId) {
+            return AbilityResult(false, "앞서 관찰한 플레이어와는 비교할 수 없습니다.")
         }
 
         val initialTarget = game.getPlayer(initialTargetId)
@@ -61,12 +66,26 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "처음 관찰한 플레이어가 사망해 더 이상 관찰을 이어갈 수 없습니다.")
         }
 
+        val previousTarget = game.getPlayer(previousTargetId)
+            ?: return AbilityResult(false, "앞서 관찰한 플레이어 정보를 찾을 수 없습니다.")
+
+        if (previousTarget.state.isDead) {
+            return AbilityResult(false, "앞서 관찰한 플레이어가 사망해 더 이상 관찰을 이어갈 수 없습니다.")
+        }
+
         mentalist.lastObservationTargetId = target.member.id
-        val isSameTeam = isSameTeam(initialTarget, target)
+        mentalist.observationUsesToday += 1
+        val isSameTeam = isSameTeam(previousTarget, target)
         if (!isSameTeam) {
+            val remainingUses = MAX_OBSERVATION_USES_PER_DAY - mentalist.observationUsesToday
+            val suffix = if (remainingUses > 0) {
+                " 관찰을 다시 사용할 수 있습니다."
+            } else {
+                " 오늘 관찰 횟수를 모두 사용했습니다."
+            }
             return AbilityResult(
                 true,
-                "관찰 결과: ${initialTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **다른 팀**입니다. 관찰을 다시 사용할 수 있습니다."
+                "관찰 결과: ${previousTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **다른 팀**입니다.$suffix"
             )
         }
 
@@ -74,7 +93,7 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
         val profilingMessage = buildProfilingMessage(game, caster, initialTarget, target)
         return AbilityResult(
             true,
-            "관찰 결과: ${initialTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **같은 팀**입니다.$profilingMessage"
+            "관찰 결과: ${previousTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **같은 팀**입니다.$profilingMessage"
         )
     }
 
@@ -102,11 +121,14 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
     }
 
     companion object {
+        private const val MAX_OBSERVATION_USES_PER_DAY = 2
+
         fun resetDayState(owner: PlayerData) {
             val mentalist = owner.job as? Mentalist ?: return
             mentalist.initialObservationTargetId = null
             mentalist.lastObservationTargetId = null
             mentalist.isObservationResolvedToday = false
+            mentalist.observationUsesToday = 0
         }
     }
 }

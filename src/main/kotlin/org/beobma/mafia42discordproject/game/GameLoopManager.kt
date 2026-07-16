@@ -1637,7 +1637,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (politicianTarget != null) {
-                resolveMagicianTrickSubstitution(game, politicianTarget)
+                resolveMagicianTrickSubstitution(game, politicianTarget, mainVoteSnapshot)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1653,7 +1653,7 @@ object GameLoopManager {
                 ?.let { targetId -> game.getPlayer(Snowflake(targetId)) }
                 ?.takeUnless { it.state.isDead }
             return if (judgeTarget != null) {
-                resolveMagicianTrickSubstitution(game, judgeTarget)
+                resolveMagicianTrickSubstitution(game, judgeTarget, mainVoteSnapshot)
             } else {
                 game.sendMainChannelMessageWithImage(
                     imageLink = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(60).webp",
@@ -1778,7 +1778,7 @@ object GameLoopManager {
                         )
                         return null
                     }
-                    return resolveMagicianTrickSubstitution(game, juryResolved)
+                    return resolveMagicianTrickSubstitution(game, juryResolved, mainVoteSnapshot)
                 }
             }
             game.sendMainChannelMessageWithImage(
@@ -1796,10 +1796,14 @@ object GameLoopManager {
             )
             return null
         }
-        return resolveMagicianTrickSubstitution(game, finalTarget)
+        return resolveMagicianTrickSubstitution(game, finalTarget, mainVoteSnapshot)
     }
 
-    private suspend fun resolveMagicianTrickSubstitution(game: Game, originalTarget: PlayerData): PlayerData {
+    private suspend fun resolveMagicianTrickSubstitution(
+        game: Game,
+        originalTarget: PlayerData,
+        mainVoteSnapshot: Map<Snowflake, String>
+    ): PlayerData {
         val magician = originalTarget.job as? Magician ?: return originalTarget
         if (originalTarget.state.isDead || magician.hasUsedTrick) return originalTarget
 
@@ -1832,8 +1836,17 @@ object GameLoopManager {
         )
 
         if (originalTarget.allAbilities.any { it is Xray }) {
-            val jobName = substitute.job?.name ?: "알 수 없음"
-            val xrayMessage = "그 사람의 직업은 $jobName 입니다."
+            val votedTargetName = mainVoteSnapshot[substitute.member.id]
+                ?.let { targetIdString -> runCatching { Snowflake(targetIdString) }.getOrNull() }
+                ?.let(game::getPlayer)
+                ?.takeUnless { it.state.isDead }
+                ?.member
+                ?.effectiveName
+            val xrayMessage = if (votedTargetName == null) {
+                "${substitute.member.effectiveName}님은 이번 투표에서 유효한 대상에게 투표하지 않았습니다."
+            } else {
+                "${substitute.member.effectiveName}님은 이번 투표에서 ${votedTargetName}님에게 투표했습니다."
+            }
             GameReplayLogger.logDirectMessage(game, originalTarget, xrayMessage, "투시")
             runCatching {
                 originalTarget.member.getDmChannel().createMessage(xrayMessage)
