@@ -63,6 +63,7 @@ import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.*
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
+import org.beobma.mafia42discordproject.web.WebNotepadServer
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -74,6 +75,7 @@ object GameManager {
         FAILURE
     }
 
+    @Volatile
     private var currentGame: Game? = null
     private var currentGuild: GuildBehavior? = null
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -2148,6 +2150,7 @@ object GameManager {
         GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         GameReplayRenderDataStore.save(replayRenderData)
         GameReplaySender.sendReplay(gameToStop, replayRenderData)
+        WebNotepadServer.invalidateGame(gameToStop)
         currentGame = null
         currentGuild = null
 

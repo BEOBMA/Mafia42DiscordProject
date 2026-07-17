@@ -21,6 +21,7 @@ import org.beobma.mafia42discordproject.listener.AbilityPickButtonListener
 import org.beobma.mafia42discordproject.listener.AnnihilationInteractionListener
 import org.beobma.mafia42discordproject.listener.MainVoteListener
 import org.beobma.mafia42discordproject.listener.ProsConsVoteListener
+import org.beobma.mafia42discordproject.web.WebNotepadServer
 
 private val messageTokenRegex = Regex("\\s+")
 
@@ -95,5 +96,10 @@ suspend fun main() {
     AbilityManager.registerAll()
     JobPreferenceManager.load()
     BestJobPreferenceManager.load()
-    kord.login()
+    WebNotepadServer.start()
+    try {
+        kord.login()
+    } finally {
+        WebNotepadServer.stop()
+    }
 }
