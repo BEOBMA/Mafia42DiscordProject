@@ -38,7 +38,11 @@ object AbilityPickButtonListener : InteractionListener {
                 }
 
                 val resultMessage = runCatching {
-                    GameManager.selectExtraAbility(interaction.user.id, payload.pickNumber)
+                    if (payload.isRefresh) {
+                        GameManager.refreshExtraAbilityOptions(interaction.user.id)
+                    } else {
+                        GameManager.selectExtraAbility(interaction.user.id, payload.pickNumber)
+                    }
                 }.getOrElse { error ->
                     println("⚠️ 능력 선택 처리 실패: ${error.message}")
                     "❌ 능력 선택 처리 중 오류가 발생했습니다. 잠시 후 같은 번호를 다시 눌러주세요."

@@ -87,6 +87,7 @@ object GameManager {
 
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
+    private const val SOLO_MAFIA_ABILITY_REFRESH_LIMIT = 2
 
     private const val GAME_MAIN_CHANNEL_ID = 1524098920576319518L
     private const val GAME_MAFIA_CHANNEL_ID = 1524098952499036320L
@@ -1376,7 +1377,8 @@ object GameManager {
 
             val session = AbilitySelectionSession(
                 playerJob = job,
-                availablePool = pool
+                availablePool = pool,
+                maxRefreshes = abilitySelectionRefreshLimitForPlayer(this, player)
             )
             session.currentOptions = drawAbilityOptions(session)
             if (session.currentOptions.isNotEmpty()) {
@@ -1460,6 +1462,12 @@ object GameManager {
             .distinctBy(Ability::name)
             .shuffled()
             .toMutableList()
+    }
+
+    private fun abilitySelectionRefreshLimitForPlayer(game: Game, player: PlayerData): Int {
+        if (player.job !is Mafia) return 0
+        val mafiaCount = game.playerDatas.count { candidate -> candidate.job is Mafia }
+        return if (mafiaCount == 1) SOLO_MAFIA_ABILITY_REFRESH_LIMIT else 0
     }
 
     private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
@@ -1760,6 +1768,7 @@ object GameManager {
                 playerJob.extraAbilities.add(pickedAbility)
             }
             session.selected += pickedAbility
+            session.availablePool.removeAll { ability -> ability.name == pickedAbility.name }
             session.completedRounds += 1
 
             if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT) {
@@ -1801,6 +1810,61 @@ object GameManager {
         return resultMessage
     }
 
+    suspend fun refreshExtraAbilityOptions(userId: Snowflake): String {
+        var shouldTryStartGameLoop = false
+        val resultMessage = abilitySelectionSessionMutex.withLock {
+            val session = abilitySelectionSessions[userId]
+                ?: restoreAbilitySelectionSessionLocked(userId)
+                ?: return@withLock "현재 부가 능력 선택 단계가 아니거나 이미 선택이 완료되었습니다."
+
+            if (session.completedRounds >= EXTRA_ABILITY_SELECTION_REPEAT_COUNT || session.currentOptions.isEmpty()) {
+                return@withLock "이미 부가 능력 선택이 완료되었습니다."
+            }
+
+            if (session.maxRefreshes <= 0) {
+                return@withLock "현재 직업은 능력 선택지를 새로고침할 수 없습니다."
+            }
+
+            if (session.refreshesUsed >= session.maxRefreshes) {
+                return@withLock "능력 선택지 새로고침 기회를 모두 사용했습니다."
+            }
+
+            if (!canRefreshAbilityOptions(session)) {
+                return@withLock "새로고침으로 다시 뽑을 수 있는 능력이 없습니다."
+            }
+
+            val removedOptionNames = session.currentOptions.map(Ability::name).toSet()
+            session.availablePool.removeAll { ability -> ability.name in removedOptionNames }
+            session.refreshesUsed += 1
+            session.currentOptions = drawAbilityOptions(session)
+
+            if (session.currentOptions.isEmpty()) {
+                abilitySelectionSessions.remove(userId)
+                abilitySelectionPendingUserIds.remove(userId)
+                shouldTryStartGameLoop = true
+                return@withLock buildString {
+                    appendLine("능력 선택지를 새로고침했지만 추가로 제시할 수 있는 능력이 없습니다.")
+                    append("현재 선택 능력: ${session.selected.joinToString(", ") { it.name }}")
+                }
+            }
+
+            val remainingRefreshes = session.maxRefreshes - session.refreshesUsed
+            "능력 선택지를 새로고침했습니다. 남은 새로고침: ${remainingRefreshes}회"
+        }
+
+        if (shouldTryStartGameLoop) {
+            currentGuild?.let {
+                runCatching {
+                    tryStartGameLoopWhenAbilitySelectionCompleted()
+                }.onFailure { error ->
+                    println("⚠️ 능력 선택 새로고침 종료 후 게임 루프 시작 실패: ${error.message}")
+                }
+            }
+        }
+
+        return resultMessage
+    }
+
     private fun restoreAbilitySelectionSessionLocked(userId: Snowflake): AbilitySelectionSession? {
         val game = currentGame ?: return null
         if (game.isRunning) return null
@@ -1820,6 +1884,7 @@ object GameManager {
         val restoredSession = AbilitySelectionSession(
             playerJob = playerJob,
             availablePool = availablePool,
+            maxRefreshes = abilitySelectionRefreshLimitForPlayer(game, player),
             selected = playerJob.extraAbilities.toMutableList(),
             completedRounds = completedRounds
         )
@@ -1833,13 +1898,21 @@ object GameManager {
     }
 
     private fun drawAbilityOptions(session: AbilitySelectionSession): List<Ability> {
+        val selectedNames = session.selected.map(Ability::name).toSet()
+        session.availablePool.removeAll { ability -> ability.name in selectedNames }
         if (session.availablePool.isEmpty()) return emptyList()
 
         val count = minOf(EXTRA_ABILITY_OPTIONS_PER_ROUND, session.availablePool.size)
-        val options = session.availablePool.shuffled().take(count)
-        val optionNames = options.map(Ability::name).toSet()
-        session.availablePool.removeAll { ability -> ability.name in optionNames }
-        return options
+        return session.availablePool.shuffled().take(count)
+    }
+
+    private fun canRefreshAbilityOptions(session: AbilitySelectionSession): Boolean {
+        if (session.maxRefreshes <= 0 || session.refreshesUsed >= session.maxRefreshes) return false
+        val selectedNames = session.selected.map(Ability::name).toSet()
+        val currentOptionNames = session.currentOptions.map(Ability::name).toSet()
+        return session.availablePool.any { ability ->
+            ability.name !in selectedNames && ability.name !in currentOptionNames
+        }
     }
 
     private fun buildAbilitySelectionGuideMessage(): String {
@@ -1850,6 +1923,11 @@ object GameManager {
 
     fun parseAbilityPickButtonId(componentId: String): AbilityPickButtonPayload? {
         val prefix = "ability_pick_"
+        val refreshPrefix = "ability_refresh_"
+        if (componentId.startsWith(refreshPrefix)) {
+            val ownerId = componentId.removePrefix(refreshPrefix).toULongOrNull()?.let(::Snowflake) ?: return null
+            return AbilityPickButtonPayload(ownerUserId = ownerId, pickNumber = 0, isRefresh = true)
+        }
         if (!componentId.startsWith(prefix)) return null
         val payload = componentId.removePrefix(prefix)
         val parts = payload.split("_")
@@ -1861,6 +1939,8 @@ object GameManager {
     }
 
     fun abilityPickButtonId(userId: Snowflake, pickNumber: Int): String = "ability_pick_${userId.value}_$pickNumber"
+
+    fun abilityRefreshButtonId(userId: Snowflake): String = "ability_refresh_${userId.value}"
 
     suspend fun getAbilitySelectionSession(userId: Snowflake): AbilitySelectionSnapshot? {
         val session = abilitySelectionSessionMutex.withLock {
@@ -1910,6 +1990,12 @@ object GameManager {
                 session.currentOptions.forEachIndexed { index, _ ->
                     interactionButton(ButtonStyle.Primary, abilityPickButtonId(userId, index + 1)) {
                         label = "${index + 1}번 선택"
+                    }
+                }
+                if (canRefreshAbilityOptions(session)) {
+                    val remainingRefreshes = session.maxRefreshes - session.refreshesUsed
+                    interactionButton(ButtonStyle.Secondary, abilityRefreshButtonId(userId)) {
+                        label = "새로고침 (${remainingRefreshes}회)"
                     }
                 }
             }

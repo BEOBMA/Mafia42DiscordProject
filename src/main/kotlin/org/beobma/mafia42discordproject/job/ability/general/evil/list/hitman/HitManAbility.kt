@@ -39,7 +39,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "자기 자신은 청부할 수 없습니다.")
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
-        if (effectiveTarget.member.id in game.pendingEscapedPlayerIds) {
+        if (target.member.id in game.pendingEscapedPlayerIds) {
             return AbilityResult(false, "도주 예정 대상은 청부 대상으로 지정할 수 없습니다.")
         }
 

@@ -163,6 +163,9 @@ object AbilityUseCommand : DiscordCommand {
 
         val targetDiscordUser = interaction.command.users[TARGET_OPTION_NAME]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        // Selection-blocking effects apply only to the player the user explicitly selected.
+        // A hacker redirect points to a target chosen earlier by the hacker, so later blockers
+        // on the resolved target must not invalidate the already-routed ability.
         if (isBlockedByUnwrittenRule(game, target)) {
             DiscordMessageManager.respondEphemeral(event, "불문율에 의해 불가능합니다.")
             return
@@ -171,15 +174,11 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
             return
         }
-        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
-        if (isBlockedByBlessing(game, target, effectiveTarget)) {
+        if (isBlockedByBlessing(game, target)) {
             DiscordMessageManager.respondEphemeral(event, "축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
             return
         }
-        if (effectiveTarget != null && GameLoopManager.isMadScientistDistortionHidden(effectiveTarget)) {
-            DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
-            return
-        }
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         if (caster.job is MentalPatient) {
             val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
             val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
@@ -568,11 +567,9 @@ object AbilityUseCommand : DiscordCommand {
 
     private fun isBlockedByBlessing(
         game: Game,
-        directTarget: PlayerData?,
-        effectiveTarget: PlayerData?
+        directTarget: PlayerData?
     ): Boolean {
-        return game.isBlessingProtectedTarget(directTarget) ||
-            game.isBlessingProtectedTarget(effectiveTarget)
+        return game.isBlessingProtectedTarget(directTarget)
     }
 
     private fun deadTargetRejectedMessage(selectedAbility: ActiveAbility): String {
