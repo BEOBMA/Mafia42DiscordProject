@@ -54,6 +54,15 @@
             <button class="refresh-button" id="refresh-button" type="button">지금 갱신</button>
         </section>
 
+        <nav class="workspace-tabs" aria-label="게임 도구">
+            <button class="workspace-tab active" type="button" data-tab="profile" aria-selected="true">프로필</button>
+            <button class="workspace-tab" type="button" data-tab="memo" aria-selected="false">메모</button>
+            <button class="workspace-tab" type="button" data-tab="log" aria-selected="false">
+                게임 로그 <span class="log-unread" id="log-unread" hidden>0</span>
+            </button>
+        </nav>
+
+        <div class="tab-panel active" id="profile-panel" data-panel="profile">
         <section class="identity-panel" aria-labelledby="my-profile-title">
             <div class="section-heading">
                 <div>
@@ -83,7 +92,7 @@
 
                 <div class="ability-section">
                     <div class="ability-title-row">
-                        <h3>보유 능력</h3>
+                        <h3>능력</h3>
                         <span id="ability-count">0</span>
                     </div>
                     <div class="ability-grid" id="ability-grid"></div>
@@ -91,6 +100,20 @@
             </div>
         </section>
 
+        <section class="action-panel" id="action-panel" hidden aria-labelledby="action-title">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">SELECT TARGET</span>
+                    <h2 id="action-title">능력 대상 선택</h2>
+                </div>
+                <button class="cancel-action" id="cancel-action" type="button">선택 취소</button>
+            </div>
+            <p class="action-help" id="action-help"></p>
+            <div class="action-player-grid" id="action-player-grid"></div>
+        </section>
+        </div>
+
+        <div class="tab-panel" id="memo-panel" data-panel="memo" hidden>
         <section class="players-section" aria-labelledby="players-title">
             <div class="section-heading">
                 <div>
@@ -101,6 +124,20 @@
             </div>
             <div class="player-grid" id="player-grid"></div>
         </section>
+        </div>
+
+        <div class="tab-panel" id="log-panel" data-panel="log" hidden>
+            <section class="game-log-panel" aria-labelledby="game-log-title">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">LIVE SYSTEM FEED</span>
+                        <h2 id="game-log-title">게임 로그</h2>
+                    </div>
+                    <p>플레이어 채팅을 제외한 공개 알림과 나에게 전달된 결과입니다.</p>
+                </div>
+                <div class="event-list" id="event-list"></div>
+            </section>
+        </div>
     </div>
 
     <footer>
@@ -110,5 +147,22 @@
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="ability-dialog" id="ability-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="ability-dialog-title">
+    <div class="ability-dialog-backdrop" data-close-dialog></div>
+    <section class="ability-dialog-card">
+        <span class="eyebrow">CONFIRM ACTION</span>
+        <h2 id="ability-dialog-title">능력 사용</h2>
+        <p id="ability-dialog-summary"></p>
+        <label class="job-choice-field" id="job-choice-field" hidden>
+            <span>직업 선택</span>
+            <select id="ability-job-select"></select>
+        </label>
+        <div class="dialog-actions">
+            <button class="dialog-cancel" type="button" data-close-dialog>취소</button>
+            <button class="dialog-confirm" id="ability-confirm" type="button">능력 사용</button>
+        </div>
+    </section>
+</div>
 </body>
 </html>

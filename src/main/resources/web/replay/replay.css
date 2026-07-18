@@ -82,8 +82,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: .82rem; letter-spacing: .14em; }
 .brand small { margin-top: 2px; color: var(--muted); font-size: .55rem; letter-spacing: .17em; }
+.header-links { display: flex; align-items: center; gap: 18px; }
 .archive-link { color: var(--muted); font-size: .84rem; font-weight: 700; }
 .archive-link:hover { color: var(--text); }
+.lab-link { color: var(--gold); }
 
 .site-main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 52px 0 80px; }
 .panel { border: 1px solid var(--line); border-radius: 18px; background: rgba(18, 21, 28, .9); box-shadow: var(--shadow); }
@@ -255,7 +257,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 
 @media (max-width: 660px) {
     .site-header { height: 64px; padding-inline: 18px; }
-    .brand small, .archive-link { display: none; }
+    .brand small, .header-links .archive-link:first-child { display: none; }
     .site-main { width: min(100% - 24px, 1180px); padding-top: 24px; }
     .archive-hero { gap: 28px; padding: 28px 20px; }
     .archive-hero::after { display: none; }

@@ -12,6 +12,7 @@ import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.Job
+import kotlinx.coroutines.sync.Mutex
 
 data class DawnPresentation(
     val imageUrl: String,
@@ -79,6 +80,7 @@ data class Game(
     var replayStartedAtMillis: Long = System.currentTimeMillis()
     var nextReplaySequence: Long = 1L
     val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
+    val abilityActionMutex: Mutex = Mutex()
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()

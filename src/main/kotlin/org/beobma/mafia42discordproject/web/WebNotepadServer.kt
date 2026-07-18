@@ -8,12 +8,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.runBlocking
+import org.beobma.mafia42discordproject.command.AbilityUseCommand
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GamePhase
@@ -21,6 +24,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayRenderDataStore
 import org.beobma.mafia42discordproject.game.replay.ReplayArchiveRepository
 import org.beobma.mafia42discordproject.game.replay.ReplayRenderData
+import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
@@ -61,17 +65,27 @@ object WebNotepadServer {
     private val secureRandom = SecureRandom()
     private val sessions = ConcurrentHashMap<String, WebSession>()
     private val notes = ConcurrentHashMap<NoteKey, PlayerNote>()
-
+    private val laboratoryGames = LaboratoryGameService(LaboratoryJobCatalog::definitions)
     @Volatile
     private var server: HttpServer? = null
     private var executor: ExecutorService? = null
 
     @Synchronized
     fun start() {
+        startOnPort(port)
+    }
+
+    @Synchronized
+    internal fun startForTests(): Int {
+        startOnPort(0)
+        return requireNotNull(server) { "웹 메모장 테스트 서버를 시작하지 못했습니다." }.address.port
+    }
+
+    private fun startOnPort(bindPort: Int) {
         if (server != null) return
 
         val created = try {
-            HttpServer.create(InetSocketAddress(host, port), 0)
+            HttpServer.create(InetSocketAddress(host, bindPort), 0)
         } catch (error: Exception) {
             println("[WebNotepad] 로컬 서버 시작 실패: ${error.message}")
             return
@@ -105,6 +119,7 @@ object WebNotepadServer {
         executor = null
         sessions.clear()
         notes.clear()
+        laboratoryGames.clear()
     }
 
     fun issueAccessUrl(userId: Snowflake): NotepadAccessResult {
@@ -155,8 +170,23 @@ object WebNotepadServer {
             path == "/notepad" -> serveResource(exchange, "/web/notepad/index.html", "text/html; charset=utf-8")
             path == "/app.css" -> serveResource(exchange, "/web/notepad/app.css", "text/css; charset=utf-8")
             path == "/app.js" -> serveResource(exchange, "/web/notepad/app.js", "text/javascript; charset=utf-8")
+            path == "/lab" -> serveResource(exchange, "/web/lab/index.html", "text/html; charset=utf-8")
+            path == "/lab.css" -> serveResource(exchange, "/web/lab/lab.css", "text/css; charset=utf-8")
+            path == "/lab.js" -> serveResource(exchange, "/web/lab/lab.js", "text/javascript; charset=utf-8")
             path == "/session" -> exchangeSessionToken(exchange)
+            path == "/api/lab/session" -> createLaboratorySession(exchange)
+            path == "/api/lab/state" -> serveLaboratoryState(exchange)
+            path == "/api/lab/setup" -> updateLaboratorySetup(exchange)
+            path == "/api/lab/start" -> startLaboratoryGame(exchange)
+            path == "/api/lab/action" -> submitLaboratoryAction(exchange)
+            path == "/api/lab/vote" -> castLaboratoryVote(exchange)
+            path == "/api/lab/pros-cons" -> castLaboratoryProsConsVote(exchange)
+            path == "/api/lab/player-state" -> setLaboratoryPlayerState(exchange)
+            path == "/api/lab/advance" -> advanceLaboratoryGame(exchange)
+            path == "/api/lab/reset" -> resetLaboratoryGame(exchange)
             path == "/api/state" -> serveState(exchange)
+            path == "/api/events" -> serveEvents(exchange)
+            path == "/api/ability" -> useAbility(exchange)
             path == "/api/note" -> saveNote(exchange)
             path == "/health" -> sendJson(exchange, 200, buildJsonObject { put("status", "ok") })
             else -> sendText(exchange, 404, "페이지를 찾을 수 없습니다.")
@@ -195,20 +225,153 @@ object WebNotepadServer {
         }
 
         val rawToken = queryParameters(exchange)["token"]
-        val session = rawToken?.let { sessions[tokenHash(it)] }
+        val session = rawToken?.let { sessions.remove(tokenHash(it)) }
         val game = session?.let(::currentGameFor)
         if (rawToken.isNullOrBlank() || session == null || game == null) {
             sendText(exchange, 401, "유효하지 않거나 만료된 메모장 링크입니다.")
             return
         }
 
+        val sessionToken = ByteArray(32).also(secureRandom::nextBytes)
+            .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
+        sessions[tokenHash(sessionToken)] = session
+        val secureAttribute = if (publicBaseUrl.startsWith("https://", ignoreCase = true)) "; Secure" else ""
         exchange.responseHeaders.add(
             "Set-Cookie",
-            "$SESSION_COOKIE=$rawToken; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_LIFETIME_MILLIS / 1000}"
+            "$SESSION_COOKIE=$sessionToken; Path=/; HttpOnly; SameSite=Strict$secureAttribute; Max-Age=${SESSION_LIFETIME_MILLIS / 1000}"
         )
         exchange.responseHeaders.add("Location", "/notepad")
         exchange.sendResponseHeaders(303, -1)
         exchange.close()
+    }
+
+    private fun createLaboratorySession(exchange: HttpExchange) {
+        if (exchange.requestMethod != "POST") {
+            sendMethodNotAllowed(exchange, "POST")
+            return
+        }
+        if (!isSameOrigin(exchange)) {
+            sendJsonError(exchange, 403, "허용되지 않은 요청 출처입니다.")
+            return
+        }
+        val created = laboratoryGames.createSession()
+        sendJson(exchange, 201, buildJsonObject {
+            put("token", created.token)
+            put("state", laboratorySnapshotJson(created.snapshot))
+        })
+    }
+
+    private fun serveLaboratoryState(exchange: HttpExchange) {
+        if (exchange.requestMethod != "GET") {
+            sendMethodNotAllowed(exchange, "GET")
+            return
+        }
+        val snapshot = laboratoryGames.getState(laboratoryToken(exchange))
+        if (snapshot == null) {
+            sendJsonError(exchange, 401, "실험실 세션이 없거나 만료되었습니다.")
+            return
+        }
+        sendJson(exchange, 200, laboratorySnapshotJson(snapshot))
+    }
+
+    private fun updateLaboratorySetup(exchange: HttpExchange) {
+        val payload = laboratoryMutationPayload(exchange, "PUT") ?: return
+        val players = payload["players"] as? kotlinx.serialization.json.JsonArray
+        if (players == null) {
+            sendJsonError(exchange, 400, "참가자 설정이 필요합니다.")
+            return
+        }
+        val setup = players.mapNotNull { element ->
+            val player = element as? JsonObject ?: return@mapNotNull null
+            val name = player["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val jobName = player["jobName"]?.jsonPrimitive?.contentOrNull
+            LaboratoryPlayerSetup(name, jobName)
+        }
+        if (setup.size != players.size) {
+            sendJsonError(exchange, 400, "올바른 참가자 설정이 아닙니다.")
+            return
+        }
+        sendLaboratoryResult(exchange, laboratoryGames.updateSetup(laboratoryToken(exchange), setup))
+    }
+
+    private fun startLaboratoryGame(exchange: HttpExchange) {
+        if (!validateLaboratoryMutation(exchange, "POST")) return
+        sendLaboratoryResult(exchange, laboratoryGames.start(laboratoryToken(exchange)))
+    }
+
+    private fun submitLaboratoryAction(exchange: HttpExchange) {
+        val payload = laboratoryMutationPayload(exchange, "POST") ?: return
+        val actorId = payload["actorId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val abilityName = payload["abilityName"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        if (actorId.isBlank() || abilityName.isBlank()) {
+            sendJsonError(exchange, 400, "플레이어와 능력을 선택해 주세요.")
+            return
+        }
+        sendLaboratoryResult(
+            exchange,
+            laboratoryGames.submitAction(
+                token = laboratoryToken(exchange),
+                actorId = actorId,
+                abilityName = abilityName,
+                targetId = payload["targetId"]?.jsonPrimitive?.contentOrNull,
+                selectedJobName = payload["selectedJobName"]?.jsonPrimitive?.contentOrNull
+            )
+        )
+    }
+
+    private fun castLaboratoryVote(exchange: HttpExchange) {
+        val payload = laboratoryMutationPayload(exchange, "POST") ?: return
+        val voterId = payload["voterId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        if (voterId.isBlank()) {
+            sendJsonError(exchange, 400, "투표자를 선택해 주세요.")
+            return
+        }
+        sendLaboratoryResult(
+            exchange,
+            laboratoryGames.castMainVote(
+                laboratoryToken(exchange),
+                voterId,
+                payload["targetId"]?.jsonPrimitive?.contentOrNull
+            )
+        )
+    }
+
+    private fun castLaboratoryProsConsVote(exchange: HttpExchange) {
+        val payload = laboratoryMutationPayload(exchange, "POST") ?: return
+        val voterId = payload["voterId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val isPros = payload["isPros"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+        if (voterId.isBlank() || isPros == null) {
+            sendJsonError(exchange, 400, "찬반 투표 정보를 확인해 주세요.")
+            return
+        }
+        sendLaboratoryResult(
+            exchange,
+            laboratoryGames.castProsConsVote(laboratoryToken(exchange), voterId, isPros)
+        )
+    }
+
+    private fun setLaboratoryPlayerState(exchange: HttpExchange) {
+        val payload = laboratoryMutationPayload(exchange, "PUT") ?: return
+        val playerId = payload["playerId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val isAlive = payload["isAlive"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+        if (playerId.isBlank() || isAlive == null) {
+            sendJsonError(exchange, 400, "플레이어 상태 정보를 확인해 주세요.")
+            return
+        }
+        sendLaboratoryResult(
+            exchange,
+            laboratoryGames.setPlayerAlive(laboratoryToken(exchange), playerId, isAlive)
+        )
+    }
+
+    private fun advanceLaboratoryGame(exchange: HttpExchange) {
+        if (!validateLaboratoryMutation(exchange, "POST")) return
+        sendLaboratoryResult(exchange, laboratoryGames.advance(laboratoryToken(exchange)))
+    }
+
+    private fun resetLaboratoryGame(exchange: HttpExchange) {
+        if (!validateLaboratoryMutation(exchange, "POST")) return
+        sendLaboratoryResult(exchange, laboratoryGames.reset(laboratoryToken(exchange)))
     }
 
     private fun serveState(exchange: HttpExchange) {
@@ -226,6 +389,73 @@ object WebNotepadServer {
         }
 
         sendJson(exchange, 200, buildState(authenticated.game, viewer))
+    }
+
+    private fun serveEvents(exchange: HttpExchange) {
+        if (exchange.requestMethod != "GET") {
+            sendMethodNotAllowed(exchange, "GET")
+            return
+        }
+        val authenticated = authenticate(exchange) ?: return
+        val viewer = authenticated.game.getPlayer(Snowflake(authenticated.session.userId))
+        if (viewer == null) {
+            sendJsonError(exchange, 401, "게임 참가자 정보를 찾을 수 없습니다.")
+            return
+        }
+        val after = queryParameters(exchange)["after"]?.toLongOrNull()?.coerceAtLeast(0) ?: 0L
+        sendJson(exchange, 200, buildVisibleEvents(authenticated.game, viewer, after))
+    }
+
+    private fun useAbility(exchange: HttpExchange) {
+        if (exchange.requestMethod != "POST") {
+            sendMethodNotAllowed(exchange, "POST")
+            return
+        }
+        if (!isSameOrigin(exchange)) {
+            sendJsonError(exchange, 403, "허용되지 않은 요청 출처입니다.")
+            return
+        }
+        val authenticated = authenticate(exchange) ?: return
+        val caster = authenticated.game.getPlayer(Snowflake(authenticated.session.userId))
+        if (caster == null) {
+            sendJsonError(exchange, 401, "게임 참가자 정보를 찾을 수 없습니다.")
+            return
+        }
+        val requestBody = readRequestBody(exchange) ?: return
+        val payload = runCatching { json.parseToJsonElement(requestBody).jsonObject }.getOrNull()
+        if (payload == null) {
+            sendJsonError(exchange, 400, "올바른 JSON 요청이 아닙니다.")
+            return
+        }
+        val abilityName = payload["abilityName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        if (abilityName.isBlank()) {
+            sendJsonError(exchange, 400, "사용할 능력을 선택해 주세요.")
+            return
+        }
+        val targetIdText = payload["targetId"]?.jsonPrimitive?.contentOrNull
+        val target = targetIdText?.let { id ->
+            runCatching { Snowflake(id) }.getOrNull()?.let(authenticated.game::getPlayer)
+        }
+        if (targetIdText != null && target == null) {
+            sendJsonError(exchange, 400, "능력 대상을 찾을 수 없습니다.")
+            return
+        }
+        val selectedJobName = payload["selectedJobName"]?.jsonPrimitive?.contentOrNull
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+        val result = runBlocking {
+            AbilityUseCommand.executeAbility(
+                game = authenticated.game,
+                caster = caster,
+                abilityName = abilityName,
+                target = target,
+                selectedJobName = selectedJobName
+            )
+        }
+        sendJson(exchange, if (result.isSuccess) 200 else 409, buildJsonObject {
+            put("success", result.isSuccess)
+            put("message", result.message)
+        })
     }
 
     private fun saveNote(exchange: HttpExchange) {
@@ -316,6 +546,20 @@ object WebNotepadServer {
                         })
                     }
                 })
+                put("actionAbilities", buildJsonArray {
+                    AbilityUseCommand.getAbilityActionOptions(game, viewer).forEach { ability ->
+                        add(buildJsonObject {
+                            put("name", ability.name)
+                            put("description", ability.description)
+                            put("image", ability.image)
+                            put("requiresTarget", ability.requiresTarget)
+                            put("requiresJobSelection", ability.requiresJobSelection)
+                            put("selectableJobNames", buildJsonArray {
+                                ability.selectableJobNames.forEach { add(JsonPrimitive(it)) }
+                            })
+                        })
+                    }
+                })
             })
             put("players", buildJsonArray {
                 players.forEach { player ->
@@ -354,6 +598,145 @@ object WebNotepadServer {
                     }
             })
         }
+    }
+
+    private fun buildVisibleEvents(game: Game, viewer: PlayerData, after: Long): JsonObject {
+        val snapshot = synchronized(game) { game.replayLogs.toList() }
+        val lastSequence = snapshot.maxOfOrNull(ReplayLogEntry::sequence) ?: 0L
+        return buildJsonObject {
+            put("lastSequence", lastSequence)
+            put("events", buildJsonArray {
+                snapshot.asSequence()
+                    .filter { it.sequence > after }
+                    .filter { LiveEventVisibility.canView(it, viewer.member.id) }
+                    .forEach { entry ->
+                        add(buildJsonObject {
+                            put("sequence", entry.sequence)
+                            put("timestampMillis", entry.timestampMillis)
+                            put("dayCount", entry.dayCount)
+                            put("phase", entry.phase.name)
+                            put("type", entry.type.name)
+                            putNullableString("actorName", entry.actorName)
+                            put("title", entry.title)
+                            put("body", entry.body)
+                            put("imageUrls", buildJsonArray {
+                                entry.imageUrls.forEach { add(JsonPrimitive(it)) }
+                            })
+                        })
+                    }
+            })
+        }
+    }
+
+    private fun laboratorySnapshotJson(snapshot: LaboratorySnapshot): JsonObject = buildJsonObject {
+        put("phase", snapshot.phase.name)
+        put("phaseLabel", snapshot.phase.label)
+        put("dayCount", snapshot.dayCount)
+        putNullableString("defenseTargetId", snapshot.defenseTargetId)
+        put("players", buildJsonArray {
+            snapshot.players.forEach { player ->
+                add(buildJsonObject {
+                    put("id", player.id)
+                    put("name", player.name)
+                    put("isHuman", player.isHuman)
+                    put("isAlive", player.isAlive)
+                    putNullableString("jobName", player.jobName)
+                    putNullableString("jobImage", player.jobImage)
+                    put("abilities", buildJsonArray {
+                        player.abilities.forEach { ability -> add(laboratoryAbilityJson(ability)) }
+                    })
+                })
+            }
+        })
+        put("jobs", buildJsonArray {
+            snapshot.jobs.forEach { job ->
+                add(buildJsonObject {
+                    put("name", job.name)
+                    put("description", job.description)
+                    putNullableString("image", job.image)
+                    put("isEvil", job.isEvil)
+                    put("abilities", buildJsonArray {
+                        job.abilities.forEach { ability -> add(laboratoryAbilityJson(ability)) }
+                    })
+                })
+            }
+        })
+        put("actions", buildJsonArray {
+            snapshot.actions.forEach { action ->
+                add(buildJsonObject {
+                    put("actorId", action.actorId)
+                    put("actorName", action.actorName)
+                    put("abilityName", action.abilityName)
+                    putNullableString("targetId", action.targetId)
+                    putNullableString("targetName", action.targetName)
+                    putNullableString("selectedJobName", action.selectedJobName)
+                })
+            }
+        })
+        put("votes", buildJsonObject {
+            snapshot.votes.forEach { (voterId, targetId) -> putNullableString(voterId, targetId) }
+        })
+        put("prosConsVotes", buildJsonObject {
+            snapshot.prosConsVotes.forEach { (voterId, isPros) -> put(voterId, isPros) }
+        })
+        put("events", buildJsonArray {
+            snapshot.events.forEach { event ->
+                add(buildJsonObject {
+                    put("sequence", event.sequence)
+                    put("dayCount", event.dayCount)
+                    put("phase", event.phase.name)
+                    put("phaseLabel", event.phase.label)
+                    put("title", event.title)
+                    put("body", event.body)
+                })
+            }
+        })
+    }
+
+    private fun laboratoryAbilityJson(ability: LaboratoryAbilityDefinition): JsonObject = buildJsonObject {
+        put("name", ability.name)
+        put("description", ability.description)
+        put("image", ability.image)
+        put("phase", ability.phase.name)
+        put("requiresTarget", ability.requiresTarget)
+        put("requiresJobSelection", ability.requiresJobSelection)
+    }
+
+    private fun laboratoryMutationPayload(exchange: HttpExchange, method: String): JsonObject? {
+        if (!validateLaboratoryMutation(exchange, method)) return null
+        val requestBody = readRequestBody(exchange) ?: return null
+        return runCatching { json.parseToJsonElement(requestBody).jsonObject }.getOrElse {
+            sendJsonError(exchange, 400, "올바른 JSON 요청이 아닙니다.")
+            return null
+        }
+    }
+
+    private fun validateLaboratoryMutation(exchange: HttpExchange, method: String): Boolean {
+        if (exchange.requestMethod != method) {
+            sendMethodNotAllowed(exchange, method)
+            return false
+        }
+        if (!isSameOrigin(exchange)) {
+            sendJsonError(exchange, 403, "허용되지 않은 요청 출처입니다.")
+            return false
+        }
+        if (laboratoryToken(exchange).isNullOrBlank()) {
+            sendJsonError(exchange, 401, "실험실 세션이 필요합니다.")
+            return false
+        }
+        return true
+    }
+
+    private fun laboratoryToken(exchange: HttpExchange): String? =
+        exchange.requestHeaders.getFirst("X-Lab-Session")?.trim()?.takeIf(String::isNotEmpty)
+
+    private fun sendLaboratoryResult(exchange: HttpExchange, result: LaboratoryOperationResult) {
+        val status = if (result.success) 200 else if (result.message.contains("세션")) 401 else 409
+        sendJson(exchange, status, buildJsonObject {
+            put("success", result.success)
+            put("message", result.message)
+            result.snapshot?.let { put("state", laboratorySnapshotJson(it)) }
+        })
     }
 
     private fun authenticate(exchange: HttpExchange): AuthenticatedSession? {

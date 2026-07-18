@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b1116">
+    <title>마피아42 실험실</title>
+    <link rel="stylesheet" href="/lab.css">
+    <script src="/lab.js" defer></script>
+</head>
+<body>
+<div class="glow glow-a" aria-hidden="true"></div>
+<div class="glow glow-b" aria-hidden="true"></div>
+
+<main class="lab-shell">
+    <header class="lab-header">
+        <div>
+            <span class="kicker">CONTROLLED GAME ENVIRONMENT</span>
+            <h1>게임 실험실</h1>
+            <p>모든 봇의 직업, 능력, 투표와 찬반 선택을 한 화면에서 직접 통제합니다.</p>
+        </div>
+        <div class="header-actions">
+            <span class="status-pill" id="connection">연결 중</span>
+            <a class="archive-link" href="/">리플레이로 돌아가기</a>
+        </div>
+    </header>
+
+    <section class="setup-panel" id="setup-panel" hidden>
+        <div class="section-title">
+            <div>
+                <span class="kicker">EXPERIMENT SETUP</span>
+                <h2>참가자와 직업 설정</h2>
+            </div>
+            <div class="count-control">
+                <label for="player-count">전체 인원</label>
+                <input id="player-count" type="number" min="4" max="16" value="6">
+                <button id="apply-count" type="button">적용</button>
+            </div>
+        </div>
+        <p class="panel-help">첫 번째 플레이어만 본인이며, 나머지 플레이어는 모두 직접 조작하는 봇입니다. 중복 직업도 허용됩니다.</p>
+        <div class="setup-grid" id="setup-grid"></div>
+        <div class="setup-actions">
+            <button class="secondary-button" id="save-setup" type="button">설정 저장</button>
+            <button class="primary-button" id="start-game" type="button">실험 시작</button>
+        </div>
+    </section>
+
+    <div id="game-panel" hidden>
+        <section class="phase-strip">
+            <div><span>DAY</span><strong id="day-label">-</strong></div>
+            <div><span>PHASE</span><strong id="phase-label">-</strong></div>
+            <div><span>ALIVE</span><strong id="alive-label">-</strong></div>
+            <div class="phase-actions">
+                <button class="secondary-button" id="reset-game" type="button">설정으로 초기화</button>
+                <button class="primary-button" id="advance-phase" type="button">다음 단계</button>
+            </div>
+        </section>
+
+        <section class="lab-section">
+            <div class="section-title">
+                <div><span class="kicker">PLAYER CONTROL</span><h2>플레이어 상태</h2></div>
+                <p>능력 결과를 세밀하게 실험할 때 생존 상태를 직접 변경할 수 있습니다.</p>
+            </div>
+            <div class="roster-grid" id="roster-grid"></div>
+        </section>
+
+        <section class="lab-section" id="ability-section" hidden>
+            <div class="section-title">
+                <div><span class="kicker">ABILITY ORDERS</span><h2>능력 행동 결정</h2></div>
+                <p>각 플레이어가 이번 단계에 사용할 능력과 대상을 지정합니다.</p>
+            </div>
+            <div class="control-list" id="ability-controls"></div>
+        </section>
+
+        <section class="lab-section" id="vote-section" hidden>
+            <div class="section-title">
+                <div><span class="kicker">MAIN VOTE</span><h2>본투표 결정</h2></div>
+                <p>모든 생존 플레이어의 표를 직접 지정한 뒤 다음 단계로 진행하세요.</p>
+            </div>
+            <div class="control-list" id="vote-controls"></div>
+        </section>
+
+        <section class="lab-section" id="pros-cons-section" hidden>
+            <div class="section-title">
+                <div><span class="kicker">FINAL DECISION</span><h2>찬반 투표 결정</h2></div>
+                <p id="defense-target-label"></p>
+            </div>
+            <div class="control-list" id="pros-cons-controls"></div>
+        </section>
+
+        <section class="lab-section decisions-section">
+            <div class="section-title">
+                <div><span class="kicker">CURRENT INPUTS</span><h2>현재 결정 현황</h2></div>
+            </div>
+            <div class="decision-grid" id="decision-grid"></div>
+        </section>
+
+        <section class="lab-section log-section">
+            <div class="section-title">
+                <div><span class="kicker">EXPERIMENT LOG</span><h2>실험 기록</h2></div>
+            </div>
+            <div class="lab-log" id="lab-log"></div>
+        </section>
+    </div>
+
+    <div class="loading-panel" id="loading-panel">실험실을 준비하고 있습니다.</div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

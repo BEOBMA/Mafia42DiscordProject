@@ -8,6 +8,7 @@ import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.interaction.user
+import kotlinx.coroutines.sync.withLock
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
@@ -51,6 +52,20 @@ import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+
+data class AbilityActionOption(
+    val name: String,
+    val description: String,
+    val image: String,
+    val requiresTarget: Boolean,
+    val requiresJobSelection: Boolean,
+    val selectableJobNames: List<String>
+)
+
+data class AbilityActionResult(
+    val isSuccess: Boolean,
+    val message: String
+)
 
 object AbilityUseCommand : DiscordCommand {
     override val name: String = "use"
@@ -130,57 +145,105 @@ object AbilityUseCommand : DiscordCommand {
             DiscordMessageManager.respondEphemeral(event, "You must be in the current game to use an ability.")
             return
         }
-        if (caster.member.id in game.pendingNightDeathPlayerIds) {
-            DiscordMessageManager.respondEphemeral(event, "이미 암살당해 능력을 사용할 수 없습니다.")
-            return
-        }
-        if (caster.state.isSilenced && caster.job !is Mafia) {
-            DiscordMessageManager.respondEphemeral(event, "유혹 상태에서는 능력을 사용할 수 없습니다.")
-            return
-        }
-
-        val usableAbilities = getUsableActiveAbilities(game, caster)
-        if (usableAbilities.isEmpty()) {
-            DiscordMessageManager.respondEphemeral(event, "There is no active ability you can use right now.")
-            return
-        }
-
         val abilityName = interaction.command.strings[ABILITY_OPTION_NAME]
         if (abilityName == null) {
             DiscordMessageManager.respondEphemeral(event, "You must choose an ability to use.")
             return
         }
-
-        val selectedAbility = usableAbilities.firstOrNull { it.name == abilityName }
-        if (selectedAbility == null) {
-            DiscordMessageManager.respondEphemeral(event, "That ability cannot be used in the current phase.")
-            return
-        }
-        if (!FrogCurseManager.canUseActiveAbility(caster, selectedAbility)) {
-            DiscordMessageManager.respondEphemeral(event, "개구리 상태에서는 능력을 사용할 수 없습니다.")
-            return
-        }
-
         val targetDiscordUser = interaction.command.users[TARGET_OPTION_NAME]
         val target = targetDiscordUser?.let { game.getPlayer(it.id) }
+        val result = executeAbility(
+            game = game,
+            caster = caster,
+            abilityName = abilityName,
+            target = target,
+            selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
+        )
+        DiscordMessageManager.respondEphemeral(event, result.message, trackReplay = false)
+    }
+
+    fun getAbilityActionOptions(game: Game, caster: PlayerData): List<AbilityActionOption> {
+        return getUsableActiveAbilities(game, caster).map { ability ->
+            val requiresJobSelection = ability is AdministratorAbility || ability is HitManAbility
+            val selectableJobs = when (ability) {
+                is AdministratorAbility -> {
+                    val hasCooperation = caster.allAbilities.any { it is Cooperation }
+                    val hasIdentification = caster.allAbilities.any { it is Identification }
+                    JobManager.getAll()
+                        .filter { AdministratorInvestigationPolicy.isJobSelectable(it, hasCooperation, hasIdentification) }
+                        .map { it.name }
+                }
+                is HitManAbility -> JobManager.getAll()
+                    .map { it.name }
+                    .filterNot { it in game.publiclyRevealedJobNames }
+                else -> emptyList()
+            }.distinct().sorted()
+
+            AbilityActionOption(
+                name = ability.name,
+                description = ability.description,
+                image = ability.image,
+                requiresTarget = ability !is AdministratorAbility,
+                requiresJobSelection = requiresJobSelection,
+                selectableJobNames = selectableJobs
+            )
+        }
+    }
+
+    suspend fun executeAbility(
+        game: Game,
+        caster: PlayerData,
+        abilityName: String,
+        target: PlayerData?,
+        selectedJobName: String?
+    ): AbilityActionResult = game.abilityActionMutex.withLock {
+        executeAbilityLocked(game, caster, abilityName, target, selectedJobName)
+    }
+
+    private suspend fun executeAbilityLocked(
+        game: Game,
+        caster: PlayerData,
+        abilityName: String,
+        target: PlayerData?,
+        selectedJobName: String?
+    ): AbilityActionResult {
+        fun failure(message: String) = AbilityActionResult(false, message)
+
+        if (!game.isRunning) return failure("현재 게임이 진행 중이지 않습니다.")
+        if (caster.member.id in game.pendingNightDeathPlayerIds) {
+            return failure("이미 암살당해 능력을 사용할 수 없습니다.")
+        }
+        if (caster.state.isSilenced && caster.job !is Mafia) {
+            return failure("유혹 상태에서는 능력을 사용할 수 없습니다.")
+        }
+
+        val selectedAbility = getUsableActiveAbilities(game, caster).firstOrNull { it.name == abilityName }
+            ?: return failure("현재 페이즈에 사용할 수 없는 능력입니다.")
+        if (!FrogCurseManager.canUseActiveAbility(caster, selectedAbility)) {
+            return failure("개구리 상태에서는 능력을 사용할 수 없습니다.")
+        }
+        if (selectedAbility is AdministratorAbility && selectedJobName.isNullOrBlank()) {
+            return failure("조회할 직업을 선택해 주세요.")
+        }
+        if (selectedAbility is HitManAbility) {
+            if (target == null) return failure("청부 대상을 선택해 주세요.")
+            if (selectedJobName.isNullOrBlank()) return failure("대상의 직업을 선택해 주세요.")
+        }
+
         // Selection-blocking effects apply only to the player the user explicitly selected.
         // A hacker redirect points to a target chosen earlier by the hacker, so later blockers
         // on the resolved target must not invalidate the already-routed ability.
         if (isBlockedByUnwrittenRule(game, target)) {
-            DiscordMessageManager.respondEphemeral(event, "불문율에 의해 불가능합니다.")
-            return
+            return failure("불문율에 의해 불가능합니다.")
         }
         if (target != null && GameLoopManager.isMadScientistDistortionHidden(target)) {
-            DiscordMessageManager.respondEphemeral(event, deadTargetRejectedMessage(selectedAbility))
-            return
+            return failure(deadTargetRejectedMessage(selectedAbility))
         }
         if (isBlockedByBlessing(game, target)) {
-            DiscordMessageManager.respondEphemeral(event, "축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
-            return
+            return failure("축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
         }
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
         if (caster.job is MentalPatient) {
-            val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
             val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
             val message = if (result.isSuccess) {
                 result.message?.takeIf { it.isNotBlank() } ?: "Your ability was used successfully."
@@ -196,8 +259,7 @@ object AbilityUseCommand : DiscordCommand {
                 actor = caster,
                 recipients = listOf(GameReplayLogger.recipient(caster, ReplayVisibility.EPHEMERAL))
             )
-            DiscordMessageManager.respondEphemeral(event, message)
-            return
+            return AbilityActionResult(result.isSuccess, message)
         }
         val previousMafiaTarget = if (selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target
@@ -208,11 +270,9 @@ object AbilityUseCommand : DiscordCommand {
 
         val result = when (selectedAbility) {
             is AdministratorAbility -> {
-                val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
                 selectedAbility.activateWithJobName(game, caster, selectedJobName)
             }
             is HitManAbility -> {
-                val selectedJobName = interaction.command.strings[JOB_OPTION_NAME]
                 selectedAbility.activateWithJobName(game, caster, target, selectedJobName)
             }
             else -> selectedAbility.activate(game, caster, target)
@@ -255,14 +315,14 @@ object AbilityUseCommand : DiscordCommand {
                 abilityName = selectedAbility.name,
                 target = target,
                 effectiveTarget = effectiveTarget,
-                selectedJobName = interaction.command.strings[JOB_OPTION_NAME],
+                selectedJobName = selectedJobName,
                 isSuccess = result.isSuccess,
                 message = message
             ),
             actor = caster,
             recipients = listOf(GameReplayLogger.recipient(caster, ReplayVisibility.EPHEMERAL))
         )
-        DiscordMessageManager.respondEphemeral(event, message)
+        return AbilityActionResult(result.isSuccess, message)
     }
 
     private fun buildAbilityReplayBody(
