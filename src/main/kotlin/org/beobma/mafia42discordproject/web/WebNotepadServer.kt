@@ -6,6 +6,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Member
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -17,6 +18,9 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.replay.GameReplayRenderDataStore
+import org.beobma.mafia42discordproject.game.replay.ReplayArchiveRepository
+import org.beobma.mafia42discordproject.game.replay.ReplayRenderData
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
@@ -37,13 +41,21 @@ sealed interface NotepadAccessResult {
 }
 
 object WebNotepadServer {
-    private const val HOST = "127.0.0.1"
-    private const val PORT = 8080
-    private const val BASE_URL = "http://$HOST:$PORT"
+    private const val DEFAULT_HOST = "127.0.0.1"
+    private const val DEFAULT_PORT = 8080
     private const val SESSION_COOKIE = "mafia_notepad_session"
     private const val SESSION_LIFETIME_MILLIS = 8 * 60 * 60 * 1000L
     private const val MAX_REQUEST_BODY_BYTES = 8 * 1024
     private const val MAX_NOTE_LENGTH = 1_000
+
+    private val host = System.getenv("WEB_HOST")?.trim()?.takeIf(String::isNotEmpty) ?: DEFAULT_HOST
+    private val port = System.getenv("WEB_PORT")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: DEFAULT_PORT
+    private val localBaseUrl = "http://$host:$port"
+    private val publicBaseUrl = System.getenv("REPLAY_PUBLIC_BASE_URL")
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf(String::isNotEmpty)
+        ?: localBaseUrl
 
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
@@ -59,7 +71,7 @@ object WebNotepadServer {
         if (server != null) return
 
         val created = try {
-            HttpServer.create(InetSocketAddress(HOST, PORT), 0)
+            HttpServer.create(InetSocketAddress(host, port), 0)
         } catch (error: Exception) {
             println("[WebNotepad] 로컬 서버 시작 실패: ${error.message}")
             return
@@ -81,7 +93,8 @@ object WebNotepadServer {
         created.start()
         executor = createdExecutor
         server = created
-        println("[WebNotepad] 로컬 메모장: $BASE_URL")
+        println("[WebServer] 리플레이 아카이브: $publicBaseUrl")
+        println("[WebServer] 게임 메모장: $localBaseUrl/notepad")
     }
 
     @Synchronized
@@ -112,7 +125,14 @@ object WebNotepadServer {
         )
         pruneExpiredSessions(now)
 
-        return NotepadAccessResult.Success("$BASE_URL/session?token=$rawToken")
+        return NotepadAccessResult.Success("$publicBaseUrl/session?token=$rawToken")
+    }
+
+    fun replayUrl(data: ReplayRenderData): String {
+        val uuid = data.replayUuid.ifBlank {
+            GameReplayRenderDataStore.replayUuid(data.guildId, data.replayStartedAtMillis)
+        }
+        return "$publicBaseUrl/history/$uuid"
     }
 
     fun invalidateGame(game: Game) {
@@ -123,16 +143,49 @@ object WebNotepadServer {
 
     private fun route(exchange: HttpExchange) {
         setSecurityHeaders(exchange)
-        when (exchange.requestURI.path) {
-            "/" -> serveResource(exchange, "/web/notepad/index.html", "text/html; charset=utf-8")
-            "/app.css" -> serveResource(exchange, "/web/notepad/app.css", "text/css; charset=utf-8")
-            "/app.js" -> serveResource(exchange, "/web/notepad/app.js", "text/javascript; charset=utf-8")
-            "/session" -> exchangeSessionToken(exchange)
-            "/api/state" -> serveState(exchange)
-            "/api/note" -> saveNote(exchange)
-            "/health" -> sendJson(exchange, 200, buildJsonObject { put("status", "ok") })
+        val path = exchange.requestURI.path
+        when {
+            path == "/" -> serveResource(exchange, "/web/replay/index.html", "text/html; charset=utf-8")
+            path == "/replay.css" -> serveResource(exchange, "/web/replay/replay.css", "text/css; charset=utf-8")
+            path == "/replay.js" -> serveResource(exchange, "/web/replay/replay.js", "text/javascript; charset=utf-8")
+            path == "/history" || path.startsWith("/history/") ->
+                serveResource(exchange, "/web/replay/index.html", "text/html; charset=utf-8")
+            path == "/api/replays" -> serveReplayList(exchange)
+            path.startsWith("/api/replays/") -> serveReplay(exchange, path.removePrefix("/api/replays/"))
+            path == "/notepad" -> serveResource(exchange, "/web/notepad/index.html", "text/html; charset=utf-8")
+            path == "/app.css" -> serveResource(exchange, "/web/notepad/app.css", "text/css; charset=utf-8")
+            path == "/app.js" -> serveResource(exchange, "/web/notepad/app.js", "text/javascript; charset=utf-8")
+            path == "/session" -> exchangeSessionToken(exchange)
+            path == "/api/state" -> serveState(exchange)
+            path == "/api/note" -> saveNote(exchange)
+            path == "/health" -> sendJson(exchange, 200, buildJsonObject { put("status", "ok") })
             else -> sendText(exchange, 404, "페이지를 찾을 수 없습니다.")
         }
+    }
+
+    private fun serveReplayList(exchange: HttpExchange) {
+        if (exchange.requestMethod != "GET") {
+            sendMethodNotAllowed(exchange, "GET")
+            return
+        }
+        val replays = ReplayArchiveRepository.list()
+        sendJson(exchange, 200, buildJsonObject {
+            put("count", replays.size)
+            put("replays", replays)
+        })
+    }
+
+    private fun serveReplay(exchange: HttpExchange, uuid: String) {
+        if (exchange.requestMethod != "GET") {
+            sendMethodNotAllowed(exchange, "GET")
+            return
+        }
+        val replay = ReplayArchiveRepository.find(uuid)
+        if (replay == null) {
+            sendJsonError(exchange, 404, "해당 UUID의 리플레이를 찾을 수 없습니다.")
+            return
+        }
+        sendJson(exchange, 200, replay)
     }
 
     private fun exchangeSessionToken(exchange: HttpExchange) {
@@ -153,7 +206,7 @@ object WebNotepadServer {
             "Set-Cookie",
             "$SESSION_COOKIE=$rawToken; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_LIFETIME_MILLIS / 1000}"
         )
-        exchange.responseHeaders.add("Location", "/")
+        exchange.responseHeaders.add("Location", "/notepad")
         exchange.sendResponseHeaders(303, -1)
         exchange.close()
     }
@@ -346,7 +399,7 @@ object WebNotepadServer {
 
     private fun isSameOrigin(exchange: HttpExchange): Boolean {
         val origin = exchange.requestHeaders.getFirst("Origin") ?: return true
-        return origin == BASE_URL
+        return origin.trimEnd('/') == localBaseUrl || origin.trimEnd('/') == publicBaseUrl
     }
 
     private fun queryParameters(exchange: HttpExchange): Map<String, String> {
@@ -376,7 +429,7 @@ object WebNotepadServer {
         exchange.responseHeaders.set("X-Frame-Options", "DENY")
         exchange.responseHeaders.set(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data: https://cdn.discordapp.com https://media.discordapp.net https://lsvptosgnbwgsteuwstf.supabase.co; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+            "default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
     }
 
@@ -396,7 +449,7 @@ object WebNotepadServer {
         sendJson(exchange, status, buildJsonObject { put("error", message) })
     }
 
-    private fun sendJson(exchange: HttpExchange, status: Int, body: JsonObject) {
+    private fun sendJson(exchange: HttpExchange, status: Int, body: JsonElement) {
         sendBytes(
             exchange,
             status,

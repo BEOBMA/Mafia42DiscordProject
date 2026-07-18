@@ -6,12 +6,14 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.util.AtomicTextFileWriter
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 data class ReplayRenderData(
     val schemaVersion: Int = GameReplayRenderDataStore.SCHEMA_VERSION,
+    val replayUuid: String = "",
     val generatedAtMillis: Long,
     val endReason: String,
     val winningTeamName: String?,
@@ -55,7 +57,7 @@ data class ReplayRenderLogEntry(
 )
 
 object GameReplayRenderDataStore {
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
 
     private val json = Json { prettyPrint = true }
     private val renderDataDir: Path = Path.of("data", "replay-render-data")
@@ -81,6 +83,7 @@ object GameReplayRenderDataStore {
         }
 
         return ReplayRenderData(
+            replayUuid = replayUuid(game.guild.id.value.toString(), game.replayStartedAtMillis),
             generatedAtMillis = System.currentTimeMillis(),
             endReason = endReason,
             winningTeamName = winningTeamName,
@@ -109,6 +112,14 @@ object GameReplayRenderDataStore {
         }.onFailure { error ->
             println("[GameReplayRenderDataStore] 리플레이 렌더 데이터 저장 실패: ${error.message}")
         }.getOrNull()
+    }
+
+    fun replayUuid(guildId: String?, replayStartedAtMillis: Long): String {
+        val source = "${guildId.orEmpty()}:$replayStartedAtMillis"
+        return MessageDigest.getInstance("SHA-256")
+            .digest(source.toByteArray(Charsets.UTF_8))
+            .take(16)
+            .joinToString("") { byte -> "%02x".format(byte) }
     }
 
     private fun ReplayLogEntry.toRenderLogEntry(): ReplayRenderLogEntry {
@@ -141,6 +152,10 @@ object GameReplayRenderDataStore {
     private fun toJson(data: ReplayRenderData): JsonObject {
         return buildJsonObject {
             put("schemaVersion", data.schemaVersion)
+            put(
+                "replayUuid",
+                data.replayUuid.ifBlank { replayUuid(data.guildId, data.replayStartedAtMillis) }
+            )
             put("generatedAtMillis", data.generatedAtMillis)
             put("endReason", data.endReason)
             putNullable("winningTeamName", data.winningTeamName)

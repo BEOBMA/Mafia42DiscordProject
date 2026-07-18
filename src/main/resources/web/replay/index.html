@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#090b10">
+    <title>게임 리플레이 아카이브</title>
+    <link rel="stylesheet" href="/replay.css">
+    <script src="/replay.js" defer></script>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+<header class="site-header">
+    <a class="brand" href="/" aria-label="리플레이 아카이브 홈">
+        <span class="brand-mark">42</span>
+        <span><strong>MAFIA ARCHIVE</strong><small>GAME REPLAY DATABASE</small></span>
+    </a>
+    <a class="archive-link" href="/">전체 리플레이</a>
+</header>
+
+<main id="app" class="site-main" aria-live="polite">
+    <section class="loading-state" id="loading-state">
+        <span class="loading-ring" aria-hidden="true"></span>
+        <p>리플레이 기록을 불러오는 중입니다.</p>
+    </section>
+</main>
+
+<template id="error-template">
+    <section class="empty-state panel">
+        <span class="empty-code">404</span>
+        <h1>리플레이를 찾을 수 없습니다</h1>
+        <p class="empty-message">UUID를 다시 확인하거나 전체 아카이브에서 게임을 선택해 주세요.</p>
+        <a class="primary-button" href="/">아카이브로 돌아가기</a>
+    </section>
+</template>
+</body>
+</html>
