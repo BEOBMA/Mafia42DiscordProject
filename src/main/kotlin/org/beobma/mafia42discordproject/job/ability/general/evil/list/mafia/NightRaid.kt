@@ -1,7 +1,9 @@
 package org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia
 
 import org.beobma.mafia42discordproject.game.DawnPresentation
+import org.beobma.mafia42discordproject.game.DawnAnnouncement
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.loop.MAFIA_EXECUTION_SOUND_PATH
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.job.Job
@@ -28,9 +30,19 @@ class NightRaid : JobSpecificExtraAbility, PassiveAbility {
         mafiaAttack.target.state.isJobPubliclyRevealed = true
         game.publiclyRevealedJobNames += Doctor().name
 
-        event.presentation = DawnPresentation(
+        val announcement = DawnAnnouncement(
             imageUrl = nightRaidImageUrl,
-            message = "의사 ${mafiaAttack.target.member.effectiveName}님이 마피아의 야습으로 사망하였습니다."
+            message = "의사 ${mafiaAttack.target.member.effectiveName}님이 마피아의 야습으로 사망하였습니다.",
+            priority = 0,
+            targetId = mafiaAttack.target.member.id,
+            soundPath = MAFIA_EXECUTION_SOUND_PATH
+        )
+        event.presentation = DawnPresentation(
+            imageUrl = announcement.imageUrl,
+            message = announcement.message,
+            announcements = listOf(announcement) + event.presentation.announcements.filterNot {
+                it.priority == 0 && it.targetId == mafiaAttack.target.member.id
+            }
         )
     }
 }

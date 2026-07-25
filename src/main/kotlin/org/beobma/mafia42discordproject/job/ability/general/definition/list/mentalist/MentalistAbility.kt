@@ -3,11 +3,14 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.men
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Mentalist
-import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 import kotlin.random.Random
 
 class MentalistAbility : ActiveAbility, JobUniqueAbility {
@@ -17,7 +20,7 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
-        if (game.currentPhase != usablePhase) {
+        if (game.currentPhase != usablePhase && !(caster.job is Thief && game.currentPhase == GamePhase.VOTE)) {
             return AbilityResult(false, "관찰은 낮에만 사용할 수 있습니다.")
         }
         if (caster.state.isDead) {
@@ -33,8 +36,8 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "자기 자신은 관찰 대상으로 지정할 수 없습니다.")
         }
 
-        val mentalist = caster.job as? Mentalist
-            ?: return AbilityResult(false, "심리학자만 사용할 수 있습니다.")
+        val mentalist = caster.actualOrStolenJob<Mentalist>()
+            ?: return AbilityResult(false, "심리학자 또는 관찰 능력을 훔친 도둑만 사용할 수 있습니다.")
 
         if (mentalist.isObservationResolvedToday) {
             return AbilityResult(false, "오늘은 이미 같은 팀을 확인했습니다.")
@@ -98,9 +101,9 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private fun isSameTeam(first: PlayerData, second: PlayerData): Boolean {
-        val firstIsEvil = first.job is Evil
-        val secondIsEvil = second.job is Evil
-        return firstIsEvil == secondIsEvil
+        val firstDisplayedTeam = InvestigationTeam.of(FrogCurseManager.displayedJob(first))
+        val secondDisplayedTeam = InvestigationTeam.of(FrogCurseManager.displayedJob(second))
+        return firstDisplayedTeam == secondDisplayedTeam
     }
 
     private fun buildProfilingMessage(
@@ -114,6 +117,7 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
 
         val profiledTarget = if (Random.nextBoolean()) initialTarget else lastTarget
         val usedTargetId = game.abilityTargetByUserThisPhase[profiledTarget.member.id]
+            ?: game.lastNightAbilityTargetByUser[profiledTarget.member.id]
             ?: return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님의 능력 사용 대상을 확인할 수 없습니다."
 
         val usedTargetPlayerName = game.getPlayer(usedTargetId)?.member?.effectiveName ?: "알 수 없음"

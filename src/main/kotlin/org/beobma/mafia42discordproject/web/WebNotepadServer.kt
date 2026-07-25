@@ -516,6 +516,10 @@ object WebNotepadServer {
         val gameKey = game.key()
         val players = game.playerDatas.toList()
         val viewerDisplayJob = (viewer.job as? MentalPatient)?.displayedJob ?: viewer.job
+        val viewerMemoJob = game.privateDisplayedJobNamesByObserver[viewer.member.id]
+            ?.get(viewer.member.id)
+            ?.let(JobManager::findByName)
+            ?: viewerDisplayJob
         val viewerAbilities = when (val actualJob = viewer.job) {
             is MentalPatient -> actualJob.activeAbilitySourceAbilities()
             else -> viewer.allAbilities
@@ -536,7 +540,7 @@ object WebNotepadServer {
                 put("id", viewer.member.id.value.toString())
                 put("name", viewer.member.effectiveName)
                 put("avatarUrl", viewer.member.avatarUrl())
-                putNullableJob("job", viewerDisplayJob)
+                putNullableJob("job", viewerMemoJob)
                 put("abilities", buildJsonArray {
                     viewerAbilities.forEach { ability ->
                         add(buildJsonObject {
@@ -565,8 +569,12 @@ object WebNotepadServer {
                 players.forEach { player ->
                     val isSelf = player.member.id == viewer.member.id
                     val isPublic = player.state.isJobPubliclyRevealed
+                    val privateMemoJob = game.privateDisplayedJobNamesByObserver[viewer.member.id]
+                        ?.get(player.member.id)
+                        ?.let(JobManager::findByName)
                     val visibleJob = when {
-                        isSelf -> viewerDisplayJob
+                        privateMemoJob != null -> privateMemoJob
+                        isSelf -> viewerMemoJob
                         isPublic -> FrogCurseManager.displayedJob(player)
                         else -> null
                     }

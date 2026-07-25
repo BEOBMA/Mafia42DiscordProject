@@ -9,6 +9,8 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
+import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class SunCabalAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "밀사"
@@ -17,7 +19,7 @@ class SunCabalAbility : ActiveAbility, JobUniqueAbility {
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
-        if (game.currentPhase != usablePhase) {
+        if (game.currentPhase != usablePhase && !(caster.job is Thief && game.currentPhase == GamePhase.VOTE)) {
             return AbilityResult(false, "낮에만 사용할 수 있습니다.")
         }
 
@@ -25,8 +27,18 @@ class SunCabalAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 상태에서는 사용할 수 없습니다.")
         }
 
-        val cabal = caster.job as? Cabal
-            ?: return AbilityResult(false, "비밀결사가 아닙니다.")
+        val cabal = caster.actualOrStolenJob<Cabal>()
+            ?: return AbilityResult(false, "비밀결사 또는 밀사 능력을 훔친 도둑이 아닙니다.")
+
+        if (caster.job is Thief) {
+            if (target == null || target.state.isDead) {
+                return AbilityResult(false, "조사할 생존 플레이어를 지정해야 합니다.")
+            }
+            val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+            val result = if (effectiveTarget.job is Cabal) "비밀결사입니다." else "비밀결사가 아닙니다."
+            cabal.selectedTargetId = effectiveTarget.member.id
+            return AbilityResult(true, "${target.member.effectiveName}님은 $result")
+        }
 
         if (cabal.role != CabalRole.SUN) {
             return AbilityResult(false, "해 비밀결사에게만 주어진 능력입니다.")

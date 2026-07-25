@@ -10,12 +10,11 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.FortunetellerNotificationManager
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
-import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.definition.list.Fortuneteller
-import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
@@ -59,12 +58,12 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
     private fun sendFortuneResultImmediately(game: Game, fortuneteller: PlayerData, target: PlayerData) {
         val targetShownJob = FrogCurseManager.displayedJob(target) ?: return
         val targetJobName = targetShownJob.name
-        val targetTeam = fortuneTeamOf(targetShownJob)
+        val targetTeam = InvestigationTeam.of(targetShownJob)
         val gameShownJobs = game.playerDatas.mapNotNull { FrogCurseManager.displayedJob(it) }
         if (gameShownJobs.isEmpty()) return
 
         val differentTeamJobNames = gameShownJobs
-            .filter { fortuneTeamOf(it) != targetTeam }
+            .filter { InvestigationTeam.of(it) != targetTeam }
             .map { it.name }
             .filter { it != targetJobName }
             .distinct()
@@ -136,15 +135,6 @@ class FortunetellerAbility : ActiveAbility, JobUniqueAbility {
         }
 
         return selected.take(2)
-    }
-
-    private fun fortuneTeamOf(job: Job): FortuneTeam {
-        return if (job is Evil) FortuneTeam.MAFIA else FortuneTeam.CITIZEN
-    }
-
-    private enum class FortuneTeam {
-        CITIZEN,
-        MAFIA
     }
 
     companion object {

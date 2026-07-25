@@ -26,6 +26,14 @@ class Resurrection : ActiveAbility, JobUniqueAbility {
         if (caster.state.hasUsedOneTimeAbility) {
             return AbilityResult(false, "소생 능력은 이미 사용했습니다.")
         }
+        val sourcePriestHasUsedResurrection = (caster.job as? Thief)
+            ?.stolenSourcePlayerId
+            ?.let(game::getPlayer)
+            ?.state
+            ?.hasUsedOneTimeAbility == true
+        if (sourcePriestHasUsedResurrection) {
+            return AbilityResult(false, "원래 성직자가 이미 소생 능력을 사용했습니다.")
+        }
         if (target == null) {
             return AbilityResult(false, "소생할 대상을 지정해야 합니다.")
         }

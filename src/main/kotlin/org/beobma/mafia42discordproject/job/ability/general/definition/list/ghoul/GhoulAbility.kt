@@ -62,6 +62,7 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
         newJob.extraAbilities.addAll(mergedExtras.values)
 
         owner.job = newJob
+        owner.state.hasCompletedGraveRobbing = true
         owner.state.isJobPubliclyRevealed = false
         game.graveRobTargetsByGhoul[owner.member.id] = victim.member.id
         triggerInheritedFirstDayAbilities(game, owner, inheritedExtraAbilities)
@@ -74,18 +75,17 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             revealedJob = originalVictimJob,
             sourceAbilityName = name,
             resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN,
-            note = buildStealNote(originalVictimJob.name, inheritedExtraAbilityNames),
+            note = buildStealNote(inheritedExtraAbilityNames),
             imageUrl = SystemImage.GHOUL_GRAVE_ROBBING_SUCCESS.imageUrl
         )
     }
 
-    private fun buildStealNote(originalJobName: String, inheritedExtraAbilityNames: List<String>): String {
-        val inheritedPart = if (inheritedExtraAbilityNames.isNotEmpty()) {
+    private fun buildStealNote(inheritedExtraAbilityNames: List<String>): String {
+        return if (inheritedExtraAbilityNames.isNotEmpty()) {
             "${inheritedExtraAbilityNames.distinct().joinToString(", ")} 스킬을 계승 받았습니다."
         } else {
             ""
         }
-        return "$originalJobName 직업을 획득하였습니다.\n$inheritedPart"
     }
 
     private fun cloneAbility(ability: Ability): Ability {

@@ -16,6 +16,7 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Citizen
 import org.beobma.mafia42discordproject.job.definition.list.Hypnotist
 import org.beobma.mafia42discordproject.job.evil.Evil
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "최면"
@@ -35,8 +36,8 @@ class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         }
 
-        val hypnotist = caster.job as? Hypnotist
-            ?: return AbilityResult(false, "최면술사만 사용할 수 있습니다.")
+        val hypnotist = caster.actualOrStolenJob<Hypnotist>()
+            ?: return AbilityResult(false, "최면술사 또는 최면 능력을 훔친 도둑만 사용할 수 있습니다.")
 
         if (hypnotist.blockedNightsRemaining > 0) {
             return AbilityResult(false, "지난 낮에 최면을 해제하여 오늘 밤에는 최면을 걸 수 없습니다.")
@@ -105,11 +106,6 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                 resolvedAt = DiscoveryStep.DAY,
                 notifyTarget = false
             )
-        }
-        discoveries.forEach { discovery ->
-            FrogCurseManager.displayedJob(discovery.target)?.let { shownJob ->
-                discovery.revealedJob = shownJob
-            }
         }
 
         hypnotist.hypnotizedTargetIds.clear()

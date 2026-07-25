@@ -9,6 +9,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -50,6 +51,7 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
         detective?.fixedReasoningTargetId = effectiveTarget.member.id
         thief?.stolenDetectiveTargetId = effectiveTarget.member.id
+        game.detectiveRouteOwnerByObservedPlayerId[effectiveTarget.member.id] = caster.member.id
         return AbilityResult(true, "${target.member.effectiveName}님을 추리 대상으로 지정했습니다.")
     }
 
@@ -73,6 +75,8 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
             val aliveDetectives = game.playerDatas.filter { player ->
                 !player.state.isDead &&
+                    !FrogCurseManager.shouldSuppressPassive(player) &&
+                    game.detectiveRouteOwnerByObservedPlayerId[caster.member.id] == player.member.id &&
                     ((player.job as? Detective)?.fixedReasoningTargetId == caster.member.id ||
                         (player.job as? Thief)?.stolenDetectiveTargetId == caster.member.id)
             }

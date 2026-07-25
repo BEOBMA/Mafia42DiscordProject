@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.other.BeautyTrap
 import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.evil.list.Swindler
 
@@ -78,6 +79,7 @@ object SwindlerManager {
     fun notifyBeautyTrap(target: PlayerData, discoverer: PlayerData) {
         if (discoverer.job !is Definition) return
         if (target.job !is Swindler && target.job !is org.beobma.mafia42discordproject.job.evil.list.Spy) return
+        if (target.allAbilities.none { it is BeautyTrap }) return
         if (target.state.isDead) return
 
         val discovererJobName = discoverer.job?.name ?: "알 수 없음"

@@ -10,6 +10,7 @@ import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.game.system.SwindlerManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -19,6 +20,7 @@ import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.definition.list.Agent
 import org.beobma.mafia42discordproject.job.definition.list.Doctor
 import org.beobma.mafia42discordproject.job.evil.list.Swindler
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class AgentOperation : JobUniqueAbility, PassiveAbility {
     override val name: String = "공작"
@@ -38,12 +40,17 @@ class AgentOperation : JobUniqueAbility, PassiveAbility {
             if (owner.state.isDead) return
             if (FrogCurseManager.shouldSuppressPassive(owner)) return
 
-            val agentJob = owner.job as? Agent ?: return
+            val agentJob = owner.actualOrStolenJob<Agent>() ?: return
             val candidates = game.playerDatas
                 .asSequence()
                 .filter { !it.state.isDead }
                 .filter { it.member.id != owner.member.id }
-                .filter { it.job is Definition || shouldApplyHypocrisyToOperation(game, it) }
+                .filter { candidate ->
+                    val displayedJob = FrogCurseManager.displayedJob(candidate)
+                    shouldApplyHypocrisyToOperation(game, candidate) ||
+                        (displayedJob is Definition &&
+                            InvestigationTeam.of(displayedJob) == InvestigationTeam.CITIZEN)
+                }
                 .filter { !it.state.isJobPubliclyRevealed }
                 .filter { it.member.id !in agentJob.discoveredCitizenTargetIds }
                 .toList()

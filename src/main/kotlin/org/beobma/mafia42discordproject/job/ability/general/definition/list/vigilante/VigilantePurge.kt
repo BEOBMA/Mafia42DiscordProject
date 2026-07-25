@@ -9,13 +9,13 @@ import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
 import org.beobma.mafia42discordproject.job.evil.Evil
-import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
@@ -25,7 +25,7 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
-        if (game.currentPhase != usablePhase) {
+        if (game.currentPhase != usablePhase && !(caster.job is Thief && game.currentPhase == GamePhase.VOTE)) {
             return AbilityResult(false, "숙청은 낮에만 사용할 수 있습니다.")
         }
         if (caster.state.isDead) {
@@ -42,9 +42,12 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val vigilante = caster.job as? Vigilante
-            ?: return AbilityResult(false, "자경단원만 숙청 능력을 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (vigilante == null && thief == null) {
+            return AbilityResult(false, "자경단원 또는 숙청 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
 
-        if (vigilante.fixedPurgeTargetId != null) {
+        if (vigilante?.fixedPurgeTargetId != null || thief?.stolenPoliceSearchedTargetIds?.isNotEmpty() == true) {
             return AbilityResult(false, "한번 정한 숙청 대상은 변경할 수 없습니다.")
         }
 
@@ -52,15 +55,16 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
-            isMafia = effectiveTarget.job is Mafia
+            isMafia = InvestigationTeam.isMafia(effectiveTarget)
         )
         dispatchPassiveEvent(game, searchEvent)
 
-        vigilante.fixedPurgeTargetId = effectiveTarget.member.id
-        vigilante.hasDiscoveredMafiaTarget = searchEvent.isMafia
-        vigilante.discoveredMafiaDayCount = if (vigilante.hasDiscoveredMafiaTarget) game.dayCount else null
+        vigilante?.fixedPurgeTargetId = effectiveTarget.member.id
+        vigilante?.hasDiscoveredMafiaTarget = searchEvent.isMafia
+        vigilante?.discoveredMafiaDayCount = if (searchEvent.isMafia) game.dayCount else null
+        thief?.stolenPoliceSearchedTargetIds?.add(effectiveTarget.member.id)
 
-        return if (vigilante.hasDiscoveredMafiaTarget) {
+        return if (searchEvent.isMafia) {
             dispatchMafiaDiscoveryEvent(game, caster, effectiveTarget)
             AbilityResult(
                 true,
@@ -72,7 +76,7 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
     }
 
     private fun dispatchMafiaDiscoveryEvent(game: Game, caster: PlayerData, target: PlayerData) {
-        val targetJob = target.job as? Mafia ?: return
+        val targetJob = target.job ?: return
         val discoveryEvent = GameEvent.JobDiscovered(
             discoverer = caster,
             target = target,
@@ -136,7 +140,7 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "숙청 대상이 이미 사망했습니다.")
         }
 
-        if (!isKnownEnemyTarget(caster, selectedTarget, vigilante)) {
+        if (!isKnownEnemyTarget(caster, selectedTarget, vigilante, thief)) {
             return AbilityResult(false, "알고 있는 적팀만 숙청할 수 있습니다.")
         }
 
@@ -158,13 +162,21 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
     private fun isKnownEnemyTarget(
         caster: PlayerData,
         target: PlayerData,
-        vigilante: Vigilante?
+        vigilante: Vigilante?,
+        thief: Thief?
     ): Boolean {
         val isDiscoveredMafiaTarget = vigilante != null &&
             target.member.id == vigilante.fixedPurgeTargetId &&
             vigilante.hasDiscoveredMafiaTarget &&
             vigilante.discoveredMafiaDayCount != null
         if (isDiscoveredMafiaTarget) return true
+        if (
+            thief != null &&
+            target.member.id in thief.stolenPoliceSearchedTargetIds &&
+            target.job !is Evil
+        ) {
+            return true
+        }
 
         return target.state.isJobPubliclyRevealed && isEnemy(caster, target)
     }

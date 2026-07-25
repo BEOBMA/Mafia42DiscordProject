@@ -14,6 +14,8 @@ import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.list.Reporter
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class ReporterAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "특종"
@@ -38,8 +40,15 @@ class ReporterAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "사망한 플레이어는 취재 대상으로 지정할 수 없습니다.")
         }
 
-        val reporter = caster.job as? Reporter
-            ?: return AbilityResult(false, "기자만 특종을 사용할 수 있습니다.")
+        val reporter = caster.actualOrStolenJob<Reporter>()
+            ?: return AbilityResult(false, "기자 또는 특종 능력을 훔친 도둑만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        val sourceReporter = thief?.stolenSourcePlayerId
+            ?.let(game::getPlayer)
+            ?.job as? Reporter
+        if (sourceReporter?.hasUsedScoop == true) {
+            return AbilityResult(false, "원래 기자가 이미 특종을 사용했습니다.")
+        }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val fixedTargetId = reporter.selectedTargetId

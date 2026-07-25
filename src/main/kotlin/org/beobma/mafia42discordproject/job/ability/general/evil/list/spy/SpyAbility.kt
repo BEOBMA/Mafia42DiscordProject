@@ -108,6 +108,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         fun applyAutopsyOnDeath(game: Game, victim: PlayerData) {
             game.playerDatas.forEach { spyPlayer ->
                 if (spyPlayer.state.isDead) return@forEach
+                if (FrogCurseManager.shouldSuppressPassive(spyPlayer)) return@forEach
                 if (spyPlayer.member.id == victim.member.id) return@forEach
 
                 val spyJob = spyPlayer.job as? Spy ?: return@forEach

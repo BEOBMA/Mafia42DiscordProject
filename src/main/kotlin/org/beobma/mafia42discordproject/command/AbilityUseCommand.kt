@@ -43,15 +43,18 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.SoulRelease
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.vigilante.VigilantePurgeDayAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.witch.WitchAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.spy.SpyAbility
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.thief.ThiefAbility
 import org.beobma.mafia42discordproject.job.definition.list.Cabal
 import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 data class AbilityActionOption(
     val name: String,
@@ -220,7 +223,7 @@ object AbilityUseCommand : DiscordCommand {
         val selectedAbility = getUsableActiveAbilities(game, caster).firstOrNull { it.name == abilityName }
             ?: return failure("현재 페이즈에 사용할 수 없는 능력입니다.")
         if (!FrogCurseManager.canUseActiveAbility(caster, selectedAbility)) {
-            return failure("개구리 상태에서는 능력을 사용할 수 없습니다.")
+            return failure(FrogCurseManager.abilityBlockedMessage(caster))
         }
         if (selectedAbility is AdministratorAbility && selectedJobName.isNullOrBlank()) {
             return failure("조회할 직업을 선택해 주세요.")
@@ -233,16 +236,27 @@ object AbilityUseCommand : DiscordCommand {
         // Selection-blocking effects apply only to the player the user explicitly selected.
         // A hacker redirect points to a target chosen earlier by the hacker, so later blockers
         // on the resolved target must not invalidate the already-routed ability.
-        if (isBlockedByUnwrittenRule(game, target)) {
+        if (selectedAbility !is ThiefAbility && isBlockedByUnwrittenRule(game, target)) {
             return failure("불문율에 의해 불가능합니다.")
         }
-        if (target != null && GameLoopManager.isMadScientistDistortionHidden(target)) {
+        if (
+            selectedAbility !is ThiefAbility &&
+            target != null &&
+            GameLoopManager.isMadScientistDistortionHidden(target)
+        ) {
             return failure(deadTargetRejectedMessage(selectedAbility))
         }
-        if (isBlockedByBlessing(game, target)) {
+        if (selectedAbility !is ThiefAbility && isBlockedByBlessing(game, target)) {
             return failure("축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
         }
-        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target)
+        val initiallyResolvedTarget = if (
+            selectedAbility is WitchAbility ||
+            selectedAbility is ThiefAbility
+        ) {
+            target
+        } else {
+            HackerRedirectManager.resolveTarget(game, target)
+        }
         if (caster.job is MentalPatient) {
             val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
             val message = if (result.isSuccess) {
@@ -277,11 +291,27 @@ object AbilityUseCommand : DiscordCommand {
             }
             else -> selectedAbility.activate(game, caster, target)
         }
+        val effectiveTarget = if (result.isSuccess && selectedAbility is MafiaAbility) {
+            game.nightAttacks["MAFIA_TEAM"]?.target ?: initiallyResolvedTarget
+        } else {
+            initiallyResolvedTarget
+        }
 
         if (result.isSuccess) {
             game.abilityUsersThisPhase += caster.member.id
             if (effectiveTarget != null) {
                 game.abilityTargetByUserThisPhase[caster.member.id] = effectiveTarget.member.id
+                if (selectedAbility is MafiaAbility) {
+                    game.playerDatas
+                        .filter { player ->
+                            !player.state.isDead &&
+                                player.allAbilities.any { it is MafiaAbility }
+                        }
+                        .forEach { sharedGunUser ->
+                            game.abilityUsersThisPhase += sharedGunUser.member.id
+                            game.abilityTargetByUserThisPhase[sharedGunUser.member.id] = effectiveTarget.member.id
+                        }
+                }
             } else {
                 game.abilityTargetByUserThisPhase.remove(caster.member.id)
             }
@@ -293,12 +323,22 @@ object AbilityUseCommand : DiscordCommand {
         if (result.isSuccess && effectiveTarget != null) {
             SwindlerManager.notifyBeautyTrap(effectiveTarget, caster)
             Humint.notifyIfTriggered(game, caster, effectiveTarget)
-            DetectiveAbility.notifyTargetSelection(
-                game = game,
-                caster = caster,
-                selectedTarget = effectiveTarget,
-                previousTargetId = previousAbilityTargetId
-            )
+            val observedCasters = if (selectedAbility is MafiaAbility) {
+                game.playerDatas.filter { player ->
+                    !player.state.isDead &&
+                        player.allAbilities.any { it is MafiaAbility }
+                }
+            } else {
+                listOf(caster)
+            }
+            observedCasters.forEach { observedCaster ->
+                DetectiveAbility.notifyTargetSelection(
+                    game = game,
+                    caster = observedCaster,
+                    selectedTarget = effectiveTarget,
+                    previousTargetId = if (observedCaster == caster) previousAbilityTargetId else null
+                )
+            }
         }
 
         val message = if (result.isSuccess) {
@@ -593,14 +633,39 @@ object AbilityUseCommand : DiscordCommand {
             ?: caster.allAbilities
         return abilitySource
             .filterIsInstance<ActiveAbility>()
-            .filter { it.usablePhase == game.currentPhase }
+            .filter { ability ->
+                ability.usablePhase == game.currentPhase ||
+                    (
+                        caster.job is Thief &&
+                            game.currentPhase == GamePhase.VOTE &&
+                            ability is HackerAbility
+                    ) ||
+                    (
+                        caster.job is Thief &&
+                            game.currentPhase == GamePhase.VOTE &&
+                            ability is VigilantePurgeDayAbility
+                    ) ||
+                    (
+                        caster.job is Thief &&
+                            game.currentPhase == GamePhase.VOTE &&
+                            ability is MentalistAbility
+                    ) ||
+                    (
+                        caster.job is Thief &&
+                            game.currentPhase == GamePhase.VOTE &&
+                            ability is SunCabalAbility
+                    )
+            }
             .filter { canUseCabalActiveAbility(game, caster, it) }
             .filter { ability ->
+                val canDisplayThroughCurse =
+                    caster.state.isFrogCurseHiddenFromSelf ||
+                        FrogCurseManager.canUseActiveAbility(caster, ability)
                 if (ability is GodfatherAbility) {
                     GodfatherContactPolicy.canUseExecution(game, caster) &&
-                        FrogCurseManager.canUseActiveAbility(caster, ability)
+                        canDisplayThroughCurse
                 } else {
-                    FrogCurseManager.canUseActiveAbility(caster, ability)
+                    canDisplayThroughCurse
                 }
             }
     }

@@ -4,11 +4,12 @@ import dev.kord.common.entity.Snowflake
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 object AdministratorInvestigationNotificationManager {
     suspend fun notifyResults(game: Game) {
         game.playerDatas.forEach { player ->
-            val administrator = player.job as? Administrator ?: return@forEach
+            val administrator = player.actualOrStolenJob<Administrator>() ?: return@forEach
             val selectedJob = administrator.selectedInvestigationJobName
             if (selectedJob.isNullOrBlank()) return@forEach
 

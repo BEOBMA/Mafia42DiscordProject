@@ -14,6 +14,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class SoulRelease : ActiveAbility, JobUniqueAbility {
     override val name: String = "성불"
@@ -43,6 +44,12 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         val isEarthbound = target.allAbilities.any { it is EarthboundSpirit }
         if (!isEarthbound && ShamaningPolicy.canBeShamaned(target)) {
             target.state.isShamaned = true
+        }
+        if (caster.job is Thief && target.state.isShamaned) {
+            game.privateDisplayedJobNamesByObserver
+                .getOrPut(caster.member.id, ::mutableMapOf)[caster.member.id] = "영매"
+            game.privateDisplayedJobNamesByObserver
+                .getOrPut(target.member.id, ::mutableMapOf)[caster.member.id] = "영매"
         }
         caster.state.hasUsedDailyAbility = true
         val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"

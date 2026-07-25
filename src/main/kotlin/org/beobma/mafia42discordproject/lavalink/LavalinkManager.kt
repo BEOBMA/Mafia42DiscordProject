@@ -182,8 +182,6 @@ object LavalinkManager {
                 kord = kord,
                 state = playbackState
             )
-        } else {
-            loopingPlaybacks.remove(guildIdString)
         }
 
         return PlayResult(true, "재생 성공")
@@ -193,9 +191,8 @@ object LavalinkManager {
         if (!initialized) return
 
         val guildIdString = guildId.toString()
-        val loopingPlayback = loopingPlaybacks.remove(guildIdString) ?: return
+        if (loopingPlaybacks.remove(guildIdString) == null) return
         val currentPlayback = currentPlaybacks[guildIdString]
-        if (currentPlayback?.encoded != loopingPlayback.state.encoded) return
 
         val currentSessionId = sessionId ?: return
         runCatching {
@@ -203,7 +200,9 @@ object LavalinkManager {
                 url = "${baseHttpUrl()}/v4/sessions/$currentSessionId/players/${guildId.value}",
                 body = """{"encodedTrack":null}"""
             )
-            currentPlaybacks.remove(guildIdString, currentPlayback)
+            if (currentPlayback != null) {
+                currentPlaybacks.remove(guildIdString, currentPlayback)
+            }
         }.onFailure { error ->
             println("⚠️ Lavalink looping playback stop failed(guildId=${guildId.value}): ${error.message}")
         }
@@ -445,13 +444,13 @@ object LavalinkManager {
         val endedTrack = jsonMessage["track"]?.jsonObject?.stringOrNull("encoded") ?: return
         val currentPlayback = currentPlaybacks[guildId]
 
+        if (currentPlayback != null && currentPlayback.encoded != endedTrack) return
         if (currentPlayback?.encoded == endedTrack) {
             currentPlaybacks.remove(guildId, currentPlayback)
         }
 
-        if (reason != "FINISHED") return
+        if (!reason.equals("finished", ignoreCase = true)) return
         val loopingPlayback = loopingPlaybacks[guildId] ?: return
-        if (loopingPlayback.state.encoded != endedTrack) return
 
         playbackScope.launch {
             val result = play(

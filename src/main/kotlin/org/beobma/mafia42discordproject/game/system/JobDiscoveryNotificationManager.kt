@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.game.system
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.reporter.ReporterAssets
+import org.beobma.mafia42discordproject.job.evil.Evil
 
 object JobDiscoveryNotificationManager {
     private const val HACKER_SUCCESS_IMAGE_URL =
@@ -41,15 +42,7 @@ object JobDiscoveryNotificationManager {
                     return@forEach
                 }
 
-                if (event.notifyTarget) {
-                    runCatching {
-                        val message = buildTargetNotificationMessage(event)
-                        if (game != null) {
-                            GameReplayLogger.logDirectMessage(game, event.target, message, "직업 발견 알림")
-                        }
-                        event.target.member.getDmChannel().createMessage(message)
-                    }
-                }
+                notifyDiscoveredTarget(event, game)
                 runCatching {
                     val message = buildDiscovererNotificationMessage(event)
                     if (game != null) {
@@ -58,6 +51,21 @@ object JobDiscoveryNotificationManager {
                     event.discoverer.member.getDmChannel().createMessage(message)
                 }
             }
+    }
+
+    suspend fun notifyDiscoveredTarget(
+        event: GameEvent.JobDiscovered,
+        game: org.beobma.mafia42discordproject.game.Game? = null
+    ) {
+        if (event.isCancelled || event.isPublicReveal || !event.notifyTarget) return
+
+        runCatching {
+            val message = buildTargetNotificationMessage(event)
+            if (game != null) {
+                GameReplayLogger.logDirectMessage(game, event.target, message, "직업 발견 알림")
+            }
+            event.target.member.getDmChannel().createMessage(message)
+        }
     }
 
     private fun buildDiscovererNotificationMessage(event: GameEvent.JobDiscovered): String {
@@ -127,8 +135,9 @@ object JobDiscoveryNotificationManager {
             return "해커 ${event.discoverer.member.effectiveName}님이 자신의 정보를 전송하였습니다.\n$HACKER_SYNC_IMAGE_URL"
         }
         if (event.sourceAbilityName == "도굴") {
+            val convertedJobName = if (event.actualJob is Evil) "악인" else "시민"
             return buildString {
-                append("도굴꾼 (${event.discoverer.member.effectiveName}) 님에게 도굴당해 직업이 시민으로 변경되었습니다.")
+                append("도굴꾼 (${event.discoverer.member.effectiveName}) 님에게 도굴당해 직업이 ${convertedJobName}으로 변경되었습니다.")
                 event.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
                     appendLine()
                     append(url)

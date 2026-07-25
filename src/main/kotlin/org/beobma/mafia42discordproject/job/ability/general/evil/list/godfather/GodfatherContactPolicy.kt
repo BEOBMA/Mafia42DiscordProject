@@ -19,6 +19,13 @@ object GodfatherContactPolicy {
             return thief.hasStolenAbility("말살") && thief.hasContactedMafia
         }
         if (player.job !is Godfather) return false
-        return player.state.hasContactedMafiaByInformant || canContactMafia(game)
+        return hasContactedMafia(game, player)
+    }
+
+    fun hasContactedMafia(game: Game, player: PlayerData): Boolean {
+        if (player.job !is Godfather) return false
+        return player.state.hasContactedMafiaByInformant ||
+            player.state.hasContactedMafiaByDiscipline ||
+            canContactMafia(game)
     }
 }

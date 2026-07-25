@@ -5,12 +5,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -61,12 +63,26 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
-            isMafia = effectiveTarget.job is Mafia,
+            isMafia = InvestigationTeam.isMafia(effectiveTarget),
             isRepeatedSearch = effectiveTarget.member.id in searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)
         policeSearchScope.launch {
             PoliceNotificationManager.notifySearchResult(caster, searchEvent)
+        }
+        if (thiefJob != null && effectiveTarget.job is Mafia && !thiefJob.hasContactedMafia) {
+            thiefJob.hasContactedMafia = true
+            policeSearchScope.launch {
+                runCatching {
+                    GameLoopManager.announceMafiaSupportContact(
+                        game,
+                        caster,
+                        "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(26).webp",
+                        "도둑"
+                    )
+                }
+                runCatching { GameLoopManager.refreshMafiaChannelContactState(game) }
+            }
         }
 
         val warrant = caster.allAbilities.filterIsInstance<Warrant>().firstOrNull()

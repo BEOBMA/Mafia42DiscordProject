@@ -1,5 +1,9 @@
 package org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
@@ -8,6 +12,8 @@ import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.InvestigationTeam
+import org.beobma.mafia42discordproject.game.system.JobDiscoveryNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -64,11 +70,11 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
 
         val actualJob = target.job
             ?: return AbilityResult(true, "${target.member.effectiveName}님은 시민 팀이 아닙니다.")
-        if (actualJob !is Definition) {
+        val revealedJob = FrogCurseManager.displayedJob(target) ?: actualJob
+        if (revealedJob !is Definition || InvestigationTeam.of(revealedJob) != InvestigationTeam.CITIZEN) {
             return AbilityResult(true, "${target.member.effectiveName}님은 시민 팀이 아닙니다.")
         }
 
-        val revealedJob = FrogCurseManager.displayedJob(target) ?: actualJob
         val event = GameEvent.JobDiscovered(
             discoverer = caster,
             target = target,
@@ -80,7 +86,11 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
             imageUrl = INSPECTOR_SUCCESS_IMAGE_URL
         )
         dispatchDiscoveryEvent(game, event)
-        game.pendingDayStartDiscoveries += event.copy(notifyTarget = true)
+        val targetNotificationEvent = event.copy(notifyTarget = true)
+        inspectorNotificationScope.launch {
+            JobDiscoveryNotificationManager.notifyDiscoveredTarget(targetNotificationEvent, game)
+        }
+        game.pendingDayStartDiscoveries += targetNotificationEvent
         return AbilityResult(true, "그 사람의 직업은 ${event.revealedJob.name}.")
     }
 
@@ -104,6 +114,7 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_1.webp"
         private const val INSPECTOR_SUCCESS_IMAGE_URL =
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/Inspector_ability_1_image.webp"
+        private val inspectorNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         suspend fun resolveNightInvestigations(game: Game, deadPlayers: Set<PlayerData>) {
             game.playerDatas.forEach { inspectorPlayer ->
@@ -119,14 +130,16 @@ class InspectorInvestigation : ActiveAbility, JobUniqueAbility {
                     sendDm(game, inspectorPlayer, "${target.member.effectiveName}님 수사에 실패했습니다.", "형사 수사 실패")
                     return@forEach
                 }
-
-                val actualJob = target.job
-                if (actualJob !is Definition) {
+                val actualJob = target.job ?: run {
+                    sendDm(game, inspectorPlayer, "${target.member.effectiveName}님은 시민 팀이 아닙니다.", "형사 수사 결과")
+                    return@forEach
+                }
+                val revealedJob = FrogCurseManager.displayedJob(target) ?: actualJob
+                if (revealedJob !is Definition || InvestigationTeam.of(revealedJob) != InvestigationTeam.CITIZEN) {
                     sendDm(game, inspectorPlayer, "${target.member.effectiveName}님은 시민 팀이 아닙니다.", "형사 수사 결과")
                     return@forEach
                 }
 
-                val revealedJob = FrogCurseManager.displayedJob(target) ?: actualJob
                 game.nightEvents += GameEvent.JobDiscovered(
                     discoverer = inspectorPlayer,
                     target = target,

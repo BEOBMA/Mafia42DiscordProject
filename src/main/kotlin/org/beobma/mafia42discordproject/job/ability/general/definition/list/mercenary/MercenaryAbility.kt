@@ -5,12 +5,15 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.AttackTier
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Mercenary
+import org.beobma.mafia42discordproject.job.definition.list.Couple
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class MercenaryAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "의뢰"
@@ -38,18 +41,27 @@ class MercenaryAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "자기 자신은 처형 대상으로 지정할 수 없습니다.")
         }
 
-        val mercenary = caster.job as? Mercenary
-            ?: return AbilityResult(false, "용병만 의뢰 능력을 사용할 수 있습니다.")
+        val mercenary = caster.actualOrStolenJob<Mercenary>()
+            ?: return AbilityResult(false, "용병 또는 의뢰 능력을 훔친 도둑만 사용할 수 있습니다.")
 
         if (!mercenary.hasExecutionAuthority) {
             return AbilityResult(false, "아직 처형 권한이 없습니다.")
         }
 
-        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        val coupleRedirectedTarget = resolveCoupleRedirectTarget(game, target)
+        val effectiveTarget = if (coupleRedirectedTarget != target) {
+            coupleRedirectedTarget
+        } else {
+            HackerRedirectManager.resolveTarget(game, target) ?: target
+        }
         val attackKey = "MERCENARY_${caster.member.id}"
         val previousTarget = game.nightAttacks[attackKey]?.target
         if (previousTarget != null && previousTarget != effectiveTarget) {
             game.nightDeathCandidates.remove(previousTarget)
+            game.coupleSacrificeMap.remove(previousTarget.member.id)
+        }
+        if (coupleRedirectedTarget != target) {
+            game.coupleSacrificeMap[effectiveTarget.member.id] = target.member.id
         }
 
         game.nightAttacks[attackKey] = AttackEvent(
@@ -83,5 +95,13 @@ class MercenaryAbility : ActiveAbility, JobUniqueAbility {
         }
 
         return AbilityResult(true, "${target.member.effectiveName} 님을 처형 대상으로 지정했습니다.")
+    }
+
+    private fun resolveCoupleRedirectTarget(game: Game, originalTarget: PlayerData): PlayerData {
+        val couple = originalTarget.job as? Couple ?: return originalTarget
+        if (FrogCurseManager.shouldSuppressPassive(originalTarget)) return originalTarget
+        val partner = couple.pairedPlayerId?.let(game::getPlayer) ?: return originalTarget
+        if (partner.state.isDead || FrogCurseManager.shouldSuppressPassive(partner)) return originalTarget
+        return partner
     }
 }

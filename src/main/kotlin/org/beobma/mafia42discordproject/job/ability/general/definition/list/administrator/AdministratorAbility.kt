@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Administrator
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class AdministratorAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "조회"
@@ -26,8 +27,8 @@ class AdministratorAbility : ActiveAbility, JobUniqueAbility {
         if (caster.state.isDead) {
             return AbilityResult(false, "죽은 상태에서는 사용할 수 없습니다.")
         }
-        val administrator = caster.job as? Administrator
-            ?: return AbilityResult(false, "공무원만 사용할 수 있습니다.")
+        val administrator = caster.actualOrStolenJob<Administrator>()
+            ?: return AbilityResult(false, "공무원 또는 조회 능력을 훔친 도둑만 사용할 수 있습니다.")
 
         if (selectedJobName.isNullOrBlank()) {
             administrator.selectedInvestigationJobName = null

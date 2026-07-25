@@ -2,6 +2,8 @@ package org.beobma.mafia42discordproject.job.ability.general.definition.list.sol
 
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
+import org.beobma.mafia42discordproject.game.DawnAnnouncement
+import org.beobma.mafia42discordproject.game.loop.SOLDIER_BULLETPROOF_SOUND_PATH
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.DefenseTier
 import org.beobma.mafia42discordproject.game.system.DiscoveryStep
@@ -19,10 +21,12 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
     // 상태 변수: 오늘 밤 방탄이 터졌는지 여부
     private var wasTriggeredTonight = false
     private var triggeredCount = 0
+    private var defenseTierBeforeLastTrigger: DefenseTier? = null
 
     override fun onPhaseChanged(game: Game, owner: PlayerData, newPhase: GamePhase) {
         if (newPhase == GamePhase.NIGHT) {
             wasTriggeredTonight = false
+            defenseTierBeforeLastTrigger = null
         }
     }
 
@@ -30,6 +34,10 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
         when (event) {
             is GameEvent.BeforeAttackEvaluated -> {
                 if (event.attackEvent.target != owner) return
+                defenseTierBeforeLastTrigger?.let { previousDefenseTier ->
+                    owner.state.healTier = previousDefenseTier
+                    defenseTierBeforeLastTrigger = null
+                }
                 val maxTriggerCount = if (owner.allAbilities.any { it is Indomitable }) 2 else 1
                 if (triggeredCount >= maxTriggerCount) return
 
@@ -39,6 +47,7 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
                     return
                 }
 
+                defenseTierBeforeLastTrigger = owner.state.healTier
                 owner.state.healTier = maxOf(owner.state.healTier, DefenseTier.ABSOLUTE)
                 if (owner.state.healTier.level >= event.attackEvent.attackTier.level) {
                     triggeredCount += 1
@@ -48,11 +57,20 @@ class Bulletproof : JobUniqueAbility, PassiveAbility {
             }
             is GameEvent.ResolveDawnPresentation -> {
                 if (wasTriggeredTonight) {
-                    // 아침 결과 일러스트 및 텍스트 교체 (copy 활용)
-                    event.presentation = event.presentation.copy(
+                    val announcement = DawnAnnouncement(
                         imageUrl = org.beobma.mafia42discordproject.game.system.SystemImage.SOLDIER_DEFENDED.imageUrl,
                         message = "군인 ${owner.member.effectiveName}님이 공격을 버텨냈습니다.",
-                        extraImageUrls = emptyList()
+                        priority = 10,
+                        targetId = owner.member.id,
+                        soundPath = SOLDIER_BULLETPROOF_SOUND_PATH
+                    )
+                    // 아침 결과 일러스트 및 텍스트 교체 (copy 활용)
+                    event.presentation = event.presentation.copy(
+                        imageUrl = announcement.imageUrl,
+                        message = announcement.message,
+                        extraImageUrls = emptyList(),
+                        announcements = (event.presentation.announcements.filter { it.priority < 1_000 } + announcement)
+                            .sortedBy(DawnAnnouncement::priority)
                     )
                     
                     // 군인임을 모두에게 알리는 직업 공개 이벤트 발생
