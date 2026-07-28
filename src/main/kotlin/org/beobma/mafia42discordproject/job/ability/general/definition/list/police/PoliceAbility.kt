@@ -98,6 +98,8 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
                 resolvedAt = DiscoveryStep.NIGHT
             )
             dispatchPoliceEvent(game, revealEvent)
+            game.privateDisplayedJobNamesByObserver
+                .getOrPut(caster.member.id, ::mutableMapOf)[effectiveTarget.member.id] = revealEvent.revealedJob.name
 
             policeSearchScope.launch {
                 PoliceNotificationManager.notifyWarrantResult(caster, revealEvent)

@@ -42,6 +42,7 @@ object JobDiscoveryNotificationManager {
                     return@forEach
                 }
 
+                rememberDiscoveredJob(game, event)
                 notifyDiscoveredTarget(event, game)
                 runCatching {
                     val message = buildDiscovererNotificationMessage(event)
@@ -59,6 +60,7 @@ object JobDiscoveryNotificationManager {
     ) {
         if (event.isCancelled || event.isPublicReveal || !event.notifyTarget) return
 
+        rememberDiscovererJob(game, event)
         runCatching {
             val message = buildTargetNotificationMessage(event)
             if (game != null) {
@@ -66,6 +68,25 @@ object JobDiscoveryNotificationManager {
             }
             event.target.member.getDmChannel().createMessage(message)
         }
+    }
+
+    private fun rememberDiscoveredJob(
+        game: org.beobma.mafia42discordproject.game.Game?,
+        event: GameEvent.JobDiscovered
+    ) {
+        game?.privateDisplayedJobNamesByObserver
+            ?.getOrPut(event.discoverer.member.id, ::mutableMapOf)
+            ?.set(event.target.member.id, event.revealedJob.name)
+    }
+
+    private fun rememberDiscovererJob(
+        game: org.beobma.mafia42discordproject.game.Game?,
+        event: GameEvent.JobDiscovered
+    ) {
+        val jobName = PrivateJobKnowledgePolicy.revealedDiscovererJobName(event.sourceAbilityName) ?: return
+        game?.privateDisplayedJobNamesByObserver
+            ?.getOrPut(event.target.member.id, ::mutableMapOf)
+            ?.set(event.discoverer.member.id, jobName)
     }
 
     private fun buildDiscovererNotificationMessage(event: GameEvent.JobDiscovered): String {
@@ -177,5 +198,14 @@ object JobDiscoveryNotificationManager {
                 append(url)
             }
         }
+    }
+}
+
+internal object PrivateJobKnowledgePolicy {
+    fun revealedDiscovererJobName(sourceAbilityName: String?): String? = when (sourceAbilityName) {
+        "수사" -> "형사"
+        "해킹" -> "해커"
+        "도굴" -> "도굴꾼"
+        else -> null
     }
 }

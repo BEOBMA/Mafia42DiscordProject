@@ -3536,7 +3536,7 @@ object GameLoopManager {
             policeJob.eavesdroppingTargetId = victim.member.id
             policeJob.searchedTargets += victim.member.id
             val message =
-                "${victim.member.effectiveName}님은 ${if (InvestigationTeam.isMafia(victim)) "마피아입니다." else "마피아가 아닙니다."}"
+                "${victim.member.effectiveName}님은 ${if (PoliceAutopsyPolicy.isMafia(victim.job)) "마피아입니다." else "마피아가 아닙니다."}"
 
             votePresentationScope.launch {
                 runCatching {

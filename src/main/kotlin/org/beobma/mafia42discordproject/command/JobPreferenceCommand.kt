@@ -19,8 +19,8 @@ import org.beobma.mafia42discordproject.job.evil.Evil
 object JobPreferenceCommand : DiscordCommand {
     override val name: String = "jobpreference"
     override val description: String = "게임 외 시간에 선호 직업 7개를 설정합니다."
-    override val koreanName: String = "직업선호"
-    override val aliases: Set<String> = setOf("직업선호", "직업선호설정")
+    override val koreanName: String = "선호직업"
+    override val aliases: Set<String> = setOf("선호직업", "직업선호", "직업선호설정")
 
     private const val MAX_AUTO_COMPLETE_CHOICES = 25
     private const val ASSISTANT_OPTION = "보조계열"

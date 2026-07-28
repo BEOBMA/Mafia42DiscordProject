@@ -28,6 +28,8 @@ class CommandRegistryTest {
         assertSame(BestJobCommand, CommandRegistry.find(" BESTJOB "))
         assertSame(ReadyCommand, CommandRegistry.find("준비"))
         assertSame(SpectateCommand, CommandRegistry.find("관전"))
+        assertSame(JobPreferenceCommand, CommandRegistry.find("선호직업"))
+        assertSame(JobPreferenceCommand, CommandRegistry.find("직업선호"))
     }
 
     @Test
