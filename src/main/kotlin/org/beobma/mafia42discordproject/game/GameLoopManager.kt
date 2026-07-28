@@ -1120,7 +1120,12 @@ object GameLoopManager {
         notifyBeastmanRoarAtFirstDay(game)
     }
 
-    private suspend fun updateMafiaChannelPermissions(game: Game, mafiaChannel: TextChannel, isNight: Boolean) {
+    private suspend fun updateMafiaChannelPermissions(
+        game: Game,
+        mafiaChannel: TextChannel,
+        isNight: Boolean,
+        notifyContact: Boolean = true
+    ) {
         mafiaChannel.edit {
             addRoleOverwrite(game.guild.id) {
                 denied = Permissions(
@@ -1175,7 +1180,19 @@ object GameLoopManager {
             }
         }
 
-        notifyGodfatherContactInMafiaChannel(game)
+        if (notifyContact) {
+            notifyGodfatherContactInMafiaChannel(game)
+        }
+    }
+
+    suspend fun refreshNightPrivateChannelPermissions(game: Game) {
+        if (game.currentPhase != GamePhase.NIGHT) return
+        game.mafiaChannel?.let {
+            updateMafiaChannelPermissions(game, it, isNight = true, notifyContact = false)
+        }
+        game.coupleChannel?.let {
+            updateCoupleChannelPermissions(game, it, isNight = true)
+        }
     }
 
     private suspend fun notifyGodfatherContactInMafiaChannel(game: Game) {
@@ -1276,16 +1293,12 @@ object GameLoopManager {
 
         victim.state.isDead = true
         victim.state.diedDayCount = game.dayCount
-        game.playerDatas.forEach { player ->
-            val thief = player.job as? Thief ?: return@forEach
-            if (thief.stolenHackerTargetId == victim.member.id) {
-                thief.stolenHackerTargetId = null
-            }
-        }
+        HackerRedirectManager.releaseProxiesTargeting(game, victim)
         handleMadScientistDeath(game, victim, isLynch = isLynch)
         game.nightEvents += GameEvent.PlayerDied(victim, isLynch = isLynch)
-        applyPoliceAutopsy(game, victim)
-        SpyAbility.applyAutopsyOnDeath(game, victim)
+        val abilityTarget = HackerRedirectManager.resolveTarget(game, victim) ?: victim
+        applyPoliceAutopsy(game, abilityTarget)
+        SpyAbility.applyAutopsyOnDeath(game, abilityTarget)
         applyImmediateDeathCommunicationState(game, victim)
         sendDeadChannelDeathMention(game, victim)
     }
@@ -1304,7 +1317,21 @@ object GameLoopManager {
     }
 
     private fun shouldRestrictCommunication(player: PlayerData): Boolean {
-        return player.state.isDead || player.state.isSilenced || isMadScientistDistortionHidden(player)
+        return shouldRestrictCommunication(
+            isDead = player.state.isDead,
+            isShamaned = player.state.isShamaned,
+            isSilenced = player.state.isSilenced,
+            isMadScientistDistortionHidden = isMadScientistDistortionHidden(player)
+        )
+    }
+
+    internal fun shouldRestrictCommunication(
+        isDead: Boolean,
+        isShamaned: Boolean,
+        isSilenced: Boolean,
+        isMadScientistDistortionHidden: Boolean
+    ): Boolean {
+        return isDead || isShamaned || isSilenced || isMadScientistDistortionHidden
     }
 
     private fun isMafiaEliminated(game: Game): Boolean {
@@ -2702,22 +2729,22 @@ object GameLoopManager {
                 player.member.id !in game.judgeAuthorityDisabledByThiefIds &&
                 player.allAbilities.any { it is JudgeAbility }
         }
-        return candidates.firstOrNull(::hasRevealedJudgeAuthority)
-            ?: candidates.firstOrNull { player ->
+        return candidates.filter(::hasRevealedJudgeAuthority).randomOrNull()
+            ?: candidates.filter { player ->
                 val vote = prosConsVotes[player.member.id]
                 vote != null && vote != aggregateDecision
-            }
-            ?: candidates.firstOrNull { player -> prosConsVotes.containsKey(player.member.id) }
+            }.randomOrNull()
+            ?: candidates.filter { player -> prosConsVotes.containsKey(player.member.id) }.randomOrNull()
     }
 
     private fun findRevealedAliveJudge(game: Game): PlayerData? {
-        return game.playerDatas.firstOrNull { player ->
+        return game.playerDatas.filter { player ->
             !player.state.isDead &&
                 !FrogCurseManager.shouldSuppressPassive(player) &&
                 player.member.id !in game.judgeAuthorityDisabledByThiefIds &&
                 player.allAbilities.any { it is JudgeAbility } &&
                 hasRevealedJudgeAuthority(player)
-        }
+        }.randomOrNull()
     }
 
     private fun hasRevealedJudgeAuthority(player: PlayerData): Boolean {
@@ -2857,11 +2884,11 @@ object GameLoopManager {
         target: PlayerData,
         prosConsVotes: Map<Snowflake, Boolean>
     ) {
-        val judgePlayer = game.playerDatas.firstOrNull { player ->
+        val judgePlayer = game.playerDatas.filter { player ->
             !player.state.isDead &&
                 !FrogCurseManager.shouldSuppressPassive(player) &&
                 player.allAbilities.any { it is GovernmentAuthority }
-        } ?: return
+        }.randomOrNull() ?: return
         val prosVoters = prosConsVotes
             .filterValues { it }
             .keys
@@ -3131,8 +3158,8 @@ object GameLoopManager {
                 val cabal = player.job as? Cabal ?: return@mapNotNull null
                 player to cabal
             }
-        val sun = aliveOrDeadCabals.firstOrNull { (_, cabal) -> cabal.role == CabalRole.SUN } ?: return
-        val moon = aliveOrDeadCabals.firstOrNull { (_, cabal) -> cabal.role == CabalRole.MOON } ?: return
+        val sun = aliveOrDeadCabals.filter { (_, cabal) -> cabal.role == CabalRole.SUN }.randomOrNull() ?: return
+        val moon = aliveOrDeadCabals.filter { (_, cabal) -> cabal.role == CabalRole.MOON }.randomOrNull() ?: return
 
         val sunPlayer = sun.first
         val sunCabal = sun.second
@@ -3170,8 +3197,7 @@ object GameLoopManager {
             val day4RevelationReady = game.dayCount >= 4
             val apostleRevelationReady = player.allAbilities.any { it is Apostle } &&
                 game.playerDatas.none { candidate ->
-                    !candidate.state.isDead &&
-                        candidate.job !is Evil
+                    ProphetApostlePolicy.isCitizenTeamSurvivor(candidate)
                 }
 
             day4RevelationReady || apostleRevelationReady
@@ -3195,7 +3221,7 @@ object GameLoopManager {
             return Team.CITIZEN
         }
 
-        val aliveCitizens = game.playerDatas.filter { !it.state.isDead && it.job !is Evil }
+        val aliveCitizens = game.playerDatas.filter(ProphetApostlePolicy::isCitizenTeamSurvivor)
         val isApostleTriggered = aliveProphets.any { prophet ->
             prophet.allAbilities.any { it is Apostle } &&
                 aliveCitizens.size == 1 &&
@@ -3724,6 +3750,8 @@ object GameLoopManager {
     }
 
     private fun notifyMercenaryContractReception(game: Game) {
+        assignGraveRobbedMercenaryClientsAtFirstDay(game)
+
         game.playerDatas.forEach { mercenaryPlayer ->
             val mercenary = mercenaryPlayer.job as? Mercenary ?: return@forEach
             if (mercenary.hasReceivedContract) return@forEach
@@ -3740,6 +3768,19 @@ object GameLoopManager {
                 "누군가에게 의뢰를 받았습니다"
             )
             sendCabalDm(game, client, "용병 ${mercenaryPlayer.member.effectiveName}님에게 의뢰를 했습니다")
+        }
+    }
+
+    private fun assignGraveRobbedMercenaryClientsAtFirstDay(game: Game) {
+        if (game.dayCount != 1) return
+
+        game.playerDatas.forEach { mercenaryPlayer ->
+            val mercenary = mercenaryPlayer.job as? Mercenary ?: return@forEach
+            if (mercenaryPlayer.state.isDead) return@forEach
+            if (!mercenaryPlayer.state.hasCompletedGraveRobbing) return@forEach
+            if (mercenary.clientPlayerId != null) return@forEach
+
+            MercenaryClientManager.assignRandomClient(game, mercenaryPlayer)
         }
     }
 
@@ -4030,13 +4071,13 @@ object GameLoopManager {
             }
 
             val alivePlayers = game.playerDatas.filter { !it.state.isDead }
-            val spoofedTarget = alivePlayers.firstOrNull { candidate ->
+            val spoofedTarget = alivePlayers.filter { candidate ->
                 AdministratorInvestigationPolicy.shouldApplyHypocrisySpoof(game.dayCount, selectedJob, candidate)
-            }
+            }.randomOrNull()
 
-            val target = spoofedTarget ?: alivePlayers.firstOrNull { candidate ->
+            val target = spoofedTarget ?: alivePlayers.filter { candidate ->
                 FrogCurseManager.displayedJob(candidate)?.name == selectedJob.name
-            }
+            }.randomOrNull()
             administratorJob.investigationResultPlayerId = target?.member?.id
         }
     }

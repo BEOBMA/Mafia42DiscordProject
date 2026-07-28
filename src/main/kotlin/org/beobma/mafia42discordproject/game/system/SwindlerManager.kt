@@ -29,11 +29,11 @@ object SwindlerManager {
 
     fun shouldTriggerNegotiation(game: Game, mafiaTarget: PlayerData): Pair<PlayerData, Boolean>? {
         val aliveSwindlers = game.playerDatas.filter { !it.state.isDead && it.job is Swindler }
-        val triggered = aliveSwindlers.firstOrNull { swindlerPlayer ->
-            val swindlerJob = swindlerPlayer.job as? Swindler ?: return@firstOrNull false
+        val triggered = aliveSwindlers.filter { swindlerPlayer ->
+            val swindlerJob = swindlerPlayer.job as? Swindler ?: return@filter false
             mafiaTarget.member.id == swindlerPlayer.member.id ||
                 mafiaTarget.member.id == swindlerJob.disguisedTargetId
-        } ?: return null
+        }.randomOrNull() ?: return null
 
         val swindlerWasMafiaTarget = mafiaTarget.member.id == triggered.member.id
         return triggered to swindlerWasMafiaTarget

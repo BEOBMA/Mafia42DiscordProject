@@ -43,7 +43,6 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.othe
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.SoulRelease
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.vigilante.VigilantePurgeDayAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherAbility
-import org.beobma.mafia42discordproject.job.ability.general.evil.list.witch.WitchAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.hitman.HitManAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.MafiaAbility
@@ -249,16 +248,15 @@ object AbilityUseCommand : DiscordCommand {
         if (selectedAbility !is ThiefAbility && isBlockedByBlessing(game, target)) {
             return failure("축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
         }
-        val initiallyResolvedTarget = if (
-            selectedAbility is WitchAbility ||
-            selectedAbility is ThiefAbility
-        ) {
-            target
-        } else {
-            HackerRedirectManager.resolveTarget(game, target)
-        }
+        val initiallyResolvedTarget = HackerRedirectManager.resolveTarget(game, target)
         if (caster.job is MentalPatient) {
-            val result = activateMentalPatientFakeAbility(game, caster, selectedAbility, target, selectedJobName)
+            val result = activateMentalPatientFakeAbility(
+                game,
+                caster,
+                selectedAbility,
+                initiallyResolvedTarget,
+                selectedJobName
+            )
             val message = if (result.isSuccess) {
                 result.message?.takeIf { it.isNotBlank() } ?: "Your ability was used successfully."
             } else {
@@ -287,9 +285,10 @@ object AbilityUseCommand : DiscordCommand {
                 selectedAbility.activateWithJobName(game, caster, selectedJobName)
             }
             is HitManAbility -> {
-                selectedAbility.activateWithJobName(game, caster, target, selectedJobName)
+                selectedAbility.activateWithJobName(game, caster, initiallyResolvedTarget, selectedJobName)
             }
-            else -> selectedAbility.activate(game, caster, target)
+            is SoulRelease -> selectedAbility.activate(game, caster, target)
+            else -> selectedAbility.activate(game, caster, initiallyResolvedTarget)
         }
         val effectiveTarget = if (result.isSuccess && selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target ?: initiallyResolvedTarget

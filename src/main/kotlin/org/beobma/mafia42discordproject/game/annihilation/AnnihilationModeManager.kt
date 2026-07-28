@@ -26,6 +26,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.replay.ReplayLogType
 import org.beobma.mafia42discordproject.game.replay.ReplayVisibility
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.definition.list.Agent
@@ -1068,7 +1069,9 @@ object AnnihilationModeManager {
                         val delivery = mission.secondLocation ?: return@forEach
                         val holder = mission.holderId?.let(game::getPlayer)
                         if (holder == null || holder.state.isDead) {
-                            val newHolder = alivePlayers(game).firstOrNull { !isMafiaTeam(it) && currentLocation(state, it) == pickup }
+                            val newHolder = alivePlayers(game)
+                                .filter { !isMafiaTeam(it) && currentLocation(state, it) == pickup }
+                                .randomOrNull()
                             if (newHolder != null) {
                                 mission.holderId = newHolder.member.id
                                 game.sendMainChannerMessage("${newHolder.member.effectiveName}님이 ${pickup.displayName}에서 분실물을 습득했습니다.")
@@ -1336,6 +1339,7 @@ object AnnihilationModeManager {
         val deathLocation = state?.let { currentLocation(it, victim) }
         victim.state.isDead = true
         victim.state.diedDayCount = game.dayCount
+        HackerRedirectManager.releaseProxiesTargeting(game, victim)
         val droppedNotebookOwnerIds = if (state != null && deathLocation != null) {
             dropNotebooksAtLocation(state, victim, deathLocation)
         } else {
@@ -1930,7 +1934,7 @@ object AnnihilationModeManager {
         game.playerDatas.filter { !it.state.isDead }
 
     private fun findAliveAgent(game: Game): PlayerData? =
-        game.playerDatas.firstOrNull { !it.state.isDead && it.job is Agent }
+        game.playerDatas.filter { !it.state.isDead && it.job is Agent }.randomOrNull()
 
     private fun isMafiaTeam(player: PlayerData): Boolean =
         player.job is Capo || player.job is Soldato || player.job is Evil && player.job !is Citizen && player.job !is Agent

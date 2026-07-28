@@ -45,6 +45,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.*
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.MercenaryClientManager
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
@@ -870,13 +871,7 @@ object GameManager {
         if (mercenaries.isEmpty()) return
 
         mercenaries.forEach { mercenaryPlayer ->
-            val mercenaryJob = mercenaryPlayer.job as? Mercenary ?: return@forEach
-            val candidates = playerDatas.filter { candidate ->
-                candidate.member.id != mercenaryPlayer.member.id &&
-                    candidate.job != null &&
-                    candidate.job !is Evil
-            }
-            mercenaryJob.clientPlayerId = candidates.randomOrNull()?.member?.id
+            MercenaryClientManager.assignRandomClient(this, mercenaryPlayer)
         }
     }
 
