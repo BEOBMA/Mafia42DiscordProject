@@ -25,6 +25,7 @@ import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuid
 import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
+import org.beobma.mafia42discordproject.game.abilityselection.selectMafiaAbilityRefreshLimits
 import org.beobma.mafia42discordproject.game.annihilation.AnnihilationModeManager
 import org.beobma.mafia42discordproject.game.annihilation.Capo
 import org.beobma.mafia42discordproject.game.annihilation.Soldato
@@ -44,14 +45,18 @@ import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.*
 import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.MercenaryClientManager
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.*
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Inspection
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.couple.CoupleAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.ShamanAbilityOne
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Password
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.godfather.GodfatherContactPolicy
 import org.beobma.mafia42discordproject.job.ability.general.list.Megaphone
@@ -63,6 +68,7 @@ import org.beobma.mafia42discordproject.job.definition.list.*
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.*
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
+import org.beobma.mafia42discordproject.web.WebNotepadServer
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -74,6 +80,7 @@ object GameManager {
         FAILURE
     }
 
+    @Volatile
     private var currentGame: Game? = null
     private var currentGuild: GuildBehavior? = null
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -87,8 +94,6 @@ object GameManager {
 
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
-    private const val SOLO_MAFIA_ABILITY_REFRESH_LIMIT = 2
-
     private const val GAME_MAIN_CHANNEL_ID = 1524098920576319518L
     private const val GAME_MAFIA_CHANNEL_ID = 1524098952499036320L
     private const val GAME_COUPLE_CHANNEL_ID = 1524098966139043860L
@@ -865,13 +870,7 @@ object GameManager {
         if (mercenaries.isEmpty()) return
 
         mercenaries.forEach { mercenaryPlayer ->
-            val mercenaryJob = mercenaryPlayer.job as? Mercenary ?: return@forEach
-            val candidates = playerDatas.filter { candidate ->
-                candidate.member.id != mercenaryPlayer.member.id &&
-                    candidate.job != null &&
-                    candidate.job !is Evil
-            }
-            mercenaryJob.clientPlayerId = candidates.randomOrNull()?.member?.id
+            MercenaryClientManager.assignRandomClient(this, mercenaryPlayer)
         }
     }
 
@@ -1369,6 +1368,15 @@ object GameManager {
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
         val preparedSessions = mutableMapOf<Snowflake, AbilitySelectionSession>()
+        abilitySelectionRefreshLimitsByPlayerId.clear()
+        abilitySelectionRefreshLimitsByPlayerId.putAll(
+            selectMafiaAbilityRefreshLimits(
+                playerCount = playerDatas.size,
+                mafiaPlayerIds = playerDatas
+                    .filter { player -> player.job is Mafia }
+                    .map { player -> player.member.id }
+            )
+        )
 
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
@@ -1378,7 +1386,7 @@ object GameManager {
             val session = AbilitySelectionSession(
                 playerJob = job,
                 availablePool = pool,
-                maxRefreshes = abilitySelectionRefreshLimitForPlayer(this, player)
+                maxRefreshes = abilitySelectionRefreshLimitsByPlayerId[player.member.id] ?: 0
             )
             session.currentOptions = drawAbilityOptions(session)
             if (session.currentOptions.isNotEmpty()) {
@@ -1462,12 +1470,6 @@ object GameManager {
             .distinctBy(Ability::name)
             .shuffled()
             .toMutableList()
-    }
-
-    private fun abilitySelectionRefreshLimitForPlayer(game: Game, player: PlayerData): Int {
-        if (player.job !is Mafia) return 0
-        val mafiaCount = game.playerDatas.count { candidate -> candidate.job is Mafia }
-        return if (mafiaCount == 1) SOLO_MAFIA_ABILITY_REFRESH_LIMIT else 0
     }
 
     private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
@@ -1884,7 +1886,7 @@ object GameManager {
         val restoredSession = AbilitySelectionSession(
             playerJob = playerJob,
             availablePool = availablePool,
-            maxRefreshes = abilitySelectionRefreshLimitForPlayer(game, player),
+            maxRefreshes = game.abilitySelectionRefreshLimitsByPlayerId[player.member.id] ?: 0,
             selected = playerJob.extraAbilities.toMutableList(),
             completedRounds = completedRounds
         )
@@ -2148,6 +2150,7 @@ object GameManager {
         GameArchiveManager.archive(gameToStop, endReason = endReason, winningTeamName = winningTeamName)
         GameReplayRenderDataStore.save(replayRenderData)
         GameReplaySender.sendReplay(gameToStop, replayRenderData)
+        WebNotepadServer.invalidateGame(gameToStop)
         currentGame = null
         currentGuild = null
 
@@ -2341,9 +2344,19 @@ object GameManager {
                 .filter { !it.state.isDead }
                 .filter { it.job is Mafia || hasContactedMafiaTeam(game, it) }
             ReplayVisibility.COUPLE_CHANNEL -> game.playerDatas
-                .filter { !it.state.isDead && it.job is Couple }
+                .filter {
+                    !it.state.isDead &&
+                        it.allAbilities.any { ability -> ability is CoupleAbility } &&
+                        !FrogCurseManager.shouldSuppressPassive(it)
+                }
             ReplayVisibility.DEAD_CHANNEL -> game.playerDatas
-                .filter { it.state.isDead || it.job is Shaman }
+                .filter {
+                    it.state.isDead ||
+                        (
+                            it.allAbilities.any { ability -> ability is ShamanAbilityOne } &&
+                                !FrogCurseManager.shouldSuppressPassive(it)
+                        )
+                }
             else -> emptyList()
         }
 
@@ -2439,6 +2452,9 @@ object GameManager {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "확성기는 밤에만 사용할 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 확성기를 사용할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 확성기가 정상 출력되지 않습니다.")
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (sender.allAbilities.none { it is Megaphone }) return SpiritRelayResult(false, "확성기 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "확성기 메시지를 입력해 주세요.")
         if (sender.member.id in game.usedMegaphonePlayerIds) return SpiritRelayResult(false, "확성기는 게임 중 1회만 사용할 수 있습니다.")
@@ -2468,6 +2484,9 @@ object GameManager {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "밀서는 밤에만 보낼 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 밀서를 보낼 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (sender.allAbilities.none { it is SecretLetter }) return SpiritRelayResult(false, "밀서 능력이 없습니다.")
         if (sender.member.id in game.usedSecretLetterPlayerIds) return SpiritRelayResult(false, "밀서는 게임 중 1회만 보낼 수 있습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어에게는 밀서를 보낼 수 없습니다.")
@@ -2502,6 +2521,9 @@ object GameManager {
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "유언은 밤에만 작성할 수 있습니다.")
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 유언을 작성할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 유언이 정상 출력되지 않습니다.")
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (sender.allAbilities.none { it is Will }) return SpiritRelayResult(false, "유언 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "유언 내용을 입력해 주세요.")
 
@@ -2523,6 +2545,9 @@ object GameManager {
         }
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 위증을 사용할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (sender.member.id in game.permanentlyDisenfranchisedVoters) {
             return SpiritRelayResult(false, "투표권이 없어 위증을 사용할 수 없습니다.")
         }
@@ -2538,6 +2563,9 @@ object GameManager {
     private suspend fun sendPasswordChat(game: Game, sender: PlayerData, message: String): SpiritRelayResult {
         if (sender.state.isDead) return SpiritRelayResult(false, "사망한 플레이어는 암구호를 사용할 수 없습니다.")
         if (sender.state.isSilenced) return SpiritRelayResult(false, "유혹 상태에서는 능력을 사용할 수 없습니다.")
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (sender.job !is Evil || sender.job is Villain) return SpiritRelayResult(false, "마피아 팀만 암구호를 사용할 수 있습니다.")
         if (sender.job !is Mafia && !hasContactedMafiaTeam(game, sender)) {
             return SpiritRelayResult(false, "보조 직업은 접선 후에만 암구호를 사용할 수 있습니다.")
@@ -2566,7 +2594,7 @@ object GameManager {
 
         return when (val job = player.job) {
             is Beastman -> player.state.isTamed
-            is Godfather -> GodfatherContactPolicy.canContactMafia(game)
+            is Godfather -> GodfatherContactPolicy.hasContactedMafia(game, player)
             is HitMan -> job.hasContactedMafia
             is Hostess -> job.hasContactedMafia
             is MadScientist -> player.state.hasContactedMafiaOnDeath
@@ -2587,11 +2615,23 @@ object GameManager {
         val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
         val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "메시지를 입력해 주세요.")
-        if (sender.job !is Shaman || sender.state.isDead) return SpiritRelayResult(false, "생존한 영매만 사용할 수 있습니다.")
+        if (
+            sender.allAbilities.none { it is ShamanAbilityOne } ||
+            sender.state.isDead
+        ) {
+            return SpiritRelayResult(false, "생존한 영매 또는 접신 능력을 훔친 도둑만 사용할 수 있습니다.")
+        }
+        if (FrogCurseManager.shouldSuppressPassive(sender)) {
+            return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
+        }
         if (game.currentPhase != GamePhase.NIGHT) return SpiritRelayResult(false, "접신 메시지는 밤에만 보낼 수 있습니다.")
         val deadChannel = game.deadChannel ?: return SpiritRelayResult(false, "죽은 자들의 채널을 찾을 수 없습니다.")
 
-        val relayMessage = "[접신] ${sender.member.effectiveName}: $message"
+        val relayMessage = if (sender.job is Thief) {
+            "🔴 ${sender.member.effectiveName}: $message"
+        } else {
+            "[접신] ${sender.member.effectiveName}: $message"
+        }
         val sendResult = runCatching {
             deadChannel.createMessage(relayMessage)
         }
@@ -2667,6 +2707,7 @@ object GameManager {
         val watchers = game.playerDatas
             .asSequence()
             .filter { !it.state.isDead }
+            .filterNot(FrogCurseManager::shouldSuppressPassive)
             .filter { it.member.id != sender.member.id }
             .filter { observer -> observer.allAbilities.any { it is Eavesdropping } }
             .filter { observer ->
@@ -2692,6 +2733,7 @@ object GameManager {
     private fun dispatchDeceasedChatEvent(game: Game, event: GameEvent.DeceasedChat) {
         val observers = game.playerDatas
             .filter { !it.state.isDead }
+            .filterNot(FrogCurseManager::shouldSuppressPassive)
             .mapNotNull { player ->
                 val passives = player.allAbilities
                     .filterIsInstance<PassiveAbility>()
@@ -2709,6 +2751,7 @@ object GameManager {
         val autopsyEavesdroppers = game.playerDatas
             .asSequence()
             .filter { !it.state.isDead }
+            .filterNot(FrogCurseManager::shouldSuppressPassive)
             .filter { it.member.id != event.chatSender.member.id }
             .filter { player -> player.allAbilities.any { it is Eavesdropping } }
             .filter { player ->
@@ -2731,6 +2774,7 @@ object GameManager {
         game.playerDatas
             .asSequence()
             .filter { !it.state.isDead }
+            .filterNot(FrogCurseManager::shouldSuppressPassive)
             .filter { it.job is Shaman }
             .filter { player -> player.allAbilities.any { it is Manifesto } }
             .toList()
@@ -2772,7 +2816,10 @@ object GameManager {
                 voter.member.id == target.member.id
             ) return@synchronized VoteSubmissionResult.FAILURE
             val dictatorshipPolitician = game.playerDatas.singleOrNull { !it.state.isDead && it.job !is Evil }
-                ?.takeIf { it.job is Politician }
+                ?.takeIf {
+                    it.job is Politician &&
+                        !FrogCurseManager.shouldSuppressPassive(it)
+                }
             if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized VoteSubmissionResult.FAILURE
 
             game.currentMainVotes[voterId] = target.member.id.toString()
@@ -2808,7 +2855,10 @@ object GameManager {
             if (voterId in game.permanentlyDisenfranchisedVoters) return@synchronized VoteSubmissionResult.FAILURE
             if (game.activeThreatenedVoters.containsKey(voterId)) return@synchronized VoteSubmissionResult.THREATENED
             val dictatorshipPolitician = game.playerDatas.singleOrNull { !it.state.isDead && it.job !is Evil }
-                ?.takeIf { it.job is Politician }
+                ?.takeIf {
+                    it.job is Politician &&
+                        !FrogCurseManager.shouldSuppressPassive(it)
+                }
             if (dictatorshipPolitician != null && dictatorshipPolitician.member.id != voterId) return@synchronized VoteSubmissionResult.FAILURE
             if (game.currentProsConsVotes.containsKey(voterId)) return@synchronized VoteSubmissionResult.FAILURE
 

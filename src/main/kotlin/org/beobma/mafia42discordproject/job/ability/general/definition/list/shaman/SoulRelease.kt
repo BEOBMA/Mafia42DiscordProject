@@ -4,16 +4,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.game.Game
+import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.ShamaningPolicy
 import org.beobma.mafia42discordproject.game.system.SystemImage
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.general.list.EarthboundSpirit
+import org.beobma.mafia42discordproject.job.evil.list.Thief
 
 class SoulRelease : ActiveAbility, JobUniqueAbility {
     override val name: String = "성불"
@@ -21,7 +24,8 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(129).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
-    override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+    override fun activate(game: Game, caster: PlayerData, selectedTarget: PlayerData?): AbilityResult {
         if (game.currentPhase != usablePhase) {
             return AbilityResult(false, "성불은 밤에만 사용할 수 있습니다.")
         }
@@ -31,12 +35,13 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         if (caster.state.hasUsedDailyAbility) {
             return AbilityResult(false, "오늘 밤에는 이미 성불을 사용했습니다.")
         }
-        if (target == null) {
+        if (selectedTarget == null) {
             return AbilityResult(false, "성불할 대상을 지정해야 합니다.")
         }
-        if (!target.state.isDead) {
+        if (!selectedTarget.state.isDead) {
             return AbilityResult(false, "죽은 플레이어만 성불할 수 있습니다.")
         }
+        val target = HackerRedirectManager.resolveTarget(game, selectedTarget) ?: selectedTarget
         if (target.state.isShamaned) {
             return AbilityResult(false, "이미 성불 상태인 플레이어입니다.")
         }
@@ -44,11 +49,20 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         if (!isEarthbound && ShamaningPolicy.canBeShamaned(target)) {
             target.state.isShamaned = true
         }
+        if (caster.job is Thief && target.state.isShamaned) {
+            game.privateDisplayedJobNamesByObserver
+                .getOrPut(caster.member.id, ::mutableMapOf)[caster.member.id] = "영매"
+            game.privateDisplayedJobNamesByObserver
+                .getOrPut(target.member.id, ::mutableMapOf)[caster.member.id] = "영매"
+        }
         caster.state.hasUsedDailyAbility = true
         val revealedJobName = FrogCurseManager.displayedJob(target)?.name ?: "알 수 없음"
         val shamanedImage = SystemImage.SHAMAN_EXORCISM.imageUrl
 
         CoroutineScope(Dispatchers.Default).launch {
+            if (!target.state.isDead && target.state.isShamaned) {
+                GameLoopManager.refreshNightPrivateChannelPermissions(game)
+            }
             val casterMessage = if (isEarthbound) {
                 "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
             } else {

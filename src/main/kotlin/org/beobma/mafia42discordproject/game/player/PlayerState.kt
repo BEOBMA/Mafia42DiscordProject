@@ -11,6 +11,8 @@ class PlayerState {
     var isTamed: Boolean = false               // 짐승인간 길들여짐 여부
     var isJobPubliclyRevealed: Boolean = false // 모든 플레이어에게 직업이 공개되었는지 여부
     var hasAnnouncedGodfatherContact: Boolean = false // 대부 접선 알림 전송 여부
+    var hasContactedMafiaByDiscipline: Boolean = false // 규율 발동으로 대부가 조기 접선했는지 여부
+    var mafiaAbilityBlockedNight: Int? = null // 규율로 처형 능력이 봉쇄되는 밤의 일차
     var hasAnnouncedHitmanContact: Boolean = false // 청부업자 접선 알림 전송 여부
     var hasAnnouncedMadScientistContact: Boolean = false // 과학자 접선 알림 전송 여부
     var hasAnnouncedThiefContact: Boolean = false // 도둑 접선 알림 전송 여부
@@ -26,7 +28,9 @@ class PlayerState {
     var lastPaparazziIssueDay: Int? = null // 파파라치 이슈 발동 일차(밤/낮 합산 1회 제한)
     var hasReceivedInstructionsNoticeFirstDay: Boolean = false
     var hasReceivedWantedNoticeFirstDay: Boolean = false
+    var hasCompletedGraveRobbing: Boolean = false // 도굴 성공 후 직업 변경 여부
     var diedDayCount: Int? = null
+    var forcedDisplayedJobName: String? = null // 도벽 처형 등으로 모든 조사 결과에 고정되는 직업
 
     // 일시적 상태 (밤/낮이 바뀔 때 초기화 필요)
     var healTier: DefenseTier = DefenseTier.NONE // 현재 받고 있는 힐의 방어 티어
@@ -37,6 +41,8 @@ class PlayerState {
     var poisonedDeathDay: Int? = null            // 해당 일차 새벽에 중독사 처리
     var isFrogCursed: Boolean = false            // 마녀 저주(개구리화) 여부
     var frogCurseExpiresAfterDay: Int? = null    // 저주 해제 시점(해당 일차 낮 종료 후)
+    var isFrogCurseHiddenFromSelf: Boolean = false // 망각술로 본인에게 저주 사실을 숨기는지 여부
+    var isFrogHallucinatedAsMafia: Boolean = false // 환각으로 조사 결과에 마피아로 표시되는지 여부
 
     // 새로운 페이즈가 시작될 때 일회성 상태 초기화
     fun resetForNextPhase() {

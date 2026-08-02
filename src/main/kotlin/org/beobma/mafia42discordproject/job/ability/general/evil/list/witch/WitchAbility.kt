@@ -4,13 +4,14 @@ import kotlinx.coroutines.*
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
+import org.beobma.mafia42discordproject.game.loop.NIGHT_DURATION_MS
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
-import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
+import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.evil.list.Mafia
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.Witch
@@ -44,7 +45,7 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         if (witch == null && thief == null) {
             return AbilityResult(false, "마녀 또는 저주 능력을 훔친 도둑만 사용할 수 있습니다.")
         }
-        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        val effectiveTarget = target
         if (effectiveTarget.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신을 저주할 수 없습니다.")
         }
@@ -61,11 +62,20 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         game.pendingOblivionCurseByCaster.remove(caster.member.id)
 
         val now = System.currentTimeMillis()
-        val nightEndsAt = game.nightPhaseStartedAtMillis + NIGHT_DURATION_MS
-        val curseAt = nightEndsAt - CURSE_DELAY_BEFORE_NIGHT_END_MS
-        val delayMillis = curseAt - now
+        val delayMillis = delayUntilNormalCurse(
+            nightStartedAtMillis = game.nightPhaseStartedAtMillis,
+            nowMillis = now
+        )
         if (delayMillis <= 0L) {
-            applyCurseNow(game, caster, witch, thief, effectiveTarget, notifyTarget = true)
+            applyCurseNow(
+                game = game,
+                caster = caster,
+                witch = witch,
+                thief = thief,
+                target = effectiveTarget,
+                notifyTarget = true,
+                hiddenFromTarget = false
+            )
             return AbilityResult(true, "${target.member.effectiveName}님에게 즉시 저주를 걸었습니다.")
         }
 
@@ -74,32 +84,51 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
             if (game.currentPhase != GamePhase.NIGHT) return@launch
             val selectedTargetId = game.pendingWitchCurseByCaster[caster.member.id] ?: return@launch
             if (selectedTargetId != effectiveTarget.member.id) return@launch
-            applyCurseNow(game, caster, witch, thief, effectiveTarget, notifyTarget = true)
+            applyCurseNow(
+                game = game,
+                caster = caster,
+                witch = witch,
+                thief = thief,
+                target = effectiveTarget,
+                notifyTarget = true,
+                hiddenFromTarget = false
+            )
         }
         return AbilityResult(true, "${target.member.effectiveName}님에게 저주를 걸었습니다.")
     }
 
     companion object {
-        private const val NIGHT_DURATION_MS = 25_000L
         private const val CURSE_DELAY_BEFORE_NIGHT_END_MS = 10_000L
         private const val WITCH_CONTACT_IMAGE_URL =
             "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(12).webp"
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+        internal fun delayUntilNormalCurse(
+            nightStartedAtMillis: Long,
+            nowMillis: Long
+        ): Long {
+            val nightEndsAt = nightStartedAtMillis + NIGHT_DURATION_MS
+            val remainingNightMillis = (nightEndsAt - nowMillis).coerceAtLeast(0L)
+            return (remainingNightMillis - CURSE_DELAY_BEFORE_NIGHT_END_MS).coerceAtLeast(0L)
+        }
+
         fun applyOblivionCursesAtNightEnd(game: Game) {
-            val targets = game.pendingOblivionCurseByCaster.values.toSet()
+            val pendingCurses = game.pendingOblivionCurseByCaster.toList()
             game.pendingOblivionCurseByCaster.clear()
-            targets.forEach { targetId ->
+            pendingCurses.forEach { (casterId, targetId) ->
+                val caster = game.getPlayer(casterId) ?: return@forEach
+                if (FrogCurseManager.shouldSuppressPassive(caster)) return@forEach
                 val target = game.getPlayer(targetId) ?: return@forEach
                 if (target.state.isDead) return@forEach
-                FrogCurseManager.applyCurse(target, game.dayCount)
-                scope.launch {
-                    runCatching {
-                        val message = "저주를 받아 개구리가 되었습니다."
-                        GameReplayLogger.logDirectMessage(game, target, message, "마녀 저주")
-                        target.member.getDmChannel().createMessage(message)
-                    }
-                }
+                applyCurseNow(
+                    game = game,
+                    caster = caster,
+                    witch = caster.job as? Witch,
+                    thief = caster.job as? Thief,
+                    target = target,
+                    notifyTarget = false,
+                    hiddenFromTarget = true
+                )
             }
         }
 
@@ -109,9 +138,22 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
             witch: Witch?,
             thief: Thief?,
             target: PlayerData,
-            notifyTarget: Boolean
+            notifyTarget: Boolean,
+            hiddenFromTarget: Boolean
         ) {
-            FrogCurseManager.applyCurse(target, game.dayCount)
+            if (FrogCurseManager.shouldSuppressPassive(caster)) return
+            if (GameLoopManager.shouldIgnoreHarmfulEffectByMentalStrength(game, target)) return
+            FrogCurseManager.applyCurse(
+                target = target,
+                currentDay = game.dayCount,
+                hiddenFromTarget = hiddenFromTarget,
+                hallucinatedAsMafia =
+                    caster.allAbilities.any { it is Hallucination } &&
+                        target.job is Definition
+            )
+            scope.launch {
+                GameLoopManager.refreshCoupleChannelAccess(game)
+            }
             if (notifyTarget) {
                 scope.launch {
                     runCatching {

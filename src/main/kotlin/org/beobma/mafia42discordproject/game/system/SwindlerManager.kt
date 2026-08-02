@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
+import org.beobma.mafia42discordproject.job.ability.general.evil.list.other.BeautyTrap
 import org.beobma.mafia42discordproject.job.definition.Definition
 import org.beobma.mafia42discordproject.job.evil.list.Swindler
 
@@ -28,11 +29,11 @@ object SwindlerManager {
 
     fun shouldTriggerNegotiation(game: Game, mafiaTarget: PlayerData): Pair<PlayerData, Boolean>? {
         val aliveSwindlers = game.playerDatas.filter { !it.state.isDead && it.job is Swindler }
-        val triggered = aliveSwindlers.firstOrNull { swindlerPlayer ->
-            val swindlerJob = swindlerPlayer.job as? Swindler ?: return@firstOrNull false
+        val triggered = aliveSwindlers.filter { swindlerPlayer ->
+            val swindlerJob = swindlerPlayer.job as? Swindler ?: return@filter false
             mafiaTarget.member.id == swindlerPlayer.member.id ||
                 mafiaTarget.member.id == swindlerJob.disguisedTargetId
-        } ?: return null
+        }.randomOrNull() ?: return null
 
         val swindlerWasMafiaTarget = mafiaTarget.member.id == triggered.member.id
         return triggered to swindlerWasMafiaTarget
@@ -78,6 +79,7 @@ object SwindlerManager {
     fun notifyBeautyTrap(target: PlayerData, discoverer: PlayerData) {
         if (discoverer.job !is Definition) return
         if (target.job !is Swindler && target.job !is org.beobma.mafia42discordproject.job.evil.list.Spy) return
+        if (target.allAbilities.none { it is BeautyTrap }) return
         if (target.state.isDead) return
 
         val discovererJobName = discoverer.job?.name ?: "알 수 없음"

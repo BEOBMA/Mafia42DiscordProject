@@ -4,6 +4,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.ability.Ability
 import org.beobma.mafia42discordproject.job.ability.JobSpecificExtraAbility
@@ -19,6 +20,7 @@ class Humint : Ability, JobSpecificExtraAbility {
     companion object {
         suspend fun notifyIfTriggered(game: Game, caster: PlayerData, target: PlayerData) {
             val targetAgentJob = target.job as? Agent ?: return
+            if (FrogCurseManager.shouldSuppressPassive(target)) return
             if (caster.member.id !in targetAgentJob.discoveredCitizenTargetIds) return
             if (target.allAbilities.none { it is Humint }) return
             val discoveredDay = targetAgentJob.discoveredCitizenTargetDayById[caster.member.id] ?: return

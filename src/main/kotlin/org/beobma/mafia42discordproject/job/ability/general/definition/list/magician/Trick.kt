@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Magician
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class Trick : ActiveAbility, JobUniqueAbility {
     override val name: String = "트릭"
@@ -23,8 +24,8 @@ class Trick : ActiveAbility, JobUniqueAbility {
         if (caster.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         }
-        val magician = caster.job as? Magician
-            ?: return AbilityResult(false, "마술사만 사용할 수 있습니다.")
+        val magician = caster.actualOrStolenJob<Magician>()
+            ?: return AbilityResult(false, "마술사 또는 트릭 능력을 훔친 도둑만 사용할 수 있습니다.")
         if (magician.hasUsedTrick) {
             return AbilityResult(false, "이미 트릭으로 바꿔치기에 성공하여 다시 사용할 수 없습니다.")
         }

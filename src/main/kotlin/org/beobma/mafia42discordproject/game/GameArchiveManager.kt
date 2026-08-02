@@ -119,6 +119,18 @@ object GameArchiveManager {
                         game.lastNightSummary.dawnPresentation?.imageUrls?.forEach { add(it) }
                     })
                     putNullable("message", game.lastNightSummary.dawnPresentation?.message)
+                    put("announcements", buildJsonArray {
+                        game.lastNightSummary.dawnPresentation?.announcements?.forEach { announcement ->
+                            add(buildJsonObject {
+                                put("imageUrl", announcement.imageUrl)
+                                put("message", announcement.message)
+                                put("priority", announcement.priority)
+                                putNullable("targetId", announcement.targetId?.value?.toString())
+                                putNullable("soundPath", announcement.soundPath)
+                                putNullable("embedTitle", announcement.embedTitle)
+                            })
+                        }
+                    })
                 })
             })
 
@@ -174,6 +186,7 @@ object GameArchiveManager {
                 put("pendingWitchCurseByCaster", toIdMap(game.pendingWitchCurseByCaster))
                 put("pendingOblivionCurseByCaster", toIdMap(game.pendingOblivionCurseByCaster))
                 put("abilityTargetByUserThisPhase", toIdMap(game.abilityTargetByUserThisPhase))
+                put("lastNightAbilityTargetByUser", toIdMap(game.lastNightAbilityTargetByUser))
                 put("hostessFirstVoteTargetByDay", toIdMap(game.hostessFirstVoteTargetByDay))
             })
 
@@ -233,6 +246,8 @@ object GameArchiveManager {
                 put("isTamed", player.state.isTamed)
                 put("isJobPubliclyRevealed", player.state.isJobPubliclyRevealed)
                 put("hasAnnouncedGodfatherContact", player.state.hasAnnouncedGodfatherContact)
+                put("hasContactedMafiaByDiscipline", player.state.hasContactedMafiaByDiscipline)
+                putNullable("mafiaAbilityBlockedNight", player.state.mafiaAbilityBlockedNight)
                 put("hasAnnouncedHitmanContact", player.state.hasAnnouncedHitmanContact)
                 put("hasAnnouncedMadScientistContact", player.state.hasAnnouncedMadScientistContact)
                 put("hasAnnouncedThiefContact", player.state.hasAnnouncedThiefContact)
@@ -248,6 +263,8 @@ object GameArchiveManager {
                 putNullable("lastPaparazziIssueDay", player.state.lastPaparazziIssueDay)
                 put("hasReceivedInstructionsNoticeFirstDay", player.state.hasReceivedInstructionsNoticeFirstDay)
                 put("hasReceivedWantedNoticeFirstDay", player.state.hasReceivedWantedNoticeFirstDay)
+                put("hasCompletedGraveRobbing", player.state.hasCompletedGraveRobbing)
+                putNullable("forcedDisplayedJobName", player.state.forcedDisplayedJobName)
                 put("healTier", player.state.healTier.name)
                 put("isSilenced", player.state.isSilenced)
                 put("isThreatened", player.state.isThreatened)
@@ -256,6 +273,8 @@ object GameArchiveManager {
                 putNullable("poisonedDeathDay", player.state.poisonedDeathDay)
                 put("isFrogCursed", player.state.isFrogCursed)
                 putNullable("frogCurseExpiresAfterDay", player.state.frogCurseExpiresAfterDay)
+                put("isFrogCurseHiddenFromSelf", player.state.isFrogCurseHiddenFromSelf)
+                put("isFrogHallucinatedAsMafia", player.state.isFrogHallucinatedAsMafia)
             })
         }
     }

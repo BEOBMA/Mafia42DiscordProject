@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessageAndSound
+import org.beobma.mafia42discordproject.discord.DiscordMessageManager.stopLoopingGameSound
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GameLoopManager
 import org.beobma.mafia42discordproject.game.GamePhase
@@ -211,6 +212,7 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
             "${it.member.effectiveName}님이 청부업자에게 정체를 들켜 암살 당했습니다."
         }
         val message = "$CONTRACT_KILL_IMAGE_URL\n$victims"
+        game.stopLoopingGameSound()
         game.sendMainChannerMessageAndSound(message, CONTRACT_SUCCESS_SOUND_PATH)
     }
 

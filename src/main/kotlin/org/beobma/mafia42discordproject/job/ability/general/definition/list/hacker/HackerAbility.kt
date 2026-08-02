@@ -8,6 +8,8 @@ import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Hacker
+import org.beobma.mafia42discordproject.job.evil.list.Thief
+import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class HackerAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "해킹"
@@ -16,7 +18,7 @@ class HackerAbility : ActiveAbility, JobUniqueAbility {
     override val usablePhase: GamePhase = GamePhase.DAY
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
-        if (game.currentPhase != usablePhase) {
+        if (game.currentPhase != usablePhase && !(caster.job is Thief && game.currentPhase == GamePhase.VOTE)) {
             return AbilityResult(false, "해킹은 낮에만 사용할 수 있습니다.")
         }
         if (caster.state.isDead) {
@@ -32,8 +34,15 @@ class HackerAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "자기 자신은 해킹 대상으로 지정할 수 없습니다.")
         }
 
-        val hacker = caster.job as? Hacker
-            ?: return AbilityResult(false, "해커만 사용할 수 있습니다.")
+        val hacker = caster.actualOrStolenJob<Hacker>()
+            ?: return AbilityResult(false, "해커 또는 해킹 능력을 훔친 도둑만 사용할 수 있습니다.")
+        val thief = caster.job as? Thief
+        if (thief?.hasUsedStolenHackerAbility == true) {
+            return AbilityResult(false, "도둑이 훔친 해킹 능력은 게임당 한 번만 사용할 수 있습니다.")
+        }
+        if (hacker.hasResolvedHackDiscovery && hacker.hackedTargetId == null) {
+            return AbilityResult(false, "이미 해킹 능력을 사용했습니다.")
+        }
 
         val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
         val existingTargetId = hacker.hackedTargetId
@@ -42,6 +51,10 @@ class HackerAbility : ActiveAbility, JobUniqueAbility {
         }
 
         hacker.hackedTargetId = effectiveTarget.member.id
+        if (thief != null) {
+            thief.hasUsedStolenHackerAbility = true
+            thief.stolenHackerTargetId = effectiveTarget.member.id
+        }
         return AbilityResult(true, "${target.member.effectiveName}님을 해킹 대상으로 지정했습니다.")
     }
 }

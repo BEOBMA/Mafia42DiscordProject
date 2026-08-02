@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#100f12">
+    <title>마피아 게임 메모장</title>
+    <link rel="stylesheet" href="/app.css">
+    <script src="/app.js" defer></script>
+</head>
+<body>
+<div class="ambient ambient-one" aria-hidden="true"></div>
+<div class="ambient ambient-two" aria-hidden="true"></div>
+
+<main class="shell">
+    <header class="topbar">
+        <div class="brand-block">
+            <span class="eyebrow">PRIVATE CASE FILE</span>
+            <h1>게임 메모장</h1>
+            <p>추리를 기록하고 공개된 정보를 한눈에 확인하세요.</p>
+        </div>
+        <div class="connection" id="connection" role="status" aria-live="polite">
+            <span class="connection-dot"></span>
+            <span>연결 확인 중</span>
+        </div>
+    </header>
+
+    <section class="login-panel" id="login-panel" hidden>
+        <div class="login-mark" aria-hidden="true">!</div>
+        <span class="eyebrow">ACCESS REQUIRED</span>
+        <h2>개인 링크가 필요합니다</h2>
+        <p id="login-message">Discord에서 <strong>/메모장</strong> 또는 <strong>!메모장</strong> 명령을 사용해 새 링크를 받아 주세요.</p>
+    </section>
+
+    <div id="dashboard" hidden>
+        <section class="game-strip" aria-label="현재 게임 상태">
+            <div>
+                <span class="strip-label">SERVER</span>
+                <strong id="guild-name">-</strong>
+            </div>
+            <div>
+                <span class="strip-label">DAY</span>
+                <strong id="day-count">-</strong>
+            </div>
+            <div>
+                <span class="strip-label">PHASE</span>
+                <strong id="phase-label">-</strong>
+            </div>
+            <div>
+                <span class="strip-label">SURVIVORS</span>
+                <strong id="survivor-count">-</strong>
+            </div>
+            <button class="refresh-button" id="refresh-button" type="button">지금 갱신</button>
+        </section>
+
+        <nav class="workspace-tabs" aria-label="게임 도구">
+            <button class="workspace-tab active" type="button" data-tab="profile" aria-selected="true">프로필</button>
+            <button class="workspace-tab" type="button" data-tab="memo" aria-selected="false">메모</button>
+            <button class="workspace-tab" type="button" data-tab="log" aria-selected="false">
+                게임 로그 <span class="log-unread" id="log-unread" hidden>0</span>
+            </button>
+        </nav>
+
+        <div class="tab-panel active" id="profile-panel" data-panel="profile">
+        <section class="identity-panel" aria-labelledby="my-profile-title">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">MY IDENTITY</span>
+                    <h2 id="my-profile-title">내 프로필</h2>
+                </div>
+                <span class="privacy-badge">나에게만 표시</span>
+            </div>
+
+            <div class="identity-content">
+                <div class="profile-summary">
+                    <img class="profile-avatar" id="my-avatar" alt="">
+                    <div class="profile-copy">
+                        <span class="profile-name" id="my-name">-</span>
+                        <div class="role-line">
+                            <span class="role-icon-frame" id="my-job-icon-frame">
+                                <img id="my-job-icon" alt="">
+                                <span id="my-job-fallback">?</span>
+                            </span>
+                            <div>
+                                <span class="strip-label">ASSIGNED ROLE</span>
+                                <strong id="my-job-name">배정 대기 중</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ability-section">
+                    <div class="ability-title-row">
+                        <h3>능력</h3>
+                        <span id="ability-count">0</span>
+                    </div>
+                    <div class="ability-grid" id="ability-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="action-panel" id="action-panel" hidden aria-labelledby="action-title">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">SELECT TARGET</span>
+                    <h2 id="action-title">능력 대상 선택</h2>
+                </div>
+                <button class="cancel-action" id="cancel-action" type="button">선택 취소</button>
+            </div>
+            <p class="action-help" id="action-help"></p>
+            <div class="action-player-grid" id="action-player-grid"></div>
+        </section>
+        </div>
+
+        <div class="tab-panel" id="memo-panel" data-panel="memo" hidden>
+        <section class="players-section" aria-labelledby="players-title">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">PLAYER DOSSIERS</span>
+                    <h2 id="players-title">참가자 추리 노트</h2>
+                </div>
+                <p>공개되지 않은 직업에 대한 예상과 근거는 본인에게만 저장됩니다.</p>
+            </div>
+            <div class="player-grid" id="player-grid"></div>
+        </section>
+        </div>
+
+        <div class="tab-panel" id="log-panel" data-panel="log" hidden>
+            <section class="game-log-panel" aria-labelledby="game-log-title">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">LIVE SYSTEM FEED</span>
+                        <h2 id="game-log-title">게임 로그</h2>
+                    </div>
+                    <p>플레이어 채팅을 제외한 공개 알림과 나에게 전달된 결과입니다.</p>
+                </div>
+                <div class="event-list" id="event-list"></div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <span>127.0.0.1 로컬 테스트</span>
+        <span>메모는 현재 게임 종료 시 삭제됩니다.</span>
+    </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="ability-dialog" id="ability-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="ability-dialog-title">
+    <div class="ability-dialog-backdrop" data-close-dialog></div>
+    <section class="ability-dialog-card">
+        <span class="eyebrow">CONFIRM ACTION</span>
+        <h2 id="ability-dialog-title">능력 사용</h2>
+        <p id="ability-dialog-summary"></p>
+        <label class="job-choice-field" id="job-choice-field" hidden>
+            <span>직업 선택</span>
+            <select id="ability-job-select"></select>
+        </label>
+        <div class="dialog-actions">
+            <button class="dialog-cancel" type="button" data-close-dialog>취소</button>
+            <button class="dialog-confirm" id="ability-confirm" type="button">능력 사용</button>
+        </div>
+    </section>
+</div>
+</body>
+</html>

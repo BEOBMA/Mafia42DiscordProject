@@ -3,6 +3,7 @@ package org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
+import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.AttackTier
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
@@ -33,6 +34,9 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (caster.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 능력을 사용할 수 없습니다.")
         }
+        if (isBlockedByDiscipline(game, caster)) {
+            return AbilityResult(false, "규율의 영향으로 이번 밤에는 처형 능력을 사용할 수 없습니다.")
+        }
         if (target == null) {
             return AbilityResult(false, "처형할 대상을 지정해야 합니다.")
         }
@@ -54,7 +58,9 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.PIERCE
         }
 
-        if (caster.allAbilities.any { it is Sniper } && game.mafiaAttackFailedPreviousNight) {
+        val isSniperEnhanced =
+            caster.allAbilities.any { it is Sniper } && game.mafiaAttackFailedPreviousNight
+        if (isSniperEnhanced) {
             attackTier = AttackTier.PIERCE
         }
 
@@ -62,9 +68,11 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.PIERCE
             caster.state.hasUsedOneTimeAbility = true
         }
-        if (casterJob is Thief && casterJob.hasSuccessor() && game.playerDatas.none { !it.state.isDead && it.job is Mafia }) {
-            attackTier = AttackTier.ABSOLUTE
-        }
+        val isActivatedSuccessorExecution =
+            casterJob is Thief &&
+            casterJob.hasActivatedSuccessorMafia &&
+            game.playerDatas.none { !it.state.isDead && it.job is Mafia }
+        attackTier = applySuccessorAttackTier(attackTier, isActivatedSuccessorExecution)
 
         val hasNightRaid = caster.allAbilities.any { it.name == "야습" }
         if (game.dayCount == 1 && target.job is org.beobma.mafia42discordproject.job.definition.list.Doctor && hasNightRaid) {
@@ -74,6 +82,8 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         val coupleRedirectedTarget = resolveCoupleRedirectTarget(game, target)
         val redirectedTarget = if (coupleRedirectedTarget != target) {
             coupleRedirectedTarget
+        } else if (shouldBypassHackerProxy(casterJob is Thief, isSniperEnhanced)) {
+            target
         } else {
             HackerRedirectManager.resolveTarget(game, target) ?: target
         }
@@ -101,9 +111,11 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
     private fun resolveCoupleRedirectTarget(game: Game, originalTarget: PlayerData): PlayerData {
         val targetCouple = originalTarget.job as? Couple ?: return originalTarget
+        if (FrogCurseManager.shouldSuppressPassive(originalTarget)) return originalTarget
         val partnerId = targetCouple.pairedPlayerId ?: return originalTarget
         val partner = game.getPlayer(partnerId) ?: return originalTarget
         if (partner.state.isDead) return originalTarget
+        if (FrogCurseManager.shouldSuppressPassive(partner)) return originalTarget
         return partner
     }
 
@@ -122,5 +134,31 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
 
         val aliveMafias = game.playerDatas.filter { !it.state.isDead && it.job is Mafia }
         return aliveMafias.size == 1 && aliveMafias.first() == caster
+    }
+
+    companion object {
+        internal fun isBlockedByDiscipline(game: Game, caster: PlayerData): Boolean {
+            return caster.job is Mafia &&
+                caster.state.mafiaAbilityBlockedNight == game.dayCount
+        }
+
+        internal fun shouldBypassHackerProxy(
+            isThiefExecution: Boolean,
+            isSniperEnhanced: Boolean
+        ): Boolean {
+            return isThiefExecution || isSniperEnhanced
+        }
+
+        internal fun applySuccessorAttackTier(
+            currentTier: AttackTier,
+            isActivatedSuccessorExecution: Boolean
+        ): AttackTier {
+            if (!isActivatedSuccessorExecution) return currentTier
+            return if (currentTier.level < AttackTier.PIERCE.level) {
+                AttackTier.PIERCE
+            } else {
+                currentTier
+            }
+        }
     }
 }

@@ -1,0 +1,84 @@
+{
+    "schemaVersion": 2,
+    "replayUuid": "6b53c83a10cea0be418e0de196ed5da8",
+    "generatedAtMillis": 1785251716479,
+    "endReason": "FORCED_STOP",
+    "winningTeamName": null,
+    "guildId": "1524098356777975818",
+    "guildName": "마피아42",
+    "replayStartedAtMillis": 1785251688729,
+    "dayCount": 0,
+    "initialPlayerCount": 6,
+    "players": [
+        {
+            "id": "597040055474978816",
+            "name": "BEOBMA",
+            "jobName": "테러리스트",
+            "isDead": false
+        },
+        {
+            "id": "534697552201777162",
+            "name": "은지",
+            "jobName": "청부업자",
+            "isDead": false
+        },
+        {
+            "id": "1406571254156234762",
+            "name": "창탱이",
+            "jobName": "해커",
+            "isDead": false
+        },
+        {
+            "id": "792720761680429068",
+            "name": "다온",
+            "jobName": "마피아",
+            "isDead": false
+        },
+        {
+            "id": "505648737767653397",
+            "name": "꺼억",
+            "jobName": "기자",
+            "isDead": false
+        },
+        {
+            "id": "946654405640478731",
+            "name": "nilr0_sv",
+            "jobName": "경찰",
+            "isDead": false
+        }
+    ],
+    "logs": [
+        {
+            "sequence": 1,
+            "timestampMillis": 1785251689432,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_START",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "SYSTEM_INTERNAL",
+            "title": "게임 시작",
+            "body": "모드: 일반\n참가자 6명\n- BEOBMA: 테러리스트\n- 은지: 청부업자\n- 창탱이: 해커\n- 다온: 마피아\n- 꺼억: 기자\n- nilr0_sv: 경찰",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        },
+        {
+            "sequence": 2,
+            "timestampMillis": 1785251713177,
+            "dayCount": 0,
+            "phase": "DAY",
+            "type": "GAME_END",
+            "actorId": null,
+            "actorName": null,
+            "actorJobName": null,
+            "visibility": "PUBLIC",
+            "title": "게임 종료",
+            "body": "FORCED_STOP",
+            "imageUrls": [],
+            "recipients": [],
+            "relatedEventId": null
+        }
+    ]
+}

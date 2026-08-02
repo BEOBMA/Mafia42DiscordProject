@@ -12,18 +12,29 @@ import org.beobma.mafia42discordproject.game.system.AttackEvent
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.Team
 import org.beobma.mafia42discordproject.job.Job
+import kotlinx.coroutines.sync.Mutex
 
 data class DawnPresentation(
     val imageUrl: String,
     val message: String,
-    val extraImageUrls: List<String> = emptyList()
+    val extraImageUrls: List<String> = emptyList(),
+    val announcements: List<DawnAnnouncement> = emptyList()
 ) {
     val imageUrls: List<String>
-        get() = (listOf(imageUrl) + extraImageUrls)
+        get() = (listOf(imageUrl) + extraImageUrls + announcements.map(DawnAnnouncement::imageUrl))
             .map(String::trim)
             .filter(String::isNotBlank)
             .distinct()
 }
+
+data class DawnAnnouncement(
+    val imageUrl: String,
+    val message: String,
+    val priority: Int,
+    val targetId: Snowflake? = null,
+    val soundPath: String? = null,
+    val embedTitle: String? = null
+)
 
 data class NightResolutionSummary(
     val processedEvents: List<GameEvent> = emptyList(),
@@ -76,9 +87,11 @@ data class Game(
     var hasArchivedSnapshot: Boolean = false
     var hasSentReplay: Boolean = false
     var hasLoggedFinalJobAbilityReplay: Boolean = false
+    val abilitySelectionRefreshLimitsByPlayerId: MutableMap<Snowflake, Int> = mutableMapOf()
     var replayStartedAtMillis: Long = System.currentTimeMillis()
     var nextReplaySequence: Long = 1L
     val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
+    val abilityActionMutex: Mutex = Mutex()
 
     // Key: 공격 그룹 ("MAFIA_TEAM" 또는 "VIGILANTE_유저ID")
     val nightAttacks: MutableMap<String, AttackEvent> = mutableMapOf()
@@ -97,6 +110,8 @@ data class Game(
     var currentMainVotes: MutableMap<Snowflake, String> = mutableMapOf()
     var currentFakeVotes: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     var currentProsConsVotes: MutableMap<Snowflake, Boolean> = mutableMapOf()
+    val judgeAuthorityDisabledByThiefIds: MutableSet<Snowflake> = mutableSetOf()
+    val detectiveRouteOwnerByObservedPlayerId: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     var defenseTargetId: Snowflake? = null
     var unwrittenRuleBlockedTargetIdTonight: Snowflake? = null
     val blessingProtectedUntilNightDays: MutableMap<Snowflake, Int> = mutableMapOf()
@@ -118,6 +133,7 @@ data class Game(
     val ghostTriggeredGhouls: MutableSet<Snowflake> = mutableSetOf()
     val probationOriginalJobsByPlayer: MutableMap<Snowflake, Job> = mutableMapOf()
     val pendingPoisonNotifications: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val pendingCalmRemovalNotificationCounts: MutableMap<Snowflake, Int> = mutableMapOf()
     val pendingBeastmanTameIds: MutableSet<Snowflake> = mutableSetOf()
     val pendingWitchCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val pendingOblivionCurseByCaster: MutableMap<Snowflake, Snowflake> = mutableMapOf()
@@ -125,6 +141,9 @@ data class Game(
     val pendingMadScientistRevivalAnnouncementIds: MutableSet<Snowflake> = mutableSetOf()
     val abilityUsersThisPhase: MutableSet<Snowflake> = mutableSetOf()
     val abilityTargetByUserThisPhase: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val lastNightAbilityTargetByUser: MutableMap<Snowflake, Snowflake> = mutableMapOf()
+    val privateDisplayedJobNamesByObserver:
+        MutableMap<Snowflake, MutableMap<Snowflake, String>> = mutableMapOf()
     val dayTimeAdjustmentUsedPlayers: MutableSet<Snowflake> = mutableSetOf()
     val seductionStatusByTarget: MutableMap<Snowflake, SeductionStatus> = mutableMapOf()
     val hostessFirstVoteTargetByDay: MutableMap<Snowflake, Snowflake> = mutableMapOf()

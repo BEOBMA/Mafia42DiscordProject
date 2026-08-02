@@ -36,25 +36,44 @@ class Thief : Job(), Evil {
     var stolenHitmanFirstContractTargetId: Snowflake? = null
     var stolenHitmanFirstSelectedTargetId: Snowflake? = null
     var stolenHitmanFirstContractGuessedJobName: String? = null
-    private var stolenAbility: JobUniqueAbility? = null
-
+    var hasUsedStolenHackerAbility: Boolean = false
+    var stolenHackerTargetId: Snowflake? = null
+    var hasActivatedSuccessorMafia: Boolean = false
+    var hasUsedStolenMagicianTrick: Boolean = false
+    var hasUsedTheftThisVote: Boolean = false
+    private val stolenAbilities: MutableList<JobUniqueAbility> = mutableListOf()
+    var stolenJob: Job? = null
+        private set
+    var stolenSourcePlayerId: Snowflake? = null
+        private set
     fun setStolenAbility(ability: JobUniqueAbility?) {
-        stolenAbility?.let { abilities.remove(it) }
+        setStolenJob(null, null, listOfNotNull(ability))
+    }
+
+    fun setStolenJob(job: Job?, sourcePlayerId: Snowflake?, borrowedAbilities: List<JobUniqueAbility> = job?.abilities.orEmpty()) {
+        abilities.removeAll(stolenAbilities.toSet())
+        stolenAbilities.clear()
         resetStolenAbilityState()
-        stolenAbility = ability
-        if (ability != null && ability !in abilities) {
-            abilities += ability
+        stolenJob = job
+        stolenSourcePlayerId = sourcePlayerId
+        borrowedAbilities.forEach { ability ->
+            if (ability !in abilities) {
+                abilities += ability
+                stolenAbilities += ability
+            }
         }
     }
 
     fun clearStolenAbility() {
-        stolenAbility?.let { abilities.remove(it) }
-        stolenAbility = null
+        abilities.removeAll(stolenAbilities.toSet())
+        stolenAbilities.clear()
+        stolenJob = null
+        stolenSourcePlayerId = null
         resetStolenAbilityState()
     }
 
     fun hasStolenAbility(name: String): Boolean {
-        return stolenAbility?.name == name
+        return stolenAbilities.any { it.name == name }
     }
 
     fun hasCondolences(): Boolean {
