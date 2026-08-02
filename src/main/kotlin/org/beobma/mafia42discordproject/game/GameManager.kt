@@ -25,6 +25,7 @@ import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuid
 import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
+import org.beobma.mafia42discordproject.game.abilityselection.selectMafiaAbilityRefreshLimits
 import org.beobma.mafia42discordproject.game.annihilation.AnnihilationModeManager
 import org.beobma.mafia42discordproject.game.annihilation.Capo
 import org.beobma.mafia42discordproject.game.annihilation.Soldato
@@ -93,8 +94,6 @@ object GameManager {
 
     private const val EXTRA_ABILITY_SELECTION_REPEAT_COUNT = 3
     private const val EXTRA_ABILITY_OPTIONS_PER_ROUND = 3
-    private const val SOLO_MAFIA_ABILITY_REFRESH_LIMIT = 2
-
     private const val GAME_MAIN_CHANNEL_ID = 1524098920576319518L
     private const val GAME_MAFIA_CHANNEL_ID = 1524098952499036320L
     private const val GAME_COUPLE_CHANNEL_ID = 1524098966139043860L
@@ -1369,6 +1368,15 @@ object GameManager {
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
         val preparedSessions = mutableMapOf<Snowflake, AbilitySelectionSession>()
+        abilitySelectionRefreshLimitsByPlayerId.clear()
+        abilitySelectionRefreshLimitsByPlayerId.putAll(
+            selectMafiaAbilityRefreshLimits(
+                playerCount = playerDatas.size,
+                mafiaPlayerIds = playerDatas
+                    .filter { player -> player.job is Mafia }
+                    .map { player -> player.member.id }
+            )
+        )
 
         playerDatas.forEach { player ->
             val job = player.job ?: return@forEach
@@ -1378,7 +1386,7 @@ object GameManager {
             val session = AbilitySelectionSession(
                 playerJob = job,
                 availablePool = pool,
-                maxRefreshes = abilitySelectionRefreshLimitForPlayer(this, player)
+                maxRefreshes = abilitySelectionRefreshLimitsByPlayerId[player.member.id] ?: 0
             )
             session.currentOptions = drawAbilityOptions(session)
             if (session.currentOptions.isNotEmpty()) {
@@ -1462,12 +1470,6 @@ object GameManager {
             .distinctBy(Ability::name)
             .shuffled()
             .toMutableList()
-    }
-
-    private fun abilitySelectionRefreshLimitForPlayer(game: Game, player: PlayerData): Int {
-        if (player.job !is Mafia) return 0
-        val mafiaCount = game.playerDatas.count { candidate -> candidate.job is Mafia }
-        return if (mafiaCount == 1) SOLO_MAFIA_ABILITY_REFRESH_LIMIT else 0
     }
 
     private fun buildMafiaTeammateMessage(game: Game, player: PlayerData): String? {
@@ -1884,7 +1886,7 @@ object GameManager {
         val restoredSession = AbilitySelectionSession(
             playerJob = playerJob,
             availablePool = availablePool,
-            maxRefreshes = abilitySelectionRefreshLimitForPlayer(game, player),
+            maxRefreshes = game.abilitySelectionRefreshLimitsByPlayerId[player.member.id] ?: 0,
             selected = playerJob.extraAbilities.toMutableList(),
             completedRounds = completedRounds
         )

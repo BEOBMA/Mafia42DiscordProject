@@ -87,6 +87,7 @@ data class Game(
     var hasArchivedSnapshot: Boolean = false
     var hasSentReplay: Boolean = false
     var hasLoggedFinalJobAbilityReplay: Boolean = false
+    val abilitySelectionRefreshLimitsByPlayerId: MutableMap<Snowflake, Int> = mutableMapOf()
     var replayStartedAtMillis: Long = System.currentTimeMillis()
     var nextReplaySequence: Long = 1L
     val replayLogs: MutableList<ReplayLogEntry> = mutableListOf()
