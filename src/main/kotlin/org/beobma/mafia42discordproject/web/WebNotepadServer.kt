@@ -29,6 +29,7 @@ import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.definition.list.MentalPatient
+import org.beobma.mafia42discordproject.job.evil.Evil
 import java.net.InetSocketAddress
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -51,6 +52,10 @@ object WebNotepadServer {
     private const val SESSION_LIFETIME_MILLIS = 8 * 60 * 60 * 1000L
     private const val MAX_REQUEST_BODY_BYTES = 8 * 1024
     private const val MAX_NOTE_LENGTH = 1_000
+    private const val JOB_ICON_BASE_URL =
+        "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia"
+
+    private val primaryMemoJobNames = listOf("마피아", "경찰", "형사", "요원", "자경단원", "의사")
 
     private val host = System.getenv("WEB_HOST")?.trim()?.takeIf(String::isNotEmpty) ?: DEFAULT_HOST
     private val port = System.getenv("WEB_PORT")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: DEFAULT_PORT
@@ -595,17 +600,36 @@ object WebNotepadServer {
                 }
             })
             put("jobs", buildJsonArray {
-                JobManager.getAll()
-                    .distinctBy(Job::name)
-                    .sortedBy(Job::name)
-                    .forEach { job ->
+                memoJobsByRow().forEach { (rowNumber, jobs) ->
+                    jobs.forEach { job ->
                         add(buildJsonObject {
                             put("name", job.name)
-                            putNullableString("image", job.jobImage)
+                            put("image", "$JOB_ICON_BASE_URL/${job.name}_icon.webp")
+                            put("memoRow", rowNumber)
                         })
                     }
+                }
             })
         }
+    }
+
+    /** 메모장의 의미별 행을 고정한다. 각 행은 UI 규칙상 최대 여섯 직업만 포함한다. */
+    private fun memoJobsByRow(): List<Pair<Int, List<Job>>> {
+        val allJobs = JobManager.getAll().distinctBy(Job::name)
+        val jobsByName = allJobs.associateBy(Job::name)
+        val primary = primaryMemoJobNames.mapNotNull(jobsByName::get)
+        val villain = jobsByName["악인"]
+        val assistants = allJobs.filter { it is Evil && it.name !in setOf("마피아", "악인") }
+        val specialJobs = allJobs.filter { job ->
+            job !is Evil && job.name !in primaryMemoJobNames && job.name != "시민"
+        } + listOfNotNull(jobsByName["시민"])
+
+        return buildList {
+            add(1 to primary.take(6))
+            add(2 to assistants.take(6))
+            add(3 to (assistants.drop(6).take(5) + listOfNotNull(villain)))
+            specialJobs.chunked(6).forEachIndexed { index, jobs -> add(index + 4 to jobs) }
+        }.filter { (_, jobs) -> jobs.isNotEmpty() }
     }
 
     private fun buildVisibleEvents(game: Game, viewer: PlayerData, after: Long): JsonObject {

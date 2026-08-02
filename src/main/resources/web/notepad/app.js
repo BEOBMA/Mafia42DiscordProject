@@ -10,6 +10,7 @@ const state = {
     events: [],
     eventsInitialized: false,
     unreadEvents: 0,
+    openJobPickerId: null,
 };
 
 const elements = {
@@ -324,19 +325,98 @@ function createRoleStatus(player) {
 function createMemoArea(player, jobs) {
     const area = createElement("div", "memo-area");
     const labelRow = createElement("div", "memo-label-row");
-    const label = document.createElement("label");
-    const selectId = `guess-${player.id}`;
-    label.htmlFor = selectId;
-    label.textContent = "예상 직업";
+    const label = createElement("span", "memo-label", "예상 직업");
     const saveStatus = createElement("span", "save-status");
     labelRow.append(label, saveStatus);
-    const select = document.createElement("select");
-    select.className = "job-select";
-    select.id = selectId;
-    select.setAttribute("aria-label", `${player.name} 예상 직업`);
-    select.append(new Option("직업을 선택하세요", ""));
-    for (const job of jobs) select.append(new Option(job.name, job.name));
-    select.value = player.note.guessedJobName || "";
+
+    let selectedJobName = player.note.guessedJobName || "";
+    const selectedJob = () => jobs.find(job => job.name === selectedJobName);
+    const trigger = createElement("button", "memo-job-trigger");
+    trigger.type = "button";
+    trigger.setAttribute("aria-expanded", String(state.openJobPickerId === player.id));
+    trigger.setAttribute("aria-controls", `job-picker-${player.id}`);
+
+    const triggerIcon = createElement("span", "memo-selected-icon", selectedJobName ? "" : "?");
+    const triggerImage = document.createElement("img");
+    triggerImage.alt = "";
+    const triggerName = createElement("strong", "memo-selected-name");
+    const triggerHint = createElement("span", "memo-trigger-hint", "클릭하여 직업 아이콘 선택");
+    trigger.append(triggerIcon, createElement("span", "memo-trigger-copy"));
+    trigger.lastElementChild.append(triggerName, triggerHint);
+
+    const updateTrigger = () => {
+        const job = selectedJob();
+        triggerName.textContent = job?.name || "직업 미선택";
+        triggerIcon.textContent = job ? "" : "?";
+        triggerImage.remove();
+        if (job) {
+            triggerImage.src = job.image;
+            triggerImage.alt = `${job.name} 직업 아이콘`;
+            triggerIcon.append(triggerImage);
+        }
+    };
+    updateTrigger();
+
+    const picker = createElement("div", "job-icon-picker");
+    picker.id = `job-picker-${player.id}`;
+    picker.hidden = state.openJobPickerId !== player.id;
+    picker.setAttribute("aria-label", `${player.name} 예상 직업 선택`);
+
+    const buttons = [];
+    const selectJob = jobName => {
+        selectedJobName = selectedJobName === jobName ? "" : jobName;
+        for (const button of buttons) {
+            const selected = button.dataset.jobName === selectedJobName;
+            button.classList.toggle("selected", selected);
+            button.setAttribute("aria-pressed", String(selected));
+        }
+        updateTrigger();
+        state.openJobPickerId = null;
+        picker.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+        scheduleSave();
+        trigger.focus();
+    };
+
+    const jobsByRow = new Map();
+    for (const job of jobs) {
+        const rowNumber = job.memoRow || 4;
+        if (!jobsByRow.has(rowNumber)) jobsByRow.set(rowNumber, []);
+        jobsByRow.get(rowNumber).push(job);
+    }
+    for (const [, rowJobs] of [...jobsByRow.entries()].sort(([left], [right]) => left - right)) {
+        const row = createElement("div", "job-icon-row");
+        for (const job of rowJobs.slice(0, 6)) {
+            const button = createElement("button", "job-icon-button");
+            button.type = "button";
+            button.dataset.jobName = job.name;
+            button.title = job.name;
+            button.setAttribute("aria-label", job.name);
+            button.setAttribute("aria-pressed", String(job.name === selectedJobName));
+            button.classList.toggle("selected", job.name === selectedJobName);
+            const image = document.createElement("img");
+            image.src = job.image;
+            image.alt = "";
+            image.loading = "lazy";
+            image.addEventListener("error", () => button.classList.add("image-error"), { once: true });
+            button.append(image, createElement("span", "job-icon-name", job.name));
+            button.addEventListener("click", () => selectJob(job.name));
+            buttons.push(button);
+            row.append(button);
+        }
+        picker.append(row);
+    }
+
+    trigger.addEventListener("click", () => {
+        const willOpen = picker.hidden;
+        document.querySelectorAll(".job-icon-picker").forEach(node => { node.hidden = true; });
+        document.querySelectorAll(".memo-job-trigger[aria-expanded='true']")
+            .forEach(node => node.setAttribute("aria-expanded", "false"));
+        picker.hidden = !willOpen;
+        trigger.setAttribute("aria-expanded", String(willOpen));
+        state.openJobPickerId = willOpen ? player.id : null;
+    });
+
     const textarea = document.createElement("textarea");
     textarea.className = "note-input";
     textarea.maxLength = 1000;
@@ -348,13 +428,12 @@ function createMemoArea(player, jobs) {
         saveStatus.textContent = "저장 중…";
         window.clearTimeout(state.saveTimers.get(player.id));
         state.saveTimers.set(player.id, window.setTimeout(async () => {
-            const saved = await saveNote(player.id, select.value || null, textarea.value);
+            const saved = await saveNote(player.id, selectedJobName || null, textarea.value);
             saveStatus.textContent = saved ? "저장됨" : "저장 실패";
         }, 450));
     };
-    select.addEventListener("change", scheduleSave);
     textarea.addEventListener("input", scheduleSave);
-    area.append(labelRow, select, textarea);
+    area.append(labelRow, trigger, picker, textarea);
     return area;
 }
 
