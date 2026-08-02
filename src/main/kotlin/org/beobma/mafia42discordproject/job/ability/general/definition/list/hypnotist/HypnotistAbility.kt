@@ -131,11 +131,7 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
             JobDiscoveryNotificationManager.notifyDiscoveredTargets(discoveries)
 
             discoveries.filter { !it.isCancelled }.forEach { discovery ->
-                val teamDescription = if (discovery.actualJob is Evil) {
-                    discovery.actualJob.name
-                } else {
-                    "시민"
-                }
+                val teamDescription = discovery.revealedJob.name
                 runCatching {
                     val message = "${discovery.target.member.effectiveName}님은 ${teamDescription}입니다."
                     GameReplayLogger.logDirectMessage(game, caster, message, "최면 해제 결과")

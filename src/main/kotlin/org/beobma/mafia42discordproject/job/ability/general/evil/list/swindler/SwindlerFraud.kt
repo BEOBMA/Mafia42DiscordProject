@@ -8,6 +8,8 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
+import org.beobma.mafia42discordproject.game.system.GameEvent
+import org.beobma.mafia42discordproject.game.system.SwindlerManager
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.definition.Definition
@@ -45,6 +47,16 @@ class SwindlerFraud : JobUniqueAbility, PassiveAbility {
         swindler.disguisedTargetId = candidate.member.id
         swindler.disguisedJobName = candidateJob.name
         notifyFraudSuccess(game, owner, candidate, candidateJob.name)
+    }
+
+    override fun onEventObserved(game: Game, owner: PlayerData, event: GameEvent) {
+        val discovery = event as? GameEvent.JobDiscovered ?: return
+        if (discovery.target.member.id != owner.member.id) return
+        if (discovery.discoverer.member.id == owner.member.id) return
+
+        val disguisedJob = SwindlerManager.disguisedJobOf(owner) ?: return
+        discovery.revealedJob = disguisedJob
+        discovery.isFalsified = true
     }
 
     private fun notifyFraudSuccess(game: Game, swindlerPlayer: PlayerData, targetPlayer: PlayerData, targetJobName: String) {

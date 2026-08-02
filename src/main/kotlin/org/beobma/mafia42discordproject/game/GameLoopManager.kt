@@ -1466,7 +1466,8 @@ object GameLoopManager {
         contactImageUrl: String,
         supportJobNameOverride: String? = null
     ) {
-        val mafiaChannel = game.mafiaChannel ?: return
+        refreshMafiaChannelContactState(game)
+
         val aliveMafiaMentions = game.playerDatas
             .filter { !it.state.isDead && it.job is Mafia }
             .map(::mention)
@@ -1478,10 +1479,13 @@ object GameLoopManager {
         }
 
         val supportJobName = supportJobNameOverride ?: contactPlayer.job?.name ?: "악인"
-
-        mafiaChannel.createMessage(
+        val channelMessage =
             "$contactImageUrl\n$mafiaDescription $supportJobName ${mention(contactPlayer)}님이 접선했습니다."
-        )
+        val directMessage = "$contactImageUrl\n$mafiaDescription 접선했습니다."
+
+        runCatching { game.mafiaChannel?.createMessage(channelMessage) }
+        GameReplayLogger.logDirectMessage(game, contactPlayer, directMessage, "$supportJobName 접선")
+        runCatching { contactPlayer.member.getDmChannel().createMessage(directMessage) }
     }
 
     private fun mention(player: PlayerData): String = "<@${player.member.id.value}>"
@@ -2801,6 +2805,7 @@ object GameLoopManager {
 
     private suspend fun notifyInformantContactByJob(game: Game, player: PlayerData) {
         val mafiaChannel = game.mafiaChannel ?: return
+        refreshMafiaChannelContactState(game)
 
         when (val job = player.job) {
             is HitMan -> {
@@ -2864,8 +2869,6 @@ object GameLoopManager {
                 mafiaChannel.createMessage("**${mention(player)}님이 밀정 능력으로 접선했습니다.**")
             }
         }
-
-        refreshMafiaChannelContactState(game)
     }
 
     private fun notifyJudgeProsVoters(
