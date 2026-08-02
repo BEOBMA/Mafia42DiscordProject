@@ -53,6 +53,7 @@ import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.*
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.administrator.Inspection
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.couple.CoupleAbility
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Trick
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.Oath
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.other.Eavesdropping
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.shaman.Manifesto
@@ -1672,7 +1673,7 @@ object GameManager {
             is ActiveAbility -> listOf(
                 AbilityCommandGuide(
                     abilityName = ability.name,
-                    timing = phaseLabel(ability.usablePhase),
+                    timing = if (ability is Trick) "낮/투표" else phaseLabel(ability.usablePhase),
                     command = activeAbilityCommandUsage(ability),
                     summary = briefAbilitySummary(ability)
                 )
@@ -2573,19 +2574,44 @@ object GameManager {
         if (sender.allAbilities.none { it is Password }) return SpiritRelayResult(false, "암구호 능력이 없습니다.")
         if (message.isBlank()) return SpiritRelayResult(false, "암구호 메시지를 입력해 주세요.")
 
-        val mafiaChannel = game.mafiaChannel ?: return SpiritRelayResult(false, "마피아 채널을 찾을 수 없습니다.")
         val relayMessage = "[암구호] ${sender.member.effectiveName}: $message"
+        val recipients = game.playerDatas
+            .filter { !it.state.isDead }
+            .filter { it.job is Mafia || hasContactedMafiaTeam(game, it) }
+
+        val deliveryResults = coroutineScope {
+            recipients.map { recipient ->
+                async {
+                    recipient to runCatching {
+                        recipient.member.getDmChannel().createMessage(relayMessage)
+                    }.exceptionOrNull()
+                }
+            }.awaitAll()
+        }
+        val failures = deliveryResults.filter { (_, error) -> error != null }
+        failures.forEach { (recipient, error) ->
+            println("⚠️ ${recipient.member.effectiveName} 암구호 DM 전송 실패: ${error?.message}")
+        }
+        val deliveredCount = deliveryResults.size - failures.size
+        if (deliveredCount == 0) {
+            return SpiritRelayResult(false, "암구호 DM을 전송하지 못했습니다. 수신자의 Discord DM 설정을 확인해 주세요.")
+        }
+
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
             body = message,
             visibility = ReplayVisibility.MAFIA_CHANNEL,
             title = "암구호",
-            recipients = replayRecipientsFor(game, ReplayVisibility.MAFIA_CHANNEL),
-            recipientDescription = replayRecipientDescription(game, ReplayVisibility.MAFIA_CHANNEL)
+            recipients = recipients.map { GameReplayLogger.recipient(it, ReplayVisibility.MAFIA_CHANNEL) },
+            recipientDescription = "마피아 채널 DM (${recipients.joinToString(", ") { it.member.effectiveName }})"
         )
-        mafiaChannel.createMessage(relayMessage)
-        return SpiritRelayResult(true, "암구호 메시지를 전송했습니다.")
+        val resultMessage = if (failures.isEmpty()) {
+            "암구호 메시지를 마피아 채널 이용자 모두에게 DM으로 전송했습니다."
+        } else {
+            "암구호 메시지를 ${deliveredCount}명에게 DM으로 전송했습니다. ${failures.size}명에게는 DM을 보낼 수 없었습니다."
+        }
+        return SpiritRelayResult(true, resultMessage)
     }
 
     private fun hasContactedMafiaTeam(game: Game, player: PlayerData): Boolean {

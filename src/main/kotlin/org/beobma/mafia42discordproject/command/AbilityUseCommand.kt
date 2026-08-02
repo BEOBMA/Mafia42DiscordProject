@@ -34,6 +34,7 @@ import org.beobma.mafia42discordproject.job.ability.general.definition.list.doct
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.fortuneteller.FortunetellerAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.hacker.HackerAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.inspector.InspectorInvestigation
+import org.beobma.mafia42discordproject.job.ability.general.definition.list.magician.Trick
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.mentalist.MentalistAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.nurse.NurseAbility
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.police.PoliceAbility
@@ -634,6 +635,10 @@ object AbilityUseCommand : DiscordCommand {
             .filterIsInstance<ActiveAbility>()
             .filter { ability ->
                 ability.usablePhase == game.currentPhase ||
+                    (
+                        ability is Trick &&
+                            game.currentPhase == GamePhase.DAY
+                    ) ||
                     (
                         caster.job is Thief &&
                             game.currentPhase == GamePhase.VOTE &&

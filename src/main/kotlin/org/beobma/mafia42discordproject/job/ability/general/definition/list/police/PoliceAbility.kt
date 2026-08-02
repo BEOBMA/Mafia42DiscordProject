@@ -12,7 +12,7 @@ import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
-import org.beobma.mafia42discordproject.game.system.InvestigationTeam
+import org.beobma.mafia42discordproject.game.system.PoliceSearchPolicy
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -63,7 +63,7 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
-            isMafia = InvestigationTeam.isMafia(effectiveTarget),
+            isMafia = PoliceSearchPolicy.isMafia(effectiveTarget),
             isRepeatedSearch = effectiveTarget.member.id in searchedTargets
         )
         dispatchPoliceEvent(game, searchEvent)

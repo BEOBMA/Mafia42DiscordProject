@@ -20,6 +20,10 @@
     box-sizing: border-box;
 }
 
+img.avatar-missing {
+    visibility: hidden;
+}
+
 body {
     margin: 0;
     min-width: 320px;

@@ -9,7 +9,7 @@ import org.beobma.mafia42discordproject.game.system.DiscoveryStep
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
-import org.beobma.mafia42discordproject.game.system.InvestigationTeam
+import org.beobma.mafia42discordproject.game.system.PoliceSearchPolicy
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -55,7 +55,7 @@ class VigilantePurgeDayAbility : ActiveAbility, JobUniqueAbility {
         val searchEvent = GameEvent.PoliceSearchResolved(
             police = caster,
             target = effectiveTarget,
-            isMafia = InvestigationTeam.isMafia(effectiveTarget)
+            isMafia = PoliceSearchPolicy.isMafia(effectiveTarget)
         )
         dispatchPassiveEvent(game, searchEvent)
 

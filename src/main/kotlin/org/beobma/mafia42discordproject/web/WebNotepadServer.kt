@@ -60,11 +60,7 @@ object WebNotepadServer {
     private val host = System.getenv("WEB_HOST")?.trim()?.takeIf(String::isNotEmpty) ?: DEFAULT_HOST
     private val port = System.getenv("WEB_PORT")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: DEFAULT_PORT
     private val localBaseUrl = "http://$host:$port"
-    private val publicBaseUrl = System.getenv("REPLAY_PUBLIC_BASE_URL")
-        ?.trim()
-        ?.trimEnd('/')
-        ?.takeIf(String::isNotEmpty)
-        ?: localBaseUrl
+    private val publicBaseUrl = localBaseUrl
 
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
@@ -604,7 +600,7 @@ object WebNotepadServer {
                     jobs.forEach { job ->
                         add(buildJsonObject {
                             put("name", job.name)
-                            put("image", "$JOB_ICON_BASE_URL/${job.name}_icon.webp")
+                            put("image", "$JOB_ICON_BASE_URL/${job.javaClass.simpleName.lowercase()}_icon.webp")
                             put("memoRow", rowNumber)
                         })
                     }

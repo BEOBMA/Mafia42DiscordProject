@@ -56,6 +56,20 @@ function createElement(tagName, className = "", text = "") {
     return node;
 }
 
+function setAvatarImage(image, source) {
+    image.alt = "";
+    image.classList.remove("avatar-missing");
+    image.onload = () => image.classList.remove("avatar-missing");
+    image.onerror = () => {
+        image.onload = null;
+        image.onerror = null;
+        image.removeAttribute("src");
+        image.classList.add("avatar-missing");
+    };
+    if (source) image.src = source;
+    else image.classList.add("avatar-missing");
+}
+
 function setConnection(kind, label) {
     elements.connection.classList.remove("online", "offline");
     if (kind) elements.connection.classList.add(kind);
@@ -142,8 +156,7 @@ function renderGame(game) {
 }
 
 function renderIdentity(me) {
-    elements.myAvatar.src = me.avatarUrl;
-    elements.myAvatar.alt = `${me.name} 프로필 이미지`;
+    setAvatarImage(elements.myAvatar, me.avatarUrl);
     elements.myName.textContent = me.name;
 
     if (me.job) {
@@ -208,8 +221,7 @@ function renderActionTargets() {
         button.type = "button";
         button.dataset.playerId = player.id;
         const avatar = document.createElement("img");
-        avatar.src = player.avatarUrl;
-        avatar.alt = "";
+        setAvatarImage(avatar, player.avatarUrl);
         button.append(avatar, createElement("span", "", `${player.name}${player.isDead ? " · 사망" : ""}`));
         button.addEventListener("click", () => openAbilityDialog(state.actionAbility, player));
         elements.actionPlayerGrid.append(button);
@@ -291,8 +303,7 @@ function createPlayerCard(player, jobs) {
     const avatarWrap = createElement("div", "player-avatar-wrap");
     const avatar = document.createElement("img");
     avatar.className = "player-avatar";
-    avatar.src = player.avatarUrl;
-    avatar.alt = `${player.name} 프로필 이미지`;
+    setAvatarImage(avatar, player.avatarUrl);
     avatarWrap.append(avatar, createElement("span", "life-dot"));
     const headingCopy = createElement("div", "player-heading-copy");
     headingCopy.append(createElement("strong", "player-name", player.name), createElement("span", "player-status", player.isDead ? "사망" : "생존"));

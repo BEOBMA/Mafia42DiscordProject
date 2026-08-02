@@ -1046,6 +1046,10 @@ object GameLoopManager {
         notifyMercenaryContractReception(game)
         AdministratorInvestigationNotificationManager.notifyResults(game)
         game.playerDatas.forEach { player ->
+            (player.job as? Magician)?.let { magician ->
+                magician.trickSubstitutedTargetId = null
+                if (!magician.hasUsedTrick) magician.trickTargetId = null
+            }
             (player.job as? Thief)?.clearStolenAbility()
         }
 
@@ -1822,11 +1826,6 @@ object GameLoopManager {
         game.defenseTargetId = null
         game.playerDatas.forEach { player ->
             (player.job as? Thief)?.hasUsedTheftThisVote = false
-            val magician = player.job as? Magician ?: return@forEach
-            magician.trickSubstitutedTargetId = null
-            if (!magician.hasUsedTrick) {
-                magician.trickTargetId = null
-            }
         }
         muteSpectators(game)
 
@@ -1931,14 +1930,7 @@ object GameLoopManager {
                 return@forEach
             }
 
-            val baseWeight = if (
-                voter.job is Politician &&
-                !FrogCurseManager.shouldSuppressPassive(voter)
-            ) {
-                2
-            } else {
-                1
-            }
+            val baseWeight = baseVoteWeight(voter)
             val weightEvent = GameEvent.CalculateVoteWeight(voter, weight = baseWeight)
             voter.allAbilities
                  .filterIsInstance<PassiveAbility>()
@@ -2130,10 +2122,10 @@ object GameLoopManager {
         isHidden: Boolean
     ): String {
         val currentVoteCounts = mutableMapOf<PlayerData, Int>()
-        val mainVoteTargetIds = synchronized(game) { game.currentMainVotes.values.toList() }
+        val mainVotes = synchronized(game) { game.currentMainVotes.toMap() }
         val fakeVoteTargetIds = synchronized(game) { game.currentFakeVotes.values.toList() }
 
-        mainVoteTargetIds.forEach { targetId ->
+        mainVotes.forEach { (_, targetId) ->
             val target = game.getPlayer(Snowflake(targetId)) ?: return@forEach
             if (target.state.isDead) return@forEach
             currentVoteCounts[target] = (currentVoteCounts[target] ?: 0) + 1
@@ -2610,6 +2602,7 @@ object GameLoopManager {
         val aliveCabals = countableAlivePlayers.count { it.job is Cabal }
 
         val activeMercenaryExecution = game.playerDatas.any { player ->
+            if (player.state.isDead) return@any false
             val mercenary = player.job as? Mercenary ?: return@any false
             mercenary.hasExecutionAuthority && !FrogCurseManager.shouldSuppressPassive(player)
         }
@@ -2691,14 +2684,7 @@ object GameLoopManager {
         if (voter.member.id in game.permanentlyDisenfranchisedVoters) return 0
         if (game.activeThreatenedVoters.containsKey(voter.member.id)) return 0
 
-        val baseWeight = if (
-            voter.job is Politician &&
-            !FrogCurseManager.shouldSuppressPassive(voter)
-        ) {
-            2
-        } else {
-            1
-        }
+        val baseWeight = baseVoteWeight(voter)
         val magician = voter.job as? Magician
         val assistantWeight = if (
             magician != null &&
@@ -2712,6 +2698,9 @@ object GameLoopManager {
         }
         return baseWeight + assistantWeight + (transferredVoteWeights[voter.member.id] ?: 0)
     }
+
+    private fun baseVoteWeight(voter: PlayerData): Int =
+        if (voter.job is Politician && !FrogCurseManager.shouldSuppressPassive(voter)) 2 else 1
 
     private fun hasPoliticianAbility(player: PlayerData): Boolean {
         return !FrogCurseManager.shouldSuppressPassive(player) &&
@@ -3567,7 +3556,7 @@ object GameLoopManager {
             val searchEvent = GameEvent.PoliceSearchResolved(
                 police = policePlayer,
                 target = selectedTarget,
-                isMafia = InvestigationTeam.isMafia(selectedTarget),
+                isMafia = PoliceSearchPolicy.isMafia(selectedTarget),
                 isRepeatedSearch = selectedTarget.member.id in policeJob.searchedTargets
             )
             dispatchPoliceSearchEvent(game, searchEvent)

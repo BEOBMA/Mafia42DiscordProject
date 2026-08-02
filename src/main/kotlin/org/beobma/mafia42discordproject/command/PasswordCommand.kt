@@ -9,7 +9,7 @@ import org.beobma.mafia42discordproject.game.GameManager
 
 object PasswordCommand : DiscordCommand {
     override val name: String = "password"
-    override val description: String = "암구호 메시지를 마피아 팀 채널에 전송합니다."
+    override val description: String = "암구호 메시지를 마피아 채널 이용자들에게 DM으로 전송합니다."
     override val koreanName: String = "암구호"
     override val aliases: Set<String> = setOf("암구호")
     private const val MESSAGE_OPTION_NAME = "message"

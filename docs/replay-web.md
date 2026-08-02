@@ -10,10 +10,9 @@
 
 과거 스키마 1 파일에는 UUID가 없으므로 `guildId`와 `replayStartedAtMillis`를 조합한 안정적인 32자리 UUID를 자동으로 계산합니다. 새로 저장하는 파일에는 `replayUuid`가 함께 기록됩니다.
 
-외부에서 접속할 주소는 `REPLAY_PUBLIC_BASE_URL`로 설정합니다. 필요하면 `WEB_HOST`와 `WEB_PORT`로 바인딩 주소와 포트도 변경할 수 있습니다.
+웹 페이지 링크는 서버가 바인딩된 로컬 주소를 사용합니다. 필요하면 `WEB_HOST`와 `WEB_PORT`로 주소와 포트를 변경할 수 있습니다.
 
 ```text
-REPLAY_PUBLIC_BASE_URL=https://replay.example.com
 WEB_HOST=127.0.0.1
 WEB_PORT=8080
 ```
