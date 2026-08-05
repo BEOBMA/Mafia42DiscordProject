@@ -36,6 +36,7 @@ class Thief : Job(), Evil {
     var stolenHitmanFirstContractTargetId: Snowflake? = null
     var stolenHitmanFirstSelectedTargetId: Snowflake? = null
     var stolenHitmanFirstContractGuessedJobName: String? = null
+    var hasCompletedStolenHitmanContractSelectionTonight: Boolean = false
     var hasUsedStolenHackerAbility: Boolean = false
     var stolenHackerTargetId: Snowflake? = null
     var hasActivatedSuccessorMafia: Boolean = false
@@ -103,5 +104,6 @@ class Thief : Job(), Evil {
         stolenHitmanFirstContractTargetId = null
         stolenHitmanFirstSelectedTargetId = null
         stolenHitmanFirstContractGuessedJobName = null
+        hasCompletedStolenHitmanContractSelectionTonight = false
     }
 }

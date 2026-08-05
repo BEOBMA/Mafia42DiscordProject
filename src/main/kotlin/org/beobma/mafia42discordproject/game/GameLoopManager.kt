@@ -405,6 +405,7 @@ object GameLoopManager {
                 hitMan.firstContractTargetId = null
                 hitMan.firstContractSelectedTargetId = null
                 hitMan.firstContractGuessedJobName = null
+                hitMan.hasCompletedContractSelectionTonight = false
             }
             (player.job as? Spy)?.remainingIntelUsesTonight = 1
             (player.job as? Mentalist)?.let {

@@ -55,46 +55,54 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         if (hitManJob == null && thiefJob == null) {
             return AbilityResult(false, "청부업자 또는 청부 능력을 훔친 도둑만 사용할 수 있습니다.")
         }
-        val firstTargetId = hitManJob?.firstContractTargetId ?: thiefJob?.stolenHitmanFirstContractTargetId
-        val firstSelectedTargetId = hitManJob?.firstContractSelectedTargetId ?: thiefJob?.stolenHitmanFirstSelectedTargetId
+        val contractState = hitManJob ?: thiefJob!!
+        synchronized(contractState) {
+            val hasCompletedSelection = hitManJob?.hasCompletedContractSelectionTonight
+                ?: thiefJob!!.hasCompletedStolenHitmanContractSelectionTonight
+            if (hasCompletedSelection) {
+                return AbilityResult(false, "이번 밤에는 이미 청부 대상을 모두 지목했습니다.")
+            }
 
-        if (firstTargetId == null || firstSelectedTargetId == null) {
-            hitManJob?.firstContractTargetId = effectiveTarget.member.id
-            hitManJob?.firstContractSelectedTargetId = target.member.id
-            hitManJob?.firstContractGuessedJobName = guessedJob.name
-            thiefJob?.stolenHitmanFirstContractTargetId = effectiveTarget.member.id
-            thiefJob?.stolenHitmanFirstSelectedTargetId = target.member.id
-            thiefJob?.stolenHitmanFirstContractGuessedJobName = guessedJob.name
-            return AbilityResult(true, contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name))
+            val firstTargetId = hitManJob?.firstContractTargetId ?: thiefJob?.stolenHitmanFirstContractTargetId
+            val firstSelectedTargetId = hitManJob?.firstContractSelectedTargetId ?: thiefJob?.stolenHitmanFirstSelectedTargetId
+
+            if (firstTargetId == null || firstSelectedTargetId == null) {
+                hitManJob?.firstContractTargetId = effectiveTarget.member.id
+                hitManJob?.firstContractSelectedTargetId = target.member.id
+                hitManJob?.firstContractGuessedJobName = guessedJob.name
+                thiefJob?.stolenHitmanFirstContractTargetId = effectiveTarget.member.id
+                thiefJob?.stolenHitmanFirstSelectedTargetId = target.member.id
+                thiefJob?.stolenHitmanFirstContractGuessedJobName = guessedJob.name
+                return AbilityResult(true, contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name))
+            }
+
+            if (firstSelectedTargetId == target.member.id) {
+                return AbilityResult(false, "서로 다른 두 명을 지목해야 합니다.")
+            }
+
+            val firstTarget = game.getPlayer(firstTargetId)
+                ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
+            val firstSelectedTarget = game.getPlayer(firstSelectedTargetId)
+                ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
+            val firstJobName = hitManJob?.firstContractGuessedJobName ?: thiefJob?.stolenHitmanFirstContractGuessedJobName
+                ?: return AbilityResult(false, "첫 번째 직업 정보가 유실되었습니다. 다시 시도해 주세요.")
+
+            hitManJob?.hasCompletedContractSelectionTonight = true
+            thiefJob?.hasCompletedStolenHitmanContractSelectionTonight = true
+
+            scheduleResolution(
+                game = game,
+                caster = caster,
+                firstContract = ContractTarget(firstSelectedTarget, firstTarget, firstJobName),
+                secondContract = ContractTarget(target, effectiveTarget, guessedJob.name)
+            )
+            val completionMessage = if (hasIntuition(caster)) {
+                contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name)
+            } else {
+                CONTRACT_PENDING_MESSAGE
+            }
+            return AbilityResult(true, completionMessage)
         }
-
-        if (firstSelectedTargetId == target.member.id) {
-            return AbilityResult(false, "서로 다른 두 명을 지목해야 합니다.")
-        }
-
-        val firstTarget = game.getPlayer(firstTargetId)
-            ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
-        val firstSelectedTarget = game.getPlayer(firstSelectedTargetId)
-            ?: return AbilityResult(false, "첫 번째 지목 대상 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
-        val firstJobName = hitManJob?.firstContractGuessedJobName ?: thiefJob?.stolenHitmanFirstContractGuessedJobName
-            ?: return AbilityResult(false, "첫 번째 직업 정보가 유실되었습니다. 다시 시도해 주세요.")
-
-        val secondIntuition = contractSelectionMessage(caster, target, effectiveTarget, guessedJob.name)
-
-        hitManJob?.firstContractTargetId = null
-        hitManJob?.firstContractSelectedTargetId = null
-        hitManJob?.firstContractGuessedJobName = null
-        thiefJob?.stolenHitmanFirstContractTargetId = null
-        thiefJob?.stolenHitmanFirstSelectedTargetId = null
-        thiefJob?.stolenHitmanFirstContractGuessedJobName = null
-
-        scheduleResolution(
-            game = game,
-            caster = caster,
-            firstContract = ContractTarget(firstSelectedTarget, firstTarget, firstJobName),
-            secondContract = ContractTarget(target, effectiveTarget, guessedJob.name)
-        )
-        return AbilityResult(true, secondIntuition)
     }
 
     override fun activate(game: Game, caster: PlayerData, target: PlayerData?): AbilityResult {
@@ -107,13 +115,16 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
         effectiveTarget: PlayerData,
         guessedJobName: String
     ): String {
-        val hasIntuition = caster.job?.extraAbilities?.any { it is Intuition } == true
-        if (!hasIntuition) {
+        if (!hasIntuition(caster)) {
             return "${originalTarget.member.effectiveName}님을 ${guessedJobName}(으)로 지목했습니다."
         }
 
         val isCorrect = effectiveTarget.job?.name == guessedJobName
         return "${originalTarget.member.effectiveName}님의 정체는 ${guessedJobName}이(가) ${if (isCorrect) "맞습니다." else "아닙니다."}"
+    }
+
+    private fun hasIntuition(caster: PlayerData): Boolean {
+        return caster.job?.extraAbilities?.any { it is Intuition } == true
     }
 
     private fun scheduleResolution(
@@ -163,10 +174,25 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
         val firstCorrect = firstContract.isCorrectGuess()
         val secondCorrect = secondContract.isCorrectGuess()
-        if (!firstCorrect || !secondCorrect) return
+        if (!firstCorrect || !secondCorrect) {
+            notifyIncorrectContract(game, caster)
+            return
+        }
         if (listOf(firstContract, secondContract).any { it.isUnkillableEvilGuess() }) return
 
         killByContract(game, caster, listOf(firstTarget, secondTarget))
+    }
+
+    private suspend fun notifyIncorrectContract(game: Game, caster: PlayerData) {
+        GameReplayLogger.logDirectMessage(
+            game = game,
+            recipient = caster,
+            body = CONTRACT_INCORRECT_MESSAGE,
+            title = "청부 실패"
+        )
+        runCatching {
+            caster.member.getDmChannel().createMessage(CONTRACT_INCORRECT_MESSAGE)
+        }
     }
 
     private data class ContractTarget(
@@ -245,6 +271,8 @@ class HitManAbility : ActiveAbility, JobUniqueAbility {
 
     companion object {
         private const val CONTRACT_TRIGGER_MILLIS = 10_000L
+        private const val CONTRACT_PENDING_MESSAGE = "대상의 정보를 확인중입니다."
+        private const val CONTRACT_INCORRECT_MESSAGE = "대상의 정보가 정확하지 않아 암살에 실패했습니다."
         private const val CONTRACT_KILL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(20).webp"
         private const val CONTRACT_SUCCESS_SOUND_PATH = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/sound/mafia%20(11).mp3"
         private const val SOLDIER_CRITICAL_IMAGE_URL = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(23).webp"

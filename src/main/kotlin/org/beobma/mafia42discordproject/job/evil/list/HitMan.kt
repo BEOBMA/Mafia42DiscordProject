@@ -16,5 +16,6 @@ class HitMan : Job(), Evil {
     var firstContractTargetId: Snowflake? = null
     var firstContractSelectedTargetId: Snowflake? = null
     var firstContractGuessedJobName: String? = null
+    var hasCompletedContractSelectionTonight: Boolean = false
     var hasContactedMafia: Boolean = false
 }
