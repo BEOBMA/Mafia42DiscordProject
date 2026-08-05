@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.PrivateJobKnowledgeManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -96,6 +97,12 @@ class DetectiveAbility : ActiveAbility, JobUniqueAbility {
 
                 detectiveJob.trapTriggeredTargetIdsThisNight += caster.member.id
                 val casterJobName = caster.job?.name ?: "알 수 없음"
+                PrivateJobKnowledgeManager.rememberExactJob(
+                    game,
+                    detectivePlayer,
+                    caster,
+                    casterJobName
+                )
                 sendDm(
                     game,
                     detectivePlayer,

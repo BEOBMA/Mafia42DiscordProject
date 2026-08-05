@@ -220,9 +220,9 @@ function renderActionTargets() {
         const button = createElement("button", `target-player${player.isDead ? " dead" : ""}`);
         button.type = "button";
         button.dataset.playerId = player.id;
-        const avatar = document.createElement("img");
-        setAvatarImage(avatar, player.avatarUrl);
-        button.append(avatar, createElement("span", "", `${player.name}${player.isDead ? " · 사망" : ""}`));
+        const jobIcon = createElement("div", "target-player-job-icon");
+        updatePlayerJobIcon(jobIcon, player, state.data?.jobs || []);
+        button.append(jobIcon, createElement("span", "", `${player.name}${player.isDead ? " · 사망" : ""}`));
         button.addEventListener("click", () => openAbilityDialog(state.actionAbility, player));
         elements.actionPlayerGrid.append(button);
     }
@@ -293,6 +293,33 @@ function renderPlayers(players, jobs) {
     for (const player of players) elements.playerGrid.append(createPlayerCard(player, jobs));
 }
 
+function displayedPlayerJob(player, jobs) {
+    const displayedJobName = player.job?.name || player.note?.guessedJobName;
+    if (!displayedJobName) return null;
+    return jobs.find(job => job.name === displayedJobName) || player.job || null;
+}
+
+function updatePlayerJobIcon(container, player, jobs) {
+    const job = displayedPlayerJob(player, jobs);
+    container.replaceChildren();
+    container.classList.toggle("unknown", !job?.image);
+    container.title = job ? `${job.name} 직업 아이콘` : "직업 미확인";
+    if (!job?.image) {
+        container.textContent = "?";
+        return;
+    }
+
+    const image = document.createElement("img");
+    image.src = job.image;
+    image.alt = `${job.name} 직업 아이콘`;
+    image.addEventListener("error", () => {
+        container.replaceChildren();
+        container.classList.add("unknown");
+        container.textContent = "?";
+    }, { once: true });
+    container.append(image);
+}
+
 function createPlayerCard(player, jobs) {
     const card = createElement("article", "player-card");
     card.dataset.playerId = player.id;
@@ -301,10 +328,9 @@ function createPlayerCard(player, jobs) {
 
     const header = createElement("div", "player-header");
     const avatarWrap = createElement("div", "player-avatar-wrap");
-    const avatar = document.createElement("img");
-    avatar.className = "player-avatar";
-    setAvatarImage(avatar, player.avatarUrl);
-    avatarWrap.append(avatar, createElement("span", "life-dot"));
+    const jobIcon = createElement("div", "player-avatar player-job-icon");
+    updatePlayerJobIcon(jobIcon, player, jobs);
+    avatarWrap.append(jobIcon, createElement("span", "life-dot"));
     const headingCopy = createElement("div", "player-heading-copy");
     headingCopy.append(createElement("strong", "player-name", player.name), createElement("span", "player-status", player.isDead ? "사망" : "생존"));
     header.append(avatarWrap, headingCopy);
@@ -312,7 +338,9 @@ function createPlayerCard(player, jobs) {
     else if (player.isJobPublic) header.append(createElement("span", "public-tag", "공개"));
     card.append(header, createRoleStatus(player));
 
-    if (!player.isSelf && !player.isJobPublic) card.append(createMemoArea(player, jobs));
+    if (!player.isSelf && !player.isJobPublic) {
+        card.append(createMemoArea(player, jobs, () => updatePlayerJobIcon(jobIcon, player, jobs)));
+    }
     else if (player.isJobPublic) card.append(createElement("p", "revealed-note", "공식적으로 공개된 직업입니다. 개인 추리 입력이 잠겼습니다."));
     else card.append(createElement("p", "revealed-note", "내 정보는 프로필 탭에서 자세히 확인할 수 있습니다."));
     return card;
@@ -333,7 +361,7 @@ function createRoleStatus(player) {
     return status;
 }
 
-function createMemoArea(player, jobs) {
+function createMemoArea(player, jobs, onJobChanged) {
     const area = createElement("div", "memo-area");
     const labelRow = createElement("div", "memo-label-row");
     const label = createElement("span", "memo-label", "예상 직업");
@@ -376,12 +404,14 @@ function createMemoArea(player, jobs) {
     const buttons = [];
     const selectJob = jobName => {
         selectedJobName = selectedJobName === jobName ? "" : jobName;
+        player.note.guessedJobName = selectedJobName || null;
         for (const button of buttons) {
             const selected = button.dataset.jobName === selectedJobName;
             button.classList.toggle("selected", selected);
             button.setAttribute("aria-pressed", String(selected));
         }
         updateTrigger();
+        onJobChanged?.();
         state.openJobPickerId = null;
         picker.hidden = true;
         trigger.setAttribute("aria-expanded", "false");

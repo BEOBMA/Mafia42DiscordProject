@@ -74,9 +74,13 @@ object JobDiscoveryNotificationManager {
         game: org.beobma.mafia42discordproject.game.Game?,
         event: GameEvent.JobDiscovered
     ) {
-        game?.privateDisplayedJobNamesByObserver
-            ?.getOrPut(event.discoverer.member.id, ::mutableMapOf)
-            ?.set(event.target.member.id, event.revealedJob.name)
+        if (!event.revealsExactJob) return
+        PrivateJobKnowledgeManager.rememberExactJob(
+            game = game,
+            observer = event.discoverer,
+            target = event.target,
+            displayedJobName = event.revealedJob.name
+        )
     }
 
     private fun rememberDiscovererJob(
@@ -84,9 +88,7 @@ object JobDiscoveryNotificationManager {
         event: GameEvent.JobDiscovered
     ) {
         val jobName = PrivateJobKnowledgePolicy.revealedDiscovererJobName(event.sourceAbilityName) ?: return
-        game?.privateDisplayedJobNamesByObserver
-            ?.getOrPut(event.target.member.id, ::mutableMapOf)
-            ?.set(event.discoverer.member.id, jobName)
+        PrivateJobKnowledgeManager.rememberExactJob(game, event.target, event.discoverer, jobName)
     }
 
     private fun buildDiscovererNotificationMessage(event: GameEvent.JobDiscovered): String {

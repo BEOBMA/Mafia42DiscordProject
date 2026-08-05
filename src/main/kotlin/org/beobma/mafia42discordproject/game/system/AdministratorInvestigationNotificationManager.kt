@@ -15,6 +15,9 @@ object AdministratorInvestigationNotificationManager {
 
             val resultPlayerId = administrator.investigationResultPlayerId
             val resultMessage = buildResultMessage(game, selectedJob, resultPlayerId)
+            resultPlayerId?.let(game::getPlayer)?.let { target ->
+                PrivateJobKnowledgeManager.rememberExactJob(game, player, target, selectedJob)
+            }
 
             runCatching {
                 GameReplayLogger.logDirectMessage(game, player, resultMessage, "관리자 조사")

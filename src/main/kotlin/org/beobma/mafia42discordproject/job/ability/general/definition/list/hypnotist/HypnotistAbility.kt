@@ -104,7 +104,8 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
                 revealedJob = revealedJob,
                 sourceAbilityName = name,
                 resolvedAt = DiscoveryStep.DAY,
-                notifyTarget = false
+                notifyTarget = false,
+                revealsExactJob = actualJob is Evil || actualJob is Citizen
             )
         }
 
@@ -128,7 +129,7 @@ class ReleaseHypnosisAbility : ActiveAbility, JobUniqueAbility {
         val releaseMessages = discoveries.map { "${it.target.member.effectiveName}님에게 걸린 최면을 해제합니다." }
 
         notificationScope.launch {
-            JobDiscoveryNotificationManager.notifyDiscoveredTargets(discoveries)
+            JobDiscoveryNotificationManager.notifyDiscoveredTargets(discoveries, game)
 
             discoveries.filter { !it.isCancelled }.forEach { discovery ->
                 val teamDescription = discovery.revealedJob.name

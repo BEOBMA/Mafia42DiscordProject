@@ -574,16 +574,15 @@ object WebNotepadServer {
                         ?.get(player.member.id)
                         ?.let(JobManager::findByName)
                     val visibleJob = when {
-                        privateMemoJob != null -> privateMemoJob
                         isSelf -> viewerMemoJob
                         isPublic -> FrogCurseManager.displayedJob(player)
+                        privateMemoJob != null -> privateMemoJob
                         else -> null
                     }
                     val note = notes[NoteKey(gameKey, viewer.member.id.value, player.member.id.value)]
                     add(buildJsonObject {
                         put("id", player.member.id.value.toString())
                         put("name", player.member.effectiveName)
-                        put("avatarUrl", player.member.avatarUrl())
                         put("isSelf", isSelf)
                         put("isDead", player.state.isDead)
                         put("isJobPublic", isPublic)

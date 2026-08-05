@@ -478,10 +478,28 @@ textarea:focus-visible {
 }
 
 .player-avatar {
+    display: grid;
     width: 52px;
     height: 52px;
+    place-items: center;
+    overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 12px;
+}
+
+.player-job-icon img,
+.target-player-job-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-job-icon.unknown,
+.target-player-job-icon.unknown {
+    color: var(--muted);
+    border-style: dashed;
+    font-family: Georgia, serif;
+    font-size: 1.2rem;
 }
 
 .life-dot {
@@ -901,12 +919,15 @@ footer {
     opacity: 0.55;
 }
 
-.target-player img {
+.target-player-job-icon {
+    display: grid;
     flex: 0 0 auto;
     width: 38px;
     height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 9px;
 }
 
 .target-player span {

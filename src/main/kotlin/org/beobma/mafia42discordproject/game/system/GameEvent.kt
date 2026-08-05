@@ -58,7 +58,8 @@ sealed class GameEvent {
         var isCancelled: Boolean = false,
         val isPublicReveal: Boolean = false,
         var imageUrl: String? = null,
-        val notifyTarget: Boolean = true
+        val notifyTarget: Boolean = true,
+        val revealsExactJob: Boolean = true
     ) : GameEvent()
 
 

@@ -13,6 +13,7 @@ import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.GameEvent
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.PoliceSearchPolicy
+import org.beobma.mafia42discordproject.game.system.PrivateJobKnowledgeManager
 import org.beobma.mafia42discordproject.game.system.notifications.PoliceNotificationManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -98,8 +99,12 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
                 resolvedAt = DiscoveryStep.NIGHT
             )
             dispatchPoliceEvent(game, revealEvent)
-            game.privateDisplayedJobNamesByObserver
-                .getOrPut(caster.member.id, ::mutableMapOf)[effectiveTarget.member.id] = revealEvent.revealedJob.name
+            PrivateJobKnowledgeManager.rememberExactJob(
+                game,
+                caster,
+                effectiveTarget,
+                revealEvent.revealedJob.name
+            )
 
             policeSearchScope.launch {
                 PoliceNotificationManager.notifyWarrantResult(caster, revealEvent)

@@ -11,6 +11,7 @@ import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
+import org.beobma.mafia42discordproject.game.system.PrivateJobKnowledgeManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -76,6 +77,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         }
 
         if (effectiveTarget.job is Mafia) {
+            PrivateJobKnowledgeManager.rememberExactJob(game, caster, effectiveTarget, "마피아")
             if (spy != null && !spy.hasContactedMafia) {
                 spy.hasContactedMafia = true
                 spy.remainingIntelUsesTonight += 1
@@ -91,7 +93,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val jobName = FrogCurseManager.displayedJob(effectiveTarget)?.name ?: "알 수 없음"
-        notifyInvestigationResult(game, caster, effectiveTarget.member.effectiveName, jobName)
+        notifyInvestigationResult(game, caster, effectiveTarget, jobName)
         return AbilityResult(true, "${target.member.effectiveName}님의 직업을 확인했습니다.")
     }
 
@@ -120,6 +122,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
                 }
 
                 if (victim.job is Mafia) {
+                    PrivateJobKnowledgeManager.rememberExactJob(game, spyPlayer, victim, "마피아")
                     if (!spyJob.hasContactedMafia) {
                         spyJob.hasContactedMafia = true
                         notifySpyContact(game, spyPlayer)
@@ -128,14 +131,15 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
                 }
 
                 val revealedJobName = FrogCurseManager.displayedJob(victim)?.name ?: "알 수 없음"
-                notifyInvestigationResult(game, spyPlayer, victim.member.effectiveName, revealedJobName)
+                notifyInvestigationResult(game, spyPlayer, victim, revealedJobName)
             }
         }
 
-        private fun notifyInvestigationResult(game: Game, spyPlayer: PlayerData, targetName: String, jobName: String) {
+        private fun notifyInvestigationResult(game: Game, spyPlayer: PlayerData, target: PlayerData, jobName: String) {
+            PrivateJobKnowledgeManager.rememberExactJob(game, spyPlayer, target, jobName)
             scope.launch {
                 runCatching {
-                    val message = "**${targetName}님의 직업은 ${jobName}**\n$SPY_INTEL_IMAGE_URL"
+                    val message = "**${target.member.effectiveName}님의 직업은 ${jobName}**\n$SPY_INTEL_IMAGE_URL"
                     GameReplayLogger.logDirectMessage(game, spyPlayer, message, "스파이 첩보")
                     spyPlayer.member.getDmChannel().createMessage(message)
                 }
@@ -143,6 +147,7 @@ class SpyAbility : ActiveAbility, JobUniqueAbility {
         }
 
         private fun notifySoldierDetected(game: Game, spyPlayer: PlayerData, soldierPlayer: PlayerData) {
+            PrivateJobKnowledgeManager.rememberExactJob(game, spyPlayer, soldierPlayer, "군인")
             scope.launch {
                 runCatching {
                     val message = "**${soldierPlayer.member.effectiveName}님의 직업은 군인**\n$SPY_SOLDIER_IMAGE_URL"
