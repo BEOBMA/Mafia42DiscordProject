@@ -2313,7 +2313,13 @@ object GameLoopManager {
         deadPlayers: List<PlayerData>
     ): List<DawnAnnouncement> {
         val willOwners = deadPlayers.filter { player ->
-            player.allAbilities.any { it is Will } && game.willByPlayerId[player.member.id]?.isNotBlank() == true
+            val wasConvertedByProbation =
+                game.probationOriginalJobsByPlayer.containsKey(player.member.id) && player.job is Citizen
+            DeathAbilitySuppressionPolicy.shouldAnnounceWill(
+                hasStoredWill = game.willByPlayerId[player.member.id]?.isNotBlank() == true,
+                hasCurrentWillAbility = player.allAbilities.any { it is Will },
+                wasConvertedByProbation = wasConvertedByProbation
+            )
         }
 
         return willOwners.mapNotNull { player ->
@@ -3626,8 +3632,10 @@ object GameLoopManager {
     ) {
         if (victim.state.isJobPubliclyRevealed) return
         if (FrogCurseManager.shouldSuppressPassive(victim)) return
+        val wasConvertedByProbation =
+            game.probationOriginalJobsByPlayer.containsKey(victim.member.id) && victim.job is Citizen
+        if (DeathAbilitySuppressionPolicy.shouldSuppressBelongings(wasConvertedByProbation)) return
         if (victim.allAbilities.none { it is Belongings }) return
-        if (game.probationOriginalJobsByPlayer.containsKey(victim.member.id) && victim.job is Citizen) return
 
         val revealedJob = victim.job ?: return
         victim.state.isJobPubliclyRevealed = true
@@ -4358,12 +4366,14 @@ object GameLoopManager {
         val attacker = mafiaAttack.attacker
         val target = mafiaAttack.target
 
-        if (
-            attacker.allAbilities.any { it is Exorcism } &&
-            target.job !is Evil &&
-            target.allAbilities.none { it is EarthboundSpirit }
-        ) {
+        val shouldSuppressWill = DeathAbilitySuppressionPolicy.shouldSuppressWillByExorcism(
+            attackerHasExorcism = attacker.allAbilities.any { it is Exorcism },
+            targetIsEvil = target.job is Evil,
+            targetHasEarthboundSpirit = target.allAbilities.any { it is EarthboundSpirit }
+        )
+        if (shouldSuppressWill) {
             target.state.isShamaned = true
+            game.willByPlayerId.remove(target.member.id)
         }
     }
 

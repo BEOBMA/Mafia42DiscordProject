@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 
 class Exorcism : Ability, JobSpecificExtraAbility {
     override val name: String = "퇴마"
-    override val description: String = "마피아팀이 아닌 플레이어를 처형한 후 성불한다."
+    override val description: String = "마피아팀이 아닌 플레이어를 처형한 후 성불시키고 유언을 무효화한다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(198).webp"
     override val targetJob: List<KClass<out Job>> = listOf(Mafia::class)
 }
