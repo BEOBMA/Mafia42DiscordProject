@@ -2,6 +2,7 @@ package org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia
 
 import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
+import org.beobma.mafia42discordproject.game.MafiaExecutionProtectionManager
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
 import org.beobma.mafia42discordproject.game.system.AttackEvent
@@ -51,6 +52,7 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
         if (game.dayCount == 1) {
             game.firstMafiaTargetId = target.member.id
+            MafiaExecutionProtectionManager.record(game.guild.id.value, target.member.id.value)
         }
         var attackTier = AttackTier.NORMAL
 

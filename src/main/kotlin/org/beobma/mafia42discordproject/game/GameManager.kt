@@ -25,12 +25,13 @@ import org.beobma.mafia42discordproject.game.abilityselection.AbilityCommandGuid
 import org.beobma.mafia42discordproject.game.abilityselection.AbilityPickButtonPayload
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSession
 import org.beobma.mafia42discordproject.game.abilityselection.AbilitySelectionSnapshot
-import org.beobma.mafia42discordproject.game.abilityselection.selectMafiaAbilityRefreshLimits
+import org.beobma.mafia42discordproject.game.abilityselection.selectAbilityRefreshGrants
 import org.beobma.mafia42discordproject.game.annihilation.AnnihilationModeManager
 import org.beobma.mafia42discordproject.game.annihilation.Capo
 import org.beobma.mafia42discordproject.game.annihilation.Soldato
 import org.beobma.mafia42discordproject.game.assignment.AssignmentPlayer
 import org.beobma.mafia42discordproject.game.assignment.AssignmentTrace
+import org.beobma.mafia42discordproject.game.assignment.AdministratorInspectionPolicy
 import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
 import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
 import org.beobma.mafia42discordproject.game.assignment.buildJobSelectionWeightByName
@@ -86,7 +87,6 @@ object GameManager {
     private var currentGuild: GuildBehavior? = null
     private val gameLoopScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var gameLoopJob: kotlinx.coroutines.Job? = null
-    private val nextGameMafiaExecutionProtectedTargets: MutableMap<Snowflake, Snowflake> = ConcurrentHashMap()
     private val lobbySelectionManager = LobbySelectionManager()
 
     private const val FULL_GAME_PLAYER_COUNT = 8
@@ -613,7 +613,7 @@ object GameManager {
     }
 
     private fun Game.applyNextGameMafiaExecutionProtection() {
-        val protectedTargetId = nextGameMafiaExecutionProtectedTargets.remove(guild.id)
+        val protectedTargetId = MafiaExecutionProtectionManager.consume(guild.id.value)?.let(::Snowflake)
         mafiaExecutionProtectedTargetId = protectedTargetId
             ?.takeIf { targetId -> playerDatas.any { player -> player.member.id == targetId } }
     }
@@ -894,22 +894,19 @@ object GameManager {
     }
 
     private suspend fun notifyAdministratorInspection(game: Game) {
+        val requiredRoleCounts = resolveRequiredRoleCounts(game.playerDatas.size, game.mode)
         game.playerDatas
             .filter { player ->
                 player.job is Administrator && player.allAbilities.any { it is Inspection }
             }
             .forEach { administratorPlayer ->
-                val knownJobName = game.playerDatas
-                    .asSequence()
-                    .filter { candidate -> candidate.member.id != administratorPlayer.member.id }
-                    .mapNotNull(PlayerData::job)
-                    .filter { job ->
-                        job is Definition &&
-                            job !is Administrator &&
-                            job !is MentalPatient
-                    }
-                    .distinctBy(Job::name)
-                    .toList()
+                val knownJobName = AdministratorInspectionPolicy.candidates(
+                    jobs = game.playerDatas
+                        .asSequence()
+                        .filter { candidate -> candidate.member.id != administratorPlayer.member.id }
+                        .mapNotNull(PlayerData::job),
+                    requiredRoleCounts = requiredRoleCounts
+                )
                     .randomOrNull()
                     ?.name
 
@@ -1264,7 +1261,7 @@ object GameManager {
         return jobName in pairAssignmentJobNames
     }
 
-    private fun resolveRequiredRoleCounts(
+    internal fun resolveRequiredRoleCounts(
         playerCount: Int,
         mode: GameStartMode = GameStartMode.NORMAL
     ): RequiredRoleCounts {
@@ -1369,14 +1366,16 @@ object GameManager {
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
         val preparedSessions = mutableMapOf<Snowflake, AbilitySelectionSession>()
+        val refreshGrantsByPlayerId = selectAbilityRefreshGrants(
+            playerCount = playerDatas.size,
+            mafiaPlayerIds = playerDatas
+                .filter { player -> player.job is Mafia }
+                .map { player -> player.member.id },
+            previousPublicTargetId = mafiaExecutionProtectedTargetId
+        )
         abilitySelectionRefreshLimitsByPlayerId.clear()
         abilitySelectionRefreshLimitsByPlayerId.putAll(
-            selectMafiaAbilityRefreshLimits(
-                playerCount = playerDatas.size,
-                mafiaPlayerIds = playerDatas
-                    .filter { player -> player.job is Mafia }
-                    .map { player -> player.member.id }
-            )
+            refreshGrantsByPlayerId.mapValues { (_, grant) -> grant.refreshCount }
         )
 
         playerDatas.forEach { player ->
@@ -1438,6 +1437,20 @@ object GameManager {
                             ?.let { GameReplayMessenger.sendTrackedDm(this@initializeExtraAbilitySelectionForPlayers, player, it, "연인 안내") }
 
                         if (session != null) {
+                            val refreshNotification = refreshGrantsByPlayerId[player.member.id]
+                                ?.reasons
+                                ?.sortedBy { reason -> reason.ordinal }
+                                ?.mapNotNull { reason -> reason.notificationMessage }
+                                ?.joinToString("\n")
+                                .orEmpty()
+                            if (refreshNotification.isNotBlank()) {
+                                GameReplayMessenger.sendTrackedDm(
+                                    this@initializeExtraAbilitySelectionForPlayers,
+                                    player,
+                                    refreshNotification,
+                                    "능력 새로고침 기회 증가"
+                                )
+                            }
                             sendAbilitySelectionPrompt(dmChannel, player.member.id, session)
                         } else {
                             val message = "ℹ️ 선택 가능한 부가 능력이 없어 능력 선택 단계를 건너뜁니다."
@@ -2164,7 +2177,7 @@ object GameManager {
 
     private fun registerNextGameMafiaExecutionProtection(game: Game) {
         val firstMafiaTargetId = game.firstMafiaTargetId ?: return
-        nextGameMafiaExecutionProtectedTargets[game.guild.id] = firstMafiaTargetId
+        MafiaExecutionProtectionManager.record(game.guild.id.value, firstMafiaTargetId.value)
     }
 
     private fun scheduleDelayedVoiceDisconnect(game: Game) {

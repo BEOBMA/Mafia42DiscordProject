@@ -12,6 +12,7 @@ import dev.kord.core.on
 import org.beobma.mafia42discordproject.command.CommandRegistry
 import org.beobma.mafia42discordproject.command.DebugCommand
 import org.beobma.mafia42discordproject.game.GameManager
+import org.beobma.mafia42discordproject.game.MafiaExecutionProtectionManager
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
 import org.beobma.mafia42discordproject.job.JobManager
@@ -96,6 +97,7 @@ suspend fun main() {
     AbilityManager.registerAll()
     JobPreferenceManager.load()
     BestJobPreferenceManager.load()
+    MafiaExecutionProtectionManager.load()
     WebNotepadServer.start()
     try {
         kord.login()
