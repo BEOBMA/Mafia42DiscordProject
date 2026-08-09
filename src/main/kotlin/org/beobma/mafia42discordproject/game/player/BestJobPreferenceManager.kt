@@ -19,7 +19,8 @@ object BestJobPreferenceManager {
         resolveJob = JobManager::findByName
     )
 
-    private val fixedCandidateJobNames = setOf("의사", "마피아")
+    private val fixedCandidateJobNames = setOf("의사")
+    private val excludedCandidateJobNames = setOf(MentalPatient.JOB_NAME, "마피아")
 
     fun save(userId: ULong, job: Job) = store.save(userId, job)
 
@@ -33,13 +34,13 @@ object BestJobPreferenceManager {
         val preferredJobNames = JobPreferenceManager.get(userId)
             .orEmpty()
             .map(Job::name)
-            .filter { it != MentalPatient.JOB_NAME }
+            .filter { it !in excludedCandidateJobNames }
             .toSet()
         return preferredJobNames + fixedCandidateJobNames
     }
 
     fun isAllowedJob(userId: ULong, jobName: String): Boolean {
-        if (jobName == MentalPatient.JOB_NAME) return false
+        if (jobName in excludedCandidateJobNames) return false
         return jobName in buildAllowedJobNames(userId)
     }
 }

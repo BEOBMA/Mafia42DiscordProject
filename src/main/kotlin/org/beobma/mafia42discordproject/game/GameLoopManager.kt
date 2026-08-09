@@ -664,6 +664,7 @@ object GameLoopManager {
             .toList()
         resolveBeastmanCravingTaming(game, mafiaAttack, successfulAttacks, playersToDie)
         applyTravelCompanionPenalty(game, successfulAttacks, mafiaAttack)
+        resolveNurseDoctorContactsFromPrescriptions(game, playersToDie)
         resolveNurseDoctorContactsFromFinalHeals(game, finalHealEvents, playersToDie)
         InspectorInvestigation.resolveNightInvestigations(game, playersToDie)
 
@@ -3806,6 +3807,24 @@ object GameLoopManager {
             if (FrogCurseManager.shouldSuppressPassive(doctorPlayer)) return@forEach
             if (FrogCurseManager.shouldSuppressPassive(nursePlayer)) return@forEach
             if (doctorPlayer.job !is Doctor || nursePlayer.job !is Nurse) return@forEach
+
+            notifyNurseDoctorContact(game, doctorPlayer, nursePlayer)
+        }
+    }
+
+    private suspend fun resolveNurseDoctorContactsFromPrescriptions(
+        game: Game,
+        playersToDie: Set<PlayerData>
+    ) {
+        game.playerDatas.forEach { nursePlayer ->
+            val nurseJob = nursePlayer.job as? Nurse ?: return@forEach
+            val doctorPlayer = nurseJob.prescribedTargetId?.let(game::getPlayer) ?: return@forEach
+
+            if (doctorPlayer in playersToDie || nursePlayer in playersToDie) return@forEach
+            if (doctorPlayer.state.isDead || nursePlayer.state.isDead) return@forEach
+            if (FrogCurseManager.shouldSuppressPassive(doctorPlayer)) return@forEach
+            if (FrogCurseManager.shouldSuppressPassive(nursePlayer)) return@forEach
+            if (doctorPlayer.job !is Doctor) return@forEach
 
             notifyNurseDoctorContact(game, doctorPlayer, nursePlayer)
         }

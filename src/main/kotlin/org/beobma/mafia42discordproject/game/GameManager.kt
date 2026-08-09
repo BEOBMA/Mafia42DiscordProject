@@ -35,6 +35,7 @@ import org.beobma.mafia42discordproject.game.assignment.AdministratorInspectionP
 import org.beobma.mafia42discordproject.game.assignment.JobAssignmentSimulationResult
 import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
 import org.beobma.mafia42discordproject.game.assignment.buildJobSelectionWeightByName
+import org.beobma.mafia42discordproject.game.assignment.selectUniformMafiaPlayerIndices
 import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
@@ -995,7 +996,6 @@ object GameManager {
             throw IllegalStateException("가상 플레이어 선호 직업 풀을 구성할 수 없습니다.")
         }
 
-        val mafia = JobManager.findByName("마피아")
         val doctor = JobManager.findByName("의사")
 
         return MutableList(playerCount) { index ->
@@ -1008,7 +1008,7 @@ object GameManager {
                 addAll(specials)
             }
 
-            val bestCandidates = (preferences + listOfNotNull(mafia, doctor)).distinctBy(Job::name)
+            val bestCandidates = (preferences + listOfNotNull(doctor)).distinctBy(Job::name)
             AssignmentPlayer(
                 name = "가상플레이어${index + 1}",
                 preferences = preferences,
@@ -1054,33 +1054,45 @@ object GameManager {
             "[1단계] 고정 배정 직업: 마피아 ${requiredCounts.mafiaCount}명, 보조계열 ${requiredCounts.assistantCount}명, 의사 ${requiredCounts.doctorCount}명, 경찰계열 ${requiredCounts.policeCount}명, 시민 ${requiredCounts.citizenCount}명"
         )
 
+        val mafiaPlayerIndices = selectUniformMafiaPlayerIndices(
+            playerCount = players.size,
+            mafiaCount = requiredCounts.mafiaCount
+        )
+        val remainingPlayers = players
+            .filterIndexed { index, _ -> index !in mafiaPlayerIndices }
+            .toMutableList()
+
+        trace.add(
+            "[1단계] 마피아 균등 우선 배정: ${mafiaPlayerIndices.joinToString(", ") { index -> players[index].name }}"
+        )
+
         val maxAttempts = 40
         repeat(maxAttempts) { attemptIndex ->
             players.forEach { it.assignedJob = null }
+            mafiaPlayerIndices.forEach { index -> players[index].assignedJob = mafia }
             val attempt = attemptIndex + 1
-            trace.add("[시도 $attempt/$maxAttempts] 배정 조합 생성 시작")
+            trace.add("[시도 $attempt/$maxAttempts] 마피아를 제외한 배정 조합 생성 시작")
 
             val selectedPoliceJob = if (requiredCounts.policeCount > 0) {
-                pickPoliceJobByPreference(players, policePool, trace)
+                pickPoliceJobByPreference(remainingPlayers, policePool, trace)
             } else {
                 null
             }
 
             val selectedAssistantJob = if (requiredCounts.assistantCount > 0) {
-                pickAssistantJobByPreference(players, assistantPool, trace)
+                pickAssistantJobByPreference(remainingPlayers, assistantPool, trace)
             } else {
                 null
             }
 
             val requiredFixedCount =
-                requiredCounts.mafiaCount +
-                    requiredCounts.assistantCount +
+                requiredCounts.assistantCount +
                     requiredCounts.doctorCount +
                     requiredCounts.policeCount +
                     requiredCounts.citizenCount
-            val slotCountForNonFixed = players.size - requiredFixedCount
+            val slotCountForNonFixed = remainingPlayers.size - requiredFixedCount
             val nonFixedJobs = if (slotCountForNonFixed > 0) {
-                selectNonFixedJobsByPreference(players, slotCountForNonFixed, trace)
+                selectNonFixedJobsByPreference(remainingPlayers, slotCountForNonFixed, trace)
             } else {
                 trace.add("[2단계] 고정 직업만으로 슬롯이 구성됩니다.")
                 emptyList()
@@ -1088,7 +1100,6 @@ object GameManager {
 
             val citizenJob = JobManager.findByName(CITIZEN_JOB_NAME) ?: doctor
             val fixedJobs = buildList {
-                repeat(requiredCounts.mafiaCount) { add(mafia) }
                 repeat(requiredCounts.assistantCount) {
                     add(requireNotNull(selectedAssistantJob) { "보조계열 고정 직업이 필요하지만 선택되지 않았습니다." })
                 }
@@ -1099,8 +1110,8 @@ object GameManager {
                 repeat(requiredCounts.citizenCount) { add(citizenJob) }
             }
 
-            val assigned = assignJobsInRandomPlayerOrder(
-                players = players,
+            val assigned = assignRemainingJobsInRandomPlayerOrder(
+                players = remainingPlayers,
                 fixedJobs = fixedJobs,
                 nonFixedJobs = nonFixedJobs,
                 trace = trace
@@ -1113,6 +1124,7 @@ object GameManager {
         }
 
         trace.add("[오류] 선호 직업 제약을 만족하는 배정을 찾지 못했습니다.")
+        players.forEach { it.assignedJob = null }
         return trace
     }
 
@@ -1167,7 +1179,7 @@ object GameManager {
         return selected
     }
 
-    private fun assignJobsInRandomPlayerOrder(
+    private fun assignRemainingJobsInRandomPlayerOrder(
         players: MutableList<AssignmentPlayer>,
         fixedJobs: List<Job>,
         nonFixedJobs: List<Job>,
@@ -1177,7 +1189,7 @@ object GameManager {
             .groupingBy(Job::name)
             .eachCount()
             .toMutableMap()
-        trace.add("[3단계] 플레이어 랜덤 순회 배정 시작")
+        trace.add("[3단계] 마피아를 제외한 플레이어 랜덤 순회 배정 시작")
 
         players.forEach { it.assignedJob = null }
         val solved = solveAssignmentsWithBacktracking(players, slotCounter, trace)
@@ -1187,7 +1199,7 @@ object GameManager {
             return false
         }
 
-        trace.add("[3단계] 랜덤 순회 배정 완료")
+        trace.add("[3단계] 마피아를 제외한 랜덤 순회 배정 완료")
         return true
     }
 
@@ -1361,7 +1373,7 @@ object GameManager {
     }
 
     private fun getAllowedJobNames(player: AssignmentPlayer): List<String> {
-        return (player.preferences.map(Job::name) + listOf("마피아", "의사")).distinct()
+        return (player.preferences.map(Job::name) + DOCTOR_JOB_NAME).distinct()
     }
 
     private suspend fun Game.initializeExtraAbilitySelectionForPlayers(players: List<AssignmentPlayer>) {
