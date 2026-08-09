@@ -13,7 +13,6 @@ import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
 import org.beobma.mafia42discordproject.job.definition.list.Agent
 import org.beobma.mafia42discordproject.job.definition.list.Couple
-import org.beobma.mafia42discordproject.job.definition.list.Detective
 import org.beobma.mafia42discordproject.job.definition.list.Inspector
 import org.beobma.mafia42discordproject.job.definition.list.Police
 import org.beobma.mafia42discordproject.job.definition.list.Vigilante
@@ -44,15 +43,24 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         if (target.state.isDead) {
             return AbilityResult(false, "이미 사망한 플레이어는 처형 대상으로 지정할 수 없습니다.")
         }
-        if (game.dayCount == 1 && game.mafiaExecutionProtectedTargetId == target.member.id) {
-            return AbilityResult(false, "연속 퍼블 제한으로 이번 판에는 해당 플레이어를 마피아 처형 대상으로 지정할 수 없습니다.")
-        }
-
         val casterJob = caster.job
             ?: return AbilityResult(false, "시전자 직업 정보를 확인할 수 없습니다.")
+        val isSniperEnhanced =
+            caster.allAbilities.any { it is Sniper } && game.mafiaAttackFailedPreviousNight
+        val coupleRedirectedTarget = resolveCoupleRedirectTarget(game, target)
+        val redirectedTarget = resolveExecutionTarget(
+            originalTarget = target,
+            coupleRedirectedTarget = coupleRedirectedTarget,
+            bypassHackerProxy = shouldBypassHackerProxy(casterJob is Thief, isSniperEnhanced)
+        ) {
+            HackerRedirectManager.resolveTarget(game, target)
+        }
+        if (game.dayCount == 1 && game.mafiaExecutionProtectedTargetId == redirectedTarget.member.id) {
+            return AbilityResult(false, "연속 퍼블 제한으로 이번 판에는 해당 플레이어를 마피아 처형 대상으로 지정할 수 없습니다.")
+        }
         if (game.dayCount == 1) {
-            game.firstMafiaTargetId = target.member.id
-            MafiaExecutionProtectionManager.record(game.guild.id.value, target.member.id.value)
+            game.firstMafiaTargetId = redirectedTarget.member.id
+            MafiaExecutionProtectionManager.record(game.guild.id.value, redirectedTarget.member.id.value)
         }
         var attackTier = AttackTier.NORMAL
 
@@ -60,8 +68,6 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.PIERCE
         }
 
-        val isSniperEnhanced =
-            caster.allAbilities.any { it is Sniper } && game.mafiaAttackFailedPreviousNight
         if (isSniperEnhanced) {
             attackTier = AttackTier.PIERCE
         }
@@ -81,14 +87,6 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
             attackTier = AttackTier.ABSOLUTE
         }
 
-        val coupleRedirectedTarget = resolveCoupleRedirectTarget(game, target)
-        val redirectedTarget = if (coupleRedirectedTarget != target) {
-            coupleRedirectedTarget
-        } else if (shouldBypassHackerProxy(casterJob is Thief, isSniperEnhanced)) {
-            target
-        } else {
-            HackerRedirectManager.resolveTarget(game, target) ?: target
-        }
         if (coupleRedirectedTarget != target) {
             game.coupleSacrificeMap[redirectedTarget.member.id] = target.member.id
         }
@@ -125,7 +123,6 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
         val targetJob = target.job ?: return false
         return targetJob is Police ||
             targetJob is Inspector ||
-            targetJob is Detective ||
             targetJob is Agent ||
             targetJob is Vigilante
     }
@@ -139,6 +136,17 @@ class MafiaAbility : ActiveAbility, JobUniqueAbility {
     }
 
     companion object {
+        internal fun <T> resolveExecutionTarget(
+            originalTarget: T,
+            coupleRedirectedTarget: T,
+            bypassHackerProxy: Boolean,
+            hackerRedirect: () -> T?
+        ): T = when {
+            coupleRedirectedTarget != originalTarget -> coupleRedirectedTarget
+            bypassHackerProxy -> originalTarget
+            else -> hackerRedirect() ?: originalTarget
+        }
+
         internal fun isBlockedByDiscipline(game: Game, caster: PlayerData): Boolean {
             return caster.job is Mafia &&
                 caster.state.mafiaAbilityBlockedNight == game.dayCount

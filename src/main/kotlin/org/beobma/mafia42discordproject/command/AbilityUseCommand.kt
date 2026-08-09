@@ -288,6 +288,7 @@ object AbilityUseCommand : DiscordCommand {
             is HitManAbility -> {
                 selectedAbility.activateWithJobName(game, caster, initiallyResolvedTarget, selectedJobName)
             }
+            is MafiaAbility -> selectedAbility.activate(game, caster, target)
             is SoulRelease -> selectedAbility.activate(game, caster, target)
             else -> selectedAbility.activate(game, caster, initiallyResolvedTarget)
         }

@@ -57,10 +57,20 @@ object WebNotepadServer {
 
     private val primaryMemoJobNames = listOf("마피아", "경찰", "형사", "요원", "자경단원", "의사")
 
-    private val host = System.getenv("WEB_HOST")?.trim()?.takeIf(String::isNotEmpty) ?: DEFAULT_HOST
+    private val host = System.getenv("WEB_HOST")
+        ?.trim()
+        ?.removePrefix("http://")
+        ?.removePrefix("https://")
+        ?.trimEnd('/')
+        ?.takeIf(String::isNotEmpty)
+        ?: DEFAULT_HOST
     private val port = System.getenv("WEB_PORT")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: DEFAULT_PORT
     private val localBaseUrl = "http://$host:$port"
-    private val publicBaseUrl = localBaseUrl
+    private val publicBaseUrl = System.getenv("WEB_PUBLIC_URL")
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf(String::isNotEmpty)
+        ?: localBaseUrl
 
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
@@ -125,6 +135,9 @@ object WebNotepadServer {
 
     fun issueAccessUrl(userId: Snowflake): NotepadAccessResult {
         if (server == null) {
+            start()
+        }
+        if (server == null) {
             return NotepadAccessResult.Failure("로컬 메모장 서버가 실행 중이지 않습니다.")
         }
 
@@ -141,15 +154,17 @@ object WebNotepadServer {
         )
         pruneExpiredSessions(now)
 
-        return NotepadAccessResult.Success("$publicBaseUrl/session?token=$rawToken")
+        return NotepadAccessResult.Success(publicUrl("/session?token=$rawToken"))
     }
 
     fun replayUrl(data: ReplayRenderData): String {
         val uuid = data.replayUuid.ifBlank {
             GameReplayRenderDataStore.replayUuid(data.guildId, data.replayStartedAtMillis)
         }
-        return "$publicBaseUrl/history/$uuid"
+        return publicUrl("/history/$uuid")
     }
+
+    private fun publicUrl(path: String): String = "$publicBaseUrl/${path.trimStart('/')}"
 
     fun invalidateGame(game: Game) {
         val gameKey = game.key()

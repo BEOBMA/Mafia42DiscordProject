@@ -10,7 +10,7 @@ internal const val VOTE_DURATION_MS = 30_000L
 internal const val INITIAL_VOTE_REVEAL_DURATION_MS = 5_000L
 internal const val FINAL_VOTE_TALLY_STEP_MS = 500L
 internal const val DEFENSE_DURATION_MS = 15_000L
-internal const val PROS_CONS_VOTE_DURATION_MS = 10_000L
+internal const val PROS_CONS_VOTE_DURATION_MS = 15_000L
 internal const val DAY_TIME_ADJUSTMENT_MS = 20_000L
 internal const val TIME_THREAD_NAME = "시간"
 

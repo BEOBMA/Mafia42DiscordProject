@@ -8,6 +8,23 @@ import kotlin.test.assertTrue
 
 class MafiaAbilityTest {
     @Test
+    fun `couple sacrifice target becomes effective execution target`() {
+        var hackerRedirectWasEvaluated = false
+
+        val effectiveTarget = MafiaAbility.resolveExecutionTarget(
+            originalTarget = "A",
+            coupleRedirectedTarget = "B",
+            bypassHackerProxy = false
+        ) {
+            hackerRedirectWasEvaluated = true
+            "C"
+        }
+
+        assertEquals("B", effectiveTarget)
+        assertFalse(hackerRedirectWasEvaluated)
+    }
+
+    @Test
     fun `activated successor execution uses sniper attack tier`() {
         assertEquals(
             AttackTier.PIERCE,
