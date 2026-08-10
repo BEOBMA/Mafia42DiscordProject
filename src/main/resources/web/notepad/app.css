@@ -443,6 +443,46 @@ textarea:focus-visible {
     gap: 13px;
 }
 
+.general-note {
+    margin-top: 20px;
+    padding: 19px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: linear-gradient(150deg, rgba(214, 170, 96, 0.035), transparent 55%), #151318;
+}
+
+.general-note-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 12px;
+}
+
+.general-note-heading h3 {
+    margin: 4px 0 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+.general-note-input {
+    display: block;
+    width: 100%;
+    min-height: 150px;
+    padding: 13px 14px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    background: #100f12;
+    line-height: 1.6;
+}
+
+.general-note-input::placeholder {
+    color: #6f6971;
+}
+
 .player-card {
     position: relative;
     min-width: 0;
@@ -1208,6 +1248,10 @@ button.ability-card.actionable .ability-icon {
 
     .player-grid {
         grid-template-columns: 1fr;
+    }
+
+    .general-note {
+        padding: 16px;
     }
 
     .workspace-tab {

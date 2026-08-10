@@ -76,6 +76,7 @@ object WebNotepadServer {
     private val secureRandom = SecureRandom()
     private val sessions = ConcurrentHashMap<String, WebSession>()
     private val notes = ConcurrentHashMap<NoteKey, PlayerNote>()
+    private val generalNotes = ConcurrentHashMap<GeneralNoteKey, String>()
     private val laboratoryGames = LaboratoryGameService(LaboratoryJobCatalog::definitions)
     @Volatile
     private var server: HttpServer? = null
@@ -130,6 +131,7 @@ object WebNotepadServer {
         executor = null
         sessions.clear()
         notes.clear()
+        generalNotes.clear()
         laboratoryGames.clear()
     }
 
@@ -170,6 +172,7 @@ object WebNotepadServer {
         val gameKey = game.key()
         sessions.entries.removeIf { it.value.gameKey == gameKey }
         notes.keys.removeIf { it.gameKey == gameKey }
+        generalNotes.keys.removeIf { it.gameKey == gameKey }
     }
 
     private fun route(exchange: HttpExchange) {
@@ -204,6 +207,7 @@ object WebNotepadServer {
             path == "/api/events" -> serveEvents(exchange)
             path == "/api/ability" -> useAbility(exchange)
             path == "/api/note" -> saveNote(exchange)
+            path == "/api/general-note" -> saveGeneralNote(exchange)
             path == "/health" -> sendJson(exchange, 200, buildJsonObject { put("status", "ok") })
             else -> sendText(exchange, 404, "페이지를 찾을 수 없습니다.")
         }
@@ -528,6 +532,36 @@ object WebNotepadServer {
         sendJson(exchange, 200, buildJsonObject { put("saved", true) })
     }
 
+    private fun saveGeneralNote(exchange: HttpExchange) {
+        if (exchange.requestMethod != "PUT") {
+            sendMethodNotAllowed(exchange, "PUT")
+            return
+        }
+        if (!isSameOrigin(exchange)) {
+            sendJsonError(exchange, 403, "허용되지 않은 요청 출처입니다.")
+            return
+        }
+
+        val authenticated = authenticate(exchange) ?: return
+        val requestBody = readRequestBody(exchange) ?: return
+        val payload = runCatching { json.parseToJsonElement(requestBody).jsonObject }.getOrNull()
+        if (payload == null) {
+            sendJsonError(exchange, 400, "올바른 JSON 요청이 아닙니다.")
+            return
+        }
+
+        val content = payload["content"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+        if (content.length > MAX_NOTE_LENGTH) {
+            sendJsonError(exchange, 400, "메모는 ${MAX_NOTE_LENGTH}자 이하로 작성해 주세요.")
+            return
+        }
+
+        val key = GeneralNoteKey(authenticated.session.gameKey, authenticated.session.userId)
+        if (content.isBlank()) generalNotes.remove(key) else generalNotes[key] = content
+
+        sendJson(exchange, 200, buildJsonObject { put("saved", true) })
+    }
+
     private fun buildState(game: Game, viewer: PlayerData): JsonObject {
         val gameKey = game.key()
         val players = game.playerDatas.toList()
@@ -609,6 +643,7 @@ object WebNotepadServer {
                     })
                 }
             })
+            put("generalNote", generalNotes[GeneralNoteKey(gameKey, viewer.member.id.value)].orEmpty())
             put("jobs", buildJsonArray {
                 memoJobsByRow().forEach { (rowNumber, jobs) ->
                     jobs.forEach { job ->
@@ -944,6 +979,8 @@ object WebNotepadServer {
     private data class GameKey(val guildId: ULong, val startedAtMillis: Long)
 
     private data class NoteKey(val gameKey: GameKey, val ownerId: ULong, val targetId: ULong)
+
+    private data class GeneralNoteKey(val gameKey: GameKey, val ownerId: ULong)
 
     private data class PlayerNote(
         val guessedJobName: String?,

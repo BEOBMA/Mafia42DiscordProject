@@ -31,6 +31,8 @@ const elements = {
     abilityCount: document.querySelector("#ability-count"),
     abilityGrid: document.querySelector("#ability-grid"),
     playerGrid: document.querySelector("#player-grid"),
+    generalNoteInput: document.querySelector("#general-note-input"),
+    generalNoteSaveStatus: document.querySelector("#general-note-save-status"),
     tabs: [...document.querySelectorAll(".workspace-tab")],
     panels: [...document.querySelectorAll(".tab-panel")],
     logUnread: document.querySelector("#log-unread"),
@@ -145,6 +147,7 @@ function render(data) {
     renderGame(data.game);
     renderIdentity(data.me);
     renderPlayers(data.players, data.jobs);
+    renderGeneralNote(data.generalNote);
     activateTab(state.activeTab);
 }
 
@@ -291,6 +294,10 @@ async function confirmAbility() {
 function renderPlayers(players, jobs) {
     elements.playerGrid.replaceChildren();
     for (const player of players) elements.playerGrid.append(createPlayerCard(player, jobs));
+}
+
+function renderGeneralNote(content) {
+    elements.generalNoteInput.value = content || "";
 }
 
 function displayedPlayerJob(player, jobs) {
@@ -492,6 +499,20 @@ async function saveNote(targetId, guessedJobName, content) {
     }
 }
 
+async function saveGeneralNote(content) {
+    try {
+        await fetchJson("/api/general-note", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ content }),
+        });
+        return true;
+    } catch (error) {
+        showToast(error.message);
+        return false;
+    }
+}
+
 function activateTab(tabName) {
     state.activeTab = tabName;
     for (const tab of elements.tabs) {
@@ -577,6 +598,15 @@ elements.refreshButton.addEventListener("click", async () => {
     elements.refreshButton.disabled = true;
     await fetchState({ forceRender: !state.editing && !state.dialogAction });
     elements.refreshButton.disabled = false;
+});
+
+elements.generalNoteInput.addEventListener("input", () => {
+    elements.generalNoteSaveStatus.textContent = "저장 중…";
+    window.clearTimeout(state.saveTimers.get("general-note"));
+    state.saveTimers.set("general-note", window.setTimeout(async () => {
+        const saved = await saveGeneralNote(elements.generalNoteInput.value);
+        elements.generalNoteSaveStatus.textContent = saved ? "저장됨" : "저장 실패";
+    }, 450));
 });
 
 fetchState();

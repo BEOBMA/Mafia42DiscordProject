@@ -123,6 +123,22 @@
                 <p>공개되지 않은 직업에 대한 예상과 근거는 본인에게만 저장됩니다.</p>
             </div>
             <div class="player-grid" id="player-grid"></div>
+            <div class="general-note" aria-labelledby="general-note-title">
+                <div class="general-note-heading">
+                    <div>
+                        <span class="eyebrow">FREE NOTES</span>
+                        <h3 id="general-note-title">자유 메모</h3>
+                    </div>
+                    <span class="save-status" id="general-note-save-status" aria-live="polite"></span>
+                </div>
+                <textarea
+                    class="general-note-input"
+                    id="general-note-input"
+                    maxlength="1000"
+                    placeholder="플레이어와 관계없는 내용을 자유롭게 기록하세요."
+                    aria-label="자유 메모"
+                ></textarea>
+            </div>
         </section>
         </div>
 

@@ -56,6 +56,13 @@ class WebNotepadServerTest {
                 .build(),
             HttpResponse.BodyHandlers.ofString()
         )
+        val privateGeneralNote = client.send(
+            HttpRequest.newBuilder(URI("$baseUrl/api/general-note"))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString("""{"content":"메모"}"""))
+                .build(),
+            HttpResponse.BodyHandlers.ofString()
+        )
         val privateLaboratory = client.send(
             HttpRequest.newBuilder(URI("$baseUrl/api/lab/state")).GET().build(),
             HttpResponse.BodyHandlers.ofString()
@@ -73,6 +80,7 @@ class WebNotepadServerTest {
         assertTrue(page.body().contains("게임 리플레이 아카이브"))
         assertEquals(200, notepad.statusCode())
         assertTrue(notepad.body().contains("게임 메모장"))
+        assertTrue(notepad.body().contains("자유 메모"))
         assertEquals(200, laboratory.statusCode())
         assertTrue(laboratory.body().contains("게임 실험실"))
         assertEquals(200, replays.statusCode())
@@ -81,6 +89,7 @@ class WebNotepadServerTest {
         assertTrue(privateState.body().contains("/메모장"))
         assertEquals(401, privateEvents.statusCode())
         assertEquals(401, privateAbility.statusCode())
+        assertEquals(401, privateGeneralNote.statusCode())
         assertEquals(401, privateLaboratory.statusCode())
         assertEquals(201, laboratorySession.statusCode())
         assertTrue(laboratorySession.body().contains("\"token\""))
