@@ -39,7 +39,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 resolvedAt = event.resolvedAt,
                 isCancelled = event.isCancelled,
                 isPublicReveal = event.isPublicReveal,
-                sharedByPaparazzi = event.sharedByPaparazzi
+                sharedByPaparazzi = event.sharedByPaparazzi,
+                revealsExactJob = event.revealsExactJob
             )
             is GameEvent.PoliceJobRevealed -> shareDiscovery(
                 game = game,
@@ -64,7 +65,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
         resolvedAt: DiscoveryStep,
         isCancelled: Boolean = false,
         isPublicReveal: Boolean = false,
-        sharedByPaparazzi: Boolean = false
+        sharedByPaparazzi: Boolean = false,
+        revealsExactJob: Boolean = true
     ) {
         if (owner.state.isDead) return
         if (owner.state.isSilenced) return
@@ -88,7 +90,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 sharedByPaparazzi = true,
                 triggeredByTact = true,
                 notifyTarget = false,
-                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL,
+                revealsExactJob = true
             )
         } else {
             GameEvent.JobDiscovered(
@@ -100,7 +103,8 @@ class Issue : Ability, JobUniqueAbility, PassiveAbility {
                 resolvedAt = resolvedAt,
                 sharedByPaparazzi = true,
                 notifyTarget = false,
-                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL
+                imageUrl = ISSUE_NOTIFICATION_IMAGE_URL,
+                revealsExactJob = revealsExactJob
             )
         }
 

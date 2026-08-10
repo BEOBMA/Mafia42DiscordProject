@@ -20,4 +20,25 @@ internal object PoliceSearchPolicy {
         isFrogCursed -> false
         else -> job is Mafia
     }
+
+    fun shouldShareMafiaDiscovery(isMafia: Boolean): Boolean = isMafia
+
+    fun toMafiaDiscovery(
+        event: GameEvent.PoliceSearchResolved,
+        resolvedAt: DiscoveryStep
+    ): GameEvent.JobDiscovered? {
+        if (!shouldShareMafiaDiscovery(event.isMafia)) return null
+        val actualJob = event.target.job ?: return null
+
+        return GameEvent.JobDiscovered(
+            discoverer = event.police,
+            target = event.target,
+            actualJob = actualJob,
+            revealedJob = Mafia(),
+            sourceAbilityName = "수색",
+            resolvedAt = resolvedAt,
+            notifyTarget = false,
+            revealsExactJob = false
+        )
+    }
 }

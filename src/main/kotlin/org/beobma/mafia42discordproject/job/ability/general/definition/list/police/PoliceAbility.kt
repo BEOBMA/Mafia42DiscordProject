@@ -111,6 +111,10 @@ class PoliceAbility : ActiveAbility, JobUniqueAbility {
             }
         }
 
+        PoliceSearchPolicy.toMafiaDiscovery(searchEvent, DiscoveryStep.NIGHT)?.let { discoveryEvent ->
+            dispatchPoliceEvent(game, discoveryEvent)
+        }
+
         policeJob?.currentSearchTarget = null
         policeJob?.hasUsedSearchThisNight = true
         policeJob?.eavesdroppingTargetId = effectiveTarget.member.id

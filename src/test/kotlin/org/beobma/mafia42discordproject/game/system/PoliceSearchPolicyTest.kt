@@ -29,4 +29,10 @@ class PoliceSearchPolicyTest {
             )
         )
     }
+
+    @Test
+    fun `only a final mafia result is shared as a discovery`() {
+        assertTrue(PoliceSearchPolicy.shouldShareMafiaDiscovery(isMafia = true))
+        assertFalse(PoliceSearchPolicy.shouldShareMafiaDiscovery(isMafia = false))
+    }
 }

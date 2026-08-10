@@ -3577,7 +3577,10 @@ object GameLoopManager {
                 isMafia = PoliceSearchPolicy.isMafia(selectedTarget),
                 isRepeatedSearch = selectedTarget.member.id in policeJob.searchedTargets
             )
-            dispatchPoliceSearchEvent(game, searchEvent)
+            dispatchPoliceEvent(game, searchEvent)
+            PoliceSearchPolicy.toMafiaDiscovery(searchEvent, DiscoveryStep.NIGHT)?.let { discoveryEvent ->
+                dispatchPoliceEvent(game, discoveryEvent)
+            }
             policeJob.eavesdroppingTargetId = selectedTarget.member.id
             policeJob.searchedTargets += selectedTarget.member.id
 
@@ -3589,7 +3592,7 @@ object GameLoopManager {
         }
     }
 
-    private fun dispatchPoliceSearchEvent(game: Game, event: GameEvent.PoliceSearchResolved) {
+    private fun dispatchPoliceEvent(game: Game, event: GameEvent) {
         game.playerDatas
             .filter { !it.state.isDead }
             .forEach { player ->
