@@ -14,6 +14,8 @@ class Mentalist : Job(), Definition {
 
     var initialObservationTargetId: Snowflake? = null
     var lastObservationTargetId: Snowflake? = null
+    var initialObservationSelectedTargetId: Snowflake? = null
+    var lastObservationSelectedTargetId: Snowflake? = null
     var isObservationResolvedToday: Boolean = false
     var observationUsesToday: Int = 0
 }

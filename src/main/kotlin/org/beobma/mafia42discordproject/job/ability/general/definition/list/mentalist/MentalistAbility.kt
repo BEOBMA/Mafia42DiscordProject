@@ -4,6 +4,7 @@ import org.beobma.mafia42discordproject.game.Game
 import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.game.system.InvestigationTeam
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
@@ -29,10 +30,11 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
         if (target == null) {
             return AbilityResult(false, "관찰할 대상을 지정해야 합니다.")
         }
-        if (target.state.isDead) {
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        if (effectiveTarget.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 관찰 대상으로 지정할 수 없습니다.")
         }
-        if (target.member.id == caster.member.id) {
+        if (effectiveTarget.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신은 관찰 대상으로 지정할 수 없습니다.")
         }
 
@@ -48,8 +50,10 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
 
         val initialTargetId = mentalist.initialObservationTargetId
         if (initialTargetId == null) {
-            mentalist.initialObservationTargetId = target.member.id
-            mentalist.lastObservationTargetId = target.member.id
+            mentalist.initialObservationTargetId = effectiveTarget.member.id
+            mentalist.lastObservationTargetId = effectiveTarget.member.id
+            mentalist.initialObservationSelectedTargetId = target.member.id
+            mentalist.lastObservationSelectedTargetId = target.member.id
             mentalist.observationUsesToday += 1
             return AbilityResult(
                 true,
@@ -58,7 +62,7 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
         }
 
         val previousTargetId = mentalist.lastObservationTargetId ?: initialTargetId
-        if (target.member.id == previousTargetId) {
+        if (effectiveTarget.member.id == previousTargetId) {
             return AbilityResult(false, "앞서 관찰한 플레이어와는 비교할 수 없습니다.")
         }
 
@@ -71,14 +75,18 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
 
         val previousTarget = game.getPlayer(previousTargetId)
             ?: return AbilityResult(false, "앞서 관찰한 플레이어 정보를 찾을 수 없습니다.")
+        val previousSelectedTarget = mentalist.lastObservationSelectedTargetId
+            ?.let(game::getPlayer)
+            ?: previousTarget
 
         if (previousTarget.state.isDead) {
             return AbilityResult(false, "앞서 관찰한 플레이어가 사망해 더 이상 관찰을 이어갈 수 없습니다.")
         }
 
-        mentalist.lastObservationTargetId = target.member.id
+        mentalist.lastObservationTargetId = effectiveTarget.member.id
+        mentalist.lastObservationSelectedTargetId = target.member.id
         mentalist.observationUsesToday += 1
-        val isSameTeam = isSameTeam(previousTarget, target)
+        val isSameTeam = isSameTeam(previousTarget, effectiveTarget)
         if (!isSameTeam) {
             val remainingUses = MAX_OBSERVATION_USES_PER_DAY - mentalist.observationUsesToday
             val suffix = if (remainingUses > 0) {
@@ -88,15 +96,25 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
             }
             return AbilityResult(
                 true,
-                "관찰 결과: ${previousTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **다른 팀**입니다.$suffix"
+                "관찰 결과: ${previousSelectedTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **다른 팀**입니다.$suffix"
             )
         }
 
         mentalist.isObservationResolvedToday = true
-        val profilingMessage = buildProfilingMessage(game, caster, initialTarget, target)
+        val initialSelectedTarget = mentalist.initialObservationSelectedTargetId
+            ?.let(game::getPlayer)
+            ?: initialTarget
+        val profilingMessage = buildProfilingMessage(
+            game = game,
+            caster = caster,
+            initialTarget = initialTarget,
+            lastTarget = effectiveTarget,
+            initialSelectedTarget = initialSelectedTarget,
+            lastSelectedTarget = target
+        )
         return AbilityResult(
             true,
-            "관찰 결과: ${previousTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **같은 팀**입니다.$profilingMessage"
+            "관찰 결과: ${previousSelectedTarget.member.effectiveName}님과 ${target.member.effectiveName}님은 서로 **같은 팀**입니다.$profilingMessage"
         )
     }
 
@@ -110,18 +128,24 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
         game: Game,
         caster: PlayerData,
         initialTarget: PlayerData,
-        lastTarget: PlayerData
+        lastTarget: PlayerData,
+        initialSelectedTarget: PlayerData,
+        lastSelectedTarget: PlayerData
     ): String {
         val hasProfiling = caster.allAbilities.any { it is Profiling }
         if (!hasProfiling) return ""
 
-        val profiledTarget = if (Random.nextBoolean()) initialTarget else lastTarget
+        val (profiledTarget, displayedTarget) = if (Random.nextBoolean()) {
+            initialTarget to initialSelectedTarget
+        } else {
+            lastTarget to lastSelectedTarget
+        }
         val usedTargetId = game.abilityTargetByUserThisPhase[profiledTarget.member.id]
             ?: game.lastNightAbilityTargetByUser[profiledTarget.member.id]
-            ?: return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님의 능력 사용 대상을 확인할 수 없습니다."
+            ?: return "\n프로파일링 결과: ${displayedTarget.member.effectiveName}님의 능력 사용 대상을 확인할 수 없습니다."
 
         val usedTargetPlayerName = game.getPlayer(usedTargetId)?.member?.effectiveName ?: "알 수 없음"
-        return "\n프로파일링 결과: ${profiledTarget.member.effectiveName}님은 ${usedTargetPlayerName}님에게 능력을 사용했습니다."
+        return "\n프로파일링 결과: ${displayedTarget.member.effectiveName}님은 ${usedTargetPlayerName}님에게 능력을 사용했습니다."
     }
 
     companion object {
@@ -131,6 +155,8 @@ class MentalistAbility : ActiveAbility, JobUniqueAbility {
             val mentalist = owner.job as? Mentalist ?: return
             mentalist.initialObservationTargetId = null
             mentalist.lastObservationTargetId = null
+            mentalist.initialObservationSelectedTargetId = null
+            mentalist.lastObservationSelectedTargetId = null
             mentalist.isObservationResolvedToday = false
             mentalist.observationUsesToday = 0
         }

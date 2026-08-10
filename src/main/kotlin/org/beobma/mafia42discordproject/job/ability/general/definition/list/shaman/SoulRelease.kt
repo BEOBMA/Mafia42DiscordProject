@@ -64,9 +64,9 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
                 GameLoopManager.refreshNightPrivateChannelPermissions(game)
             }
             val casterMessage = if (isEarthbound) {
-                "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+                "${selectedTarget.member.effectiveName}님을 성불하는데 실패했습니다.\n${selectedTarget.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
             } else {
-                "${target.member.effectiveName}님을 성불했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+                "${selectedTarget.member.effectiveName}님을 성불했습니다.\n${selectedTarget.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
             }
             GameReplayLogger.logDirectMessage(game, caster, casterMessage, "성불 결과")
             if (!isEarthbound) {
@@ -80,9 +80,9 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
             runCatching {
                 caster.member.getDmChannel().createMessage(
                     if (isEarthbound) {
-                        "${target.member.effectiveName}님을 성불하는데 실패했습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+                        "${selectedTarget.member.effectiveName}님을 성불하는데 실패했습니다.\n${selectedTarget.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
                     } else {
-                        "${target.member.effectiveName}님을 성불하였습니다.\n${target.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
+                        "${selectedTarget.member.effectiveName}님을 성불하였습니다.\n${selectedTarget.member.effectiveName}님의 직업은 ${revealedJobName}입니다.\n$image"
                     }
                 )
             }
@@ -94,9 +94,9 @@ class SoulRelease : ActiveAbility, JobUniqueAbility {
         }
 
         return if (isEarthbound) {
-            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불하는데 실패했습니다.")
+            AbilityResult(true, "$revealedJobName ${selectedTarget.member.effectiveName}님을 성불하는데 실패했습니다.")
         } else {
-            AbilityResult(true, "$revealedJobName ${target.member.effectiveName}님을 성불했습니다.")
+            AbilityResult(true, "$revealedJobName ${selectedTarget.member.effectiveName}님을 성불했습니다.")
         }
     }
 }

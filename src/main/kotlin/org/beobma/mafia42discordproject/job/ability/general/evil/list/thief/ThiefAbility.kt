@@ -10,6 +10,7 @@ import org.beobma.mafia42discordproject.game.GamePhase
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.Job
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
@@ -41,10 +42,16 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "이번 투표시간에는 이미 도벽 대상을 선택했습니다.")
         }
         thief.hasUsedTheftThisVote = true
-        return stealFromTarget(game, caster, target)
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        return stealFromTarget(game, caster, effectiveTarget, target)
     }
 
-    private fun stealFromTarget(game: Game, caster: PlayerData, target: PlayerData): AbilityResult {
+    private fun stealFromTarget(
+        game: Game,
+        caster: PlayerData,
+        target: PlayerData,
+        selectedTarget: PlayerData
+    ): AbilityResult {
         if (caster.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 도벽을 사용할 수 없습니다.")
         }
@@ -77,7 +84,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
                 val mafiaJob = Mafia()
                 thief.hasActivatedSuccessorMafia = true
                 thief.setStolenJob(mafiaJob, caster.member.id, mafiaJob.abilities)
-                notifyStealSuccess(game, caster, target, "마피아")
+                notifyStealSuccess(game, caster, selectedTarget, "마피아")
                 return AbilityResult(true, "후계자로서 마피아의 처형 능력을 얻었습니다.")
             }
             thief.clearStolenAbility()
@@ -101,7 +108,7 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
                 notifyThiefContact(game, caster)
                 return AbilityResult(true, "마피아 팀과 접선하고 처형 능력을 얻었습니다.")
             }
-            notifyStealSuccess(game, caster, target, targetJob.name)
+            notifyStealSuccess(game, caster, selectedTarget, targetJob.name)
             return AbilityResult(true, "마피아의 처형 능력을 얻었습니다.")
         }
 
@@ -144,8 +151,8 @@ class ThiefAbility : ActiveAbility, JobUniqueAbility {
         }
 
         thief.setStolenJob(borrowedJob, target.member.id, stolenAbilities)
-        notifyStealSuccess(game, caster, target, targetJob.name)
-        return AbilityResult(true, "**${target.member.effectiveName}님의 직업 ${targetJob.name}을 훔쳤습니다.**")
+        notifyStealSuccess(game, caster, selectedTarget, targetJob.name)
+        return AbilityResult(true, "**${selectedTarget.member.effectiveName}님의 직업 ${targetJob.name}을 훔쳤습니다.**")
     }
 
     private fun failWithNotification(game: Game, caster: PlayerData, message: String): AbilityResult {

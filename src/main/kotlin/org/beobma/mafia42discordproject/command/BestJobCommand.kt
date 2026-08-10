@@ -6,7 +6,9 @@ import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.event.interaction.GuildAutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.core.entity.interaction.SubCommand
 import dev.kord.rest.builder.interaction.string
+import dev.kord.rest.builder.interaction.subCommand
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager
 import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
@@ -15,27 +17,23 @@ import org.beobma.mafia42discordproject.job.JobManager
 
 object BestJobCommand : DiscordCommand {
     override val name: String = "보석"
-    override val description: String = "최선호 직업 1개를 설정해 직업 배정 확률을 높입니다."
+    override val description: String = "최선호 직업 1개를 설정하거나 보석 설정을 해제합니다."
     override val aliases: Set<String> = setOf("bestjob")
 
+    private const val SET_SUBCOMMAND = "설정"
+    private const val CLEAR_SUBCOMMAND = "설정안함"
     private const val JOB_OPTION = "직업"
     private const val MAX_AUTO_COMPLETE_CHOICES = 25
 
     override suspend fun registerGlobal(kord: Kord) {
         kord.createGlobalChatInputCommand(name, description) {
-            string(JOB_OPTION, "최선호로 설정할 직업") {
-                required = true
-                autocomplete = true
-            }
+            registerOptions()
         }
     }
 
     override suspend fun registerGuild(kord: Kord, guildId: Snowflake) {
         kord.createGuildChatInputCommand(guildId, name, description) {
-            string(JOB_OPTION, "최선호로 설정할 직업") {
-                required = true
-                autocomplete = true
-            }
+            registerOptions()
         }
     }
 
@@ -59,17 +57,23 @@ object BestJobCommand : DiscordCommand {
 
     override suspend fun handle(event: GuildChatInputCommandInteractionCreateEvent) {
         val userId = event.interaction.user.id
-        val selectedJobName = event.interaction.command.strings[JOB_OPTION]
-
-        val result = saveBestJob(userId, selectedJobName)
+        val command = event.interaction.command as? SubCommand
+        val result = when (command?.name) {
+            SET_SUBCOMMAND -> saveBestJob(userId, command.strings[JOB_OPTION])
+            CLEAR_SUBCOMMAND -> clearBestJob(userId)
+            else -> CommandResult(false, usage())
+        }
         DiscordMessageManager.respondEphemeral(event, result.message)
     }
 
     override suspend fun handleMessage(event: MessageCreateEvent, args: List<String>) {
         val userId = event.message.author?.id ?: return
-        val selectedJobName = args.firstOrNull()
-
-        val result = saveBestJob(userId, selectedJobName)
+        val input = args.joinToString(" ").trim()
+        val result = when {
+            input in CLEAR_MESSAGE_ALIASES -> clearBestJob(userId)
+            args.firstOrNull() == SET_SUBCOMMAND -> saveBestJob(userId, args.getOrNull(1))
+            else -> saveBestJob(userId, args.firstOrNull())
+        }
         event.message.channel.createMessage(result.message)
     }
 
@@ -85,7 +89,7 @@ object BestJobCommand : DiscordCommand {
         }
 
         if (selectedJobName.isNullOrBlank()) {
-            return CommandResult(false, "사용법: `/보석 직업:<직업명>` 또는 `!보석 <직업명>`")
+            return CommandResult(false, usage())
         }
 
         val selectedJob = JobManager.findByName(selectedJobName)
@@ -104,4 +108,34 @@ object BestJobCommand : DiscordCommand {
             "`${selectedJob.name}`을(를) 최선호 직업으로 저장했습니다. 다음 게임부터 해당 직업 배정 확률이 추가로 증가합니다."
         )
     }
+
+    private fun clearBestJob(userId: Snowflake): CommandResult {
+        if (GameManager.isInCurrentGame(userId)) {
+            return CommandResult(false, "게임 참여 중에는 최선호 직업을 변경할 수 없습니다.")
+        }
+
+        val previousBestJob = BestJobPreferenceManager.get(userId.value)
+            ?: return CommandResult(true, "이미 보석 직업을 설정하지 않은 상태입니다.")
+
+        BestJobPreferenceManager.clear(userId.value)
+        return CommandResult(
+            true,
+            "`${previousBestJob.name}` 보석 설정을 해제했습니다. 다음 게임부터 보석에 의한 추가 배정 확률이 적용되지 않습니다."
+        )
+    }
+
+    private fun usage(): String =
+        "사용법: `/보석 설정 직업:<직업명>` 또는 `/보석 설정안함` (메시지: `!보석 <직업명>`, `!보석 설정안함`)"
+
+    private fun dev.kord.rest.builder.interaction.ChatInputCreateBuilder.registerOptions() {
+        subCommand(SET_SUBCOMMAND, "최선호 직업을 설정합니다.") {
+            string(JOB_OPTION, "최선호로 설정할 직업") {
+                required = true
+                autocomplete = true
+            }
+        }
+        subCommand(CLEAR_SUBCOMMAND, "보석 직업을 설정하지 않습니다.")
+    }
+
+    private val CLEAR_MESSAGE_ALIASES = setOf(CLEAR_SUBCOMMAND, "설정 안함", "해제", "없음")
 }

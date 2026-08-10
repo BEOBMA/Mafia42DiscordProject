@@ -50,6 +50,6 @@ class Trick : ActiveAbility, JobUniqueAbility {
         val previousTargetId = magician.trickTargetId
         magician.trickTargetId = effectiveTarget.member.id
         val action = if (previousTargetId != null && previousTargetId != effectiveTarget.member.id) "변경" else "지정"
-        return AbilityResult(true, "${effectiveTarget.member.effectiveName}님을 트릭 대상으로 ${action}했습니다.")
+        return AbilityResult(true, "${target.member.effectiveName}님을 트릭 대상으로 ${action}했습니다.")
     }
 }

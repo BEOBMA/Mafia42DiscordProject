@@ -6,10 +6,19 @@ import org.beobma.mafia42discordproject.job.definition.list.Hacker
 import org.beobma.mafia42discordproject.job.evil.list.Thief
 import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
+internal data class HackerTargetSelection<Player>(
+    val selectedTarget: Player?,
+    val effectiveTarget: Player?
+)
+
 object HackerRedirectManager {
     fun resolveTarget(game: Game, originalTarget: PlayerData?): PlayerData? {
-        return resolveTargetChain(
-            originalTarget = originalTarget,
+        return resolveSelection(game, originalTarget).effectiveTarget
+    }
+
+    internal fun resolveSelection(game: Game, selectedTarget: PlayerData?): HackerTargetSelection<PlayerData> {
+        return resolveTargetSelectionChain(
+            selectedTarget = selectedTarget,
             playerId = { it.member.id },
             proxyTargetId = { player ->
                 (player.job as? Thief)?.stolenHackerTargetId
@@ -19,6 +28,29 @@ object HackerRedirectManager {
             isProxySuppressed = FrogCurseManager::shouldSuppressPassive,
             isDead = { it.state.isDead },
             clearProxy = ::clearProxy
+        )
+    }
+
+    internal fun <Player, PlayerId> resolveTargetSelectionChain(
+        selectedTarget: Player?,
+        playerId: (Player) -> PlayerId,
+        proxyTargetId: (Player) -> PlayerId?,
+        findPlayer: (PlayerId) -> Player?,
+        isProxySuppressed: (Player) -> Boolean,
+        isDead: (Player) -> Boolean,
+        clearProxy: (Player) -> Unit
+    ): HackerTargetSelection<Player> {
+        return HackerTargetSelection(
+            selectedTarget = selectedTarget,
+            effectiveTarget = resolveTargetChain(
+                originalTarget = selectedTarget,
+                playerId = playerId,
+                proxyTargetId = proxyTargetId,
+                findPlayer = findPlayer,
+                isProxySuppressed = isProxySuppressed,
+                isDead = isDead,
+                clearProxy = clearProxy
+            )
         )
     }
 

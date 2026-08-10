@@ -8,6 +8,7 @@ import org.beobma.mafia42discordproject.game.loop.NIGHT_DURATION_MS
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
 import org.beobma.mafia42discordproject.game.system.FrogCurseManager
+import org.beobma.mafia42discordproject.game.system.HackerRedirectManager
 import org.beobma.mafia42discordproject.job.ability.AbilityResult
 import org.beobma.mafia42discordproject.job.ability.ActiveAbility
 import org.beobma.mafia42discordproject.job.ability.JobUniqueAbility
@@ -33,10 +34,11 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         if (target == null) {
             return AbilityResult(false, "저주 대상을 지정해야 합니다.")
         }
-        if (target.member.id == caster.member.id) {
+        val effectiveTarget = HackerRedirectManager.resolveTarget(game, target) ?: target
+        if (effectiveTarget.member.id == caster.member.id) {
             return AbilityResult(false, "자기 자신을 저주할 수 없습니다.")
         }
-        if (target.state.isDead) {
+        if (effectiveTarget.state.isDead) {
             return AbilityResult(false, "사망한 플레이어는 저주할 수 없습니다.")
         }
 
@@ -45,14 +47,6 @@ class WitchAbility : ActiveAbility, JobUniqueAbility {
         if (witch == null && thief == null) {
             return AbilityResult(false, "마녀 또는 저주 능력을 훔친 도둑만 사용할 수 있습니다.")
         }
-        val effectiveTarget = target
-        if (effectiveTarget.member.id == caster.member.id) {
-            return AbilityResult(false, "자기 자신을 저주할 수 없습니다.")
-        }
-        if (effectiveTarget.state.isDead) {
-            return AbilityResult(false, "사망한 플레이어는 저주할 수 없습니다.")
-        }
-
         game.pendingWitchCurseByCaster[caster.member.id] = effectiveTarget.member.id
         val hasOblivion = caster.allAbilities.any { it is Oblivion }
         if (hasOblivion) {

@@ -135,23 +135,28 @@ class VigilantePurgeNightAbility : ActiveAbility, JobUniqueAbility {
         val fixedTarget = vigilante?.fixedPurgeTargetId?.let(game::getPlayer)
         val selectedTarget = target ?: fixedTarget
             ?: return AbilityResult(false, "숙청할 적팀 대상을 지정해야 합니다.")
+        val effectiveTarget = if (target != null) {
+            HackerRedirectManager.resolveTarget(game, selectedTarget) ?: selectedTarget
+        } else {
+            selectedTarget
+        }
 
-        if (selectedTarget.state.isDead) {
+        if (effectiveTarget.state.isDead) {
             return AbilityResult(false, "숙청 대상이 이미 사망했습니다.")
         }
 
-        if (!isKnownEnemyTarget(caster, selectedTarget, vigilante, thief)) {
+        if (!isKnownEnemyTarget(caster, effectiveTarget, vigilante, thief)) {
             return AbilityResult(false, "알고 있는 적팀만 숙청할 수 있습니다.")
         }
 
         val attackKey = "VIGILANTE_${caster.member.id}"
         game.nightAttacks[attackKey] = AttackEvent(
             attacker = caster,
-            target = selectedTarget,
+            target = effectiveTarget,
             attackTier = AttackTier.NORMAL
         )
-        if (selectedTarget !in game.nightDeathCandidates) {
-            game.nightDeathCandidates += selectedTarget
+        if (effectiveTarget !in game.nightDeathCandidates) {
+            game.nightDeathCandidates += effectiveTarget
         }
 
         vigilante?.hasUsedNightPurge = true

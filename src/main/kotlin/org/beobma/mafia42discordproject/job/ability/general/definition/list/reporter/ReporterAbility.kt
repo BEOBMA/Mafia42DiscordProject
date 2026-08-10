@@ -86,7 +86,7 @@ class ReporterAbility : ActiveAbility, JobUniqueAbility {
         reporter.hasUsedScoop = true
         return AbilityResult(
             true,
-            "특종입니다! ${effectiveTarget.member.effectiveName}님이 ${discoveryEvent.revealedJob.name}(이)라는 소식입니다!\n${ReporterAssets.PRIVATE_SCOOP_RESULT_IMAGE_URL}"
+            "특종입니다! ${target.member.effectiveName}님이 ${discoveryEvent.revealedJob.name}(이)라는 소식입니다!\n${ReporterAssets.PRIVATE_SCOOP_RESULT_IMAGE_URL}"
         )
     }
 

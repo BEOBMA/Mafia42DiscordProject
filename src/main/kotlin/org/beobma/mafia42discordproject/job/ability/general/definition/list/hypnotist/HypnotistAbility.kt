@@ -61,7 +61,7 @@ class HypnotizeAbility : ActiveAbility, JobUniqueAbility {
 
         hypnotist.selectedTargetIdTonight = effectiveTarget.member.id
         hypnotist.hypnotizedTargetIds += effectiveTarget.member.id
-        return AbilityResult(true, "${effectiveTarget.member.effectiveName}님에게 최면을 겁니다.\n$HYPNOTIZE_IMAGE_URL")
+        return AbilityResult(true, "${target.member.effectiveName}님에게 최면을 겁니다.\n$HYPNOTIZE_IMAGE_URL")
     }
 }
 

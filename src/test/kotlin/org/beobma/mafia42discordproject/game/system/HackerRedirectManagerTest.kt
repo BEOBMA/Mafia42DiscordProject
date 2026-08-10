@@ -7,6 +7,18 @@ import kotlin.test.assertTrue
 
 class HackerRedirectManagerTest {
     @Test
+    fun `selection preserves the hacker while resolving the effective target`() {
+        val hacker = ProxyPlayer(id = 1, isDead = false, proxyTargetId = 2)
+        val target = ProxyPlayer(id = 2, isDead = false)
+        val players = listOf(hacker, target).associateBy(ProxyPlayer::id)
+
+        val selection = resolveSelection(hacker, players)
+
+        assertEquals(hacker, selection.selectedTarget)
+        assertEquals(target, selection.effectiveTarget)
+    }
+
+    @Test
     fun `dead hacker still redirects abilities to a living proxy target`() {
         val hacker = ProxyPlayer(id = 1, isDead = true, proxyTargetId = 2)
         val target = ProxyPlayer(id = 2, isDead = false)
@@ -45,8 +57,15 @@ class HackerRedirectManagerTest {
         originalTarget: ProxyPlayer,
         players: Map<Int, ProxyPlayer>
     ): ProxyPlayer? {
-        return HackerRedirectManager.resolveTargetChain(
-            originalTarget = originalTarget,
+        return resolveSelection(originalTarget, players).effectiveTarget
+    }
+
+    private fun resolveSelection(
+        selectedTarget: ProxyPlayer,
+        players: Map<Int, ProxyPlayer>
+    ): HackerTargetSelection<ProxyPlayer> {
+        return HackerRedirectManager.resolveTargetSelectionChain(
+            selectedTarget = selectedTarget,
             playerId = ProxyPlayer::id,
             proxyTargetId = ProxyPlayer::proxyTargetId,
             findPlayer = players::get,

@@ -249,13 +249,14 @@ object AbilityUseCommand : DiscordCommand {
         if (selectedAbility !is ThiefAbility && isBlockedByBlessing(game, target)) {
             return failure("축복으로 해당 플레이어를 능력 대상으로 지정할 수 없습니다.")
         }
-        val initiallyResolvedTarget = HackerRedirectManager.resolveTarget(game, target)
+        val targetSelection = HackerRedirectManager.resolveSelection(game, target)
+        val initiallyResolvedTarget = targetSelection.effectiveTarget
         if (caster.job is MentalPatient) {
             val result = activateMentalPatientFakeAbility(
                 game,
                 caster,
                 selectedAbility,
-                initiallyResolvedTarget,
+                targetSelection.selectedTarget,
                 selectedJobName
             )
             val message = if (result.isSuccess) {
@@ -281,16 +282,19 @@ object AbilityUseCommand : DiscordCommand {
         }
         val previousAbilityTargetId = game.abilityTargetByUserThisPhase[caster.member.id]
 
+        // Active abilities receive the player explicitly selected by the user and resolve the
+        // hacker proxy internally. This keeps confirmations on the selected hacker while game
+        // state and effects use the effective proxy target.
         val result = when (selectedAbility) {
             is AdministratorAbility -> {
                 selectedAbility.activateWithJobName(game, caster, selectedJobName)
             }
             is HitManAbility -> {
-                selectedAbility.activateWithJobName(game, caster, initiallyResolvedTarget, selectedJobName)
+                selectedAbility.activateWithJobName(game, caster, targetSelection.selectedTarget, selectedJobName)
             }
-            is MafiaAbility -> selectedAbility.activate(game, caster, target)
-            is SoulRelease -> selectedAbility.activate(game, caster, target)
-            else -> selectedAbility.activate(game, caster, initiallyResolvedTarget)
+            is MafiaAbility -> selectedAbility.activate(game, caster, targetSelection.selectedTarget)
+            is SoulRelease -> selectedAbility.activate(game, caster, targetSelection.selectedTarget)
+            else -> selectedAbility.activate(game, caster, targetSelection.selectedTarget)
         }
         val effectiveTarget = if (result.isSuccess && selectedAbility is MafiaAbility) {
             game.nightAttacks["MAFIA_TEAM"]?.target ?: initiallyResolvedTarget

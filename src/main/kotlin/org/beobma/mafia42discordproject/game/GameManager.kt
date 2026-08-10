@@ -281,7 +281,7 @@ object GameManager {
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "/준비", "/관전")
             deferredResponse.respond {
-                content = buildReadyRequiredPublicMessage(failedMembers)
+                content = buildReadyRequiredPublicMessage(lobbyMembers.undecidedMembers, failedMembers)
             }
             return
         }
@@ -418,7 +418,7 @@ object GameManager {
         if (lobbyMembers.undecidedMembers.isNotEmpty()) {
             val failedMembers = sendReadyRequiredDm(lobbyMembers.undecidedMembers, "!준비", "!관전")
             event.message.channel.createMessage(
-                buildReadyRequiredPublicMessage(failedMembers)
+                buildReadyRequiredPublicMessage(lobbyMembers.undecidedMembers, failedMembers)
             )
             return
         }
@@ -553,9 +553,15 @@ object GameManager {
         return failedMembers
     }
 
-    private fun buildReadyRequiredPublicMessage(failedMembers: List<Member>): String = buildString {
+    private fun buildReadyRequiredPublicMessage(
+        undecidedMembers: List<Member>,
+        failedMembers: List<Member>
+    ): String = buildString {
         appendLine("음성채널의 모든 사람이 준비 또는 관전 중 하나를 먼저 선택해야 합니다.")
-        append("아직 선택하지 않은 인원에게 준비 요청 DM을 보냈습니다.")
+        appendLine("아직 선택하지 않은 인원에게 준비 요청 DM을 보냈습니다.")
+        appendLine()
+        appendLine("아직 준비 또는 관전을 선택하지 않은 인원:")
+        append(DiscordMessageManager.mentions(undecidedMembers))
         if (failedMembers.isNotEmpty()) {
             appendLine()
             appendLine()
