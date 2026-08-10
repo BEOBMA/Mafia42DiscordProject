@@ -6,6 +6,7 @@ import dev.kord.core.entity.Member
 import dev.kord.core.entity.channel.TextChannel
 import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.annihilation.AnnihilationGameState
+import org.beobma.mafia42discordproject.game.communication.MegaphoneUseGate
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.ReplayLogEntry
 import org.beobma.mafia42discordproject.game.system.AttackEvent
@@ -120,6 +121,7 @@ data class Game(
     val pendingNightDeathSourceByPlayerId: MutableMap<Snowflake, Snowflake> = mutableMapOf()
     val publiclyRevealedAbilityTargetIds: MutableSet<Snowflake> = mutableSetOf()
     val publiclyRevealedJobNames: MutableSet<String> = mutableSetOf()
+    internal val megaphoneUseGate = MegaphoneUseGate()
     val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
     var megaphoneUsedTonight: Boolean = false
     val usedSecretLetterPlayerIds: MutableSet<Snowflake> = mutableSetOf()

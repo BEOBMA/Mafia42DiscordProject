@@ -13,7 +13,7 @@ import org.beobma.mafia42discordproject.job.evil.list.Beastman
 
 class BeastmanAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "갈망"
-    override val description: String = "밤에 선택한 플레이어가 마피아에게 처형되면 마피아에게 길들여진다. 길들여진 후 플레이어를 제거할 수 있다."
+    override val description: String = "밤에 선택한 플레이어가 마피아에게 처형되면 마피아에게 길들여진다. 길들여진 후 마피아의 일반 처형과 동일한 판정으로 플레이어를 제거할 수 있다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(50).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
@@ -60,7 +60,7 @@ class BeastmanAbility : ActiveAbility, JobUniqueAbility {
         game.nightAttacks[attackKey] = AttackEvent(
             attacker = caster,
             target = effectiveTarget,
-            attackTier = AttackTier.ABSOLUTE
+            attackTier = TAMED_EXECUTION_ATTACK_TIER
         )
 
         if (effectiveTarget !in game.nightDeathCandidates) {
@@ -72,6 +72,7 @@ class BeastmanAbility : ActiveAbility, JobUniqueAbility {
 
     companion object {
         const val BEASTMAN_ATTACK_KEY_PREFIX = "BEASTMAN_"
+        internal val TAMED_EXECUTION_ATTACK_TIER = AttackTier.NORMAL
     }
 }
 

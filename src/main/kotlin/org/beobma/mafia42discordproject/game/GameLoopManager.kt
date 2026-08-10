@@ -349,7 +349,10 @@ object GameLoopManager {
 
     suspend fun startNightPhase(game: Game) {
         notifyMindReadingResults(game)
-        game.currentPhase = GamePhase.NIGHT
+        game.megaphoneUseGate.exclusive {
+            game.megaphoneUsedTonight = false
+            game.currentPhase = GamePhase.NIGHT
+        }
         game.dayCount += 1
         GameReplayLogger.logPhase(game, "${game.dayCount}일차 밤")
         if (game.dayCount > 1) {
@@ -372,7 +375,6 @@ object GameLoopManager {
         game.pendingOblivionCurseByCaster.clear()
         game.pendingDayStartDiscoveries.clear()
         game.concealmentForcedQuietNight = false
-        game.megaphoneUsedTonight = false
         game.willByPlayerId.clear()
         game.coupleSacrificeMap.clear()
         game.activeThreatenedVoters.clear()

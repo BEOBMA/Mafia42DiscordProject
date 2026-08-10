@@ -2451,7 +2451,9 @@ object GameManager {
     suspend fun useMegaphone(memberId: Snowflake, message: String): SpiritRelayResult {
         val game = currentGame ?: return SpiritRelayResult(false, "진행 중인 게임이 없습니다.")
         val sender = game.getPlayer(memberId) ?: return SpiritRelayResult(false, "게임 참가자만 사용할 수 있습니다.")
-        return sendMegaphoneMessage(game, sender, message)
+        return game.megaphoneUseGate.exclusive {
+            sendMegaphoneMessage(game, sender, message)
+        }
     }
 
     fun sendSecretLetter(memberId: Snowflake, targetId: Snowflake, message: String): SpiritRelayResult {

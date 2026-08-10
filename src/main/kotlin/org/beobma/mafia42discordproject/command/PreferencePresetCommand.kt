@@ -112,9 +112,9 @@ object PreferencePresetCommand : DiscordCommand {
         PresetSaveResult.PREFERENCES_NOT_SET ->
             "저장할 선호 직업 7개가 없습니다. `/jobpreference`로 먼저 설정해 주세요."
         PresetSaveResult.BEST_JOB_NOT_SET ->
-            "저장할 보석 직업이 없습니다. `/보석 설정`으로 먼저 설정해 주세요."
+            "저장할 보석 직업이 없습니다. `/보석`으로 먼저 설정해 주세요."
         PresetSaveResult.BEST_JOB_INVALID ->
-            "현재 보석 직업이 선호 직업과 맞지 않습니다. `/보석 설정`으로 다시 설정해 주세요."
+            "현재 보석 직업이 선호 직업과 맞지 않습니다. `/보석`으로 다시 설정해 주세요."
         PresetSaveResult.LIMIT_REACHED ->
             "프리셋은 최대 ${PreferencePresetManager.MAX_PRESETS}개까지 저장할 수 있습니다. 기존 프리셋을 덮어쓰거나 삭제해 주세요."
     }
