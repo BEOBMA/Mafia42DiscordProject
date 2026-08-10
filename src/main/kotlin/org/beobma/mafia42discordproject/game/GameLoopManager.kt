@@ -1405,20 +1405,25 @@ object GameLoopManager {
         if (game.currentPhase != GamePhase.NIGHT) return
         val announcementIds = game.pendingMadScientistRevivalAnnouncementIds.toList()
         if (announcementIds.isEmpty()) return
-        game.pendingMadScientistRevivalAnnouncementIds.clear()
 
         val revivedScientists = announcementIds
             .mapNotNull { playerId -> game.getPlayer(playerId) }
             .filter { player -> !player.state.isDead && player.job is MadScientist }
+        val revivedScientistIds = revivedScientists.mapTo(mutableSetOf()) { it.member.id }
+        game.pendingMadScientistRevivalAnnouncementIds.removeAll(announcementIds - revivedScientistIds)
         if (revivedScientists.isEmpty()) return
 
         game.stopLoopingGameSound()
         revivedScientists.forEach { player ->
-            game.sendMainChannelMessageWithImageAndSound(
-                imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
-                message = "${player.member.effectiveName}님이 부활하셨습니다!",
-                soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
-            )
+            try {
+                game.sendMainChannelMessageWithImageAndSound(
+                    imageLink = MAD_SCIENTIST_REVIVE_IMAGE_URL,
+                    message = "${player.member.effectiveName}님이 부활하셨습니다!",
+                    soundPath = MAD_SCIENTIST_REVIVE_SOUND_PATH
+                )
+            } finally {
+                game.pendingMadScientistRevivalAnnouncementIds -= player.member.id
+            }
         }
     }
 

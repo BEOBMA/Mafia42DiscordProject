@@ -565,6 +565,17 @@ object WebNotepadServer {
     private fun buildState(game: Game, viewer: PlayerData): JsonObject {
         val gameKey = game.key()
         val players = game.playerDatas.toList()
+        val hiddenMadScientistRevivalByPlayerId = players.associate { player ->
+            val isRevivalHidden = player.state.isMadScientistDistortionHidden ||
+                player.member.id in game.pendingMadScientistRevivalAnnouncementIds
+            player.member.id to isRevivalHidden
+        }
+        val publiclyDeadByPlayerId = players.associate { player ->
+            player.member.id to isPubliclyDeadForNotepad(
+                isDead = player.state.isDead,
+                isMadScientistRevivalHidden = hiddenMadScientistRevivalByPlayerId[player.member.id] == true
+            )
+        }
         val viewerDisplayJob = (viewer.job as? MentalPatient)?.displayedJob ?: viewer.job
         val viewerMemoJob = game.privateDisplayedJobNamesByObserver[viewer.member.id]
             ?.get(viewer.member.id)
@@ -583,7 +594,7 @@ object WebNotepadServer {
                 put("phaseLabel", game.currentPhase.displayName())
                 put("mode", game.mode.displayName)
                 put("isRunning", game.isRunning)
-                put("aliveCount", players.count { !it.state.isDead })
+                put("aliveCount", players.count { publiclyDeadByPlayerId[it.member.id] != true })
                 put("playerCount", players.size)
             })
             put("me", buildJsonObject {
@@ -618,7 +629,8 @@ object WebNotepadServer {
             put("players", buildJsonArray {
                 players.forEach { player ->
                     val isSelf = player.member.id == viewer.member.id
-                    val isPublic = player.state.isJobPubliclyRevealed
+                    val isPublic = player.state.isJobPubliclyRevealed &&
+                        hiddenMadScientistRevivalByPlayerId[player.member.id] != true
                     val privateMemoJob = game.privateDisplayedJobNamesByObserver[viewer.member.id]
                         ?.get(player.member.id)
                         ?.let(JobManager::findByName)
@@ -633,7 +645,7 @@ object WebNotepadServer {
                         put("id", player.member.id.value.toString())
                         put("name", player.member.effectiveName)
                         put("isSelf", isSelf)
-                        put("isDead", player.state.isDead)
+                        put("isDead", publiclyDeadByPlayerId[player.member.id] == true)
                         put("isJobPublic", isPublic)
                         putNullableJob("job", visibleJob)
                         put("note", buildJsonObject {
@@ -656,6 +668,13 @@ object WebNotepadServer {
                 }
             })
         }
+    }
+
+    internal fun isPubliclyDeadForNotepad(
+        isDead: Boolean,
+        isMadScientistRevivalHidden: Boolean
+    ): Boolean {
+        return isDead || isMadScientistRevivalHidden
     }
 
     /** 메모장의 의미별 행을 고정한다. 각 행은 UI 규칙상 최대 여섯 직업만 포함한다. */

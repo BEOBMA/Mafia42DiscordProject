@@ -7,6 +7,7 @@ import java.net.http.HttpResponse
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class WebNotepadServerTest {
@@ -125,5 +126,27 @@ class WebNotepadServerTest {
         assertEquals(200, setup.statusCode())
         assertEquals(200, start.statusCode())
         assertTrue(start.body().contains("\"phase\":\"NIGHT\""))
+    }
+
+    @Test
+    fun keepsMadScientistDeadInNotepadUntilRevivalIsPublic() {
+        assertTrue(
+            WebNotepadServer.isPubliclyDeadForNotepad(
+                isDead = false,
+                isMadScientistRevivalHidden = true
+            )
+        )
+        assertTrue(
+            WebNotepadServer.isPubliclyDeadForNotepad(
+                isDead = true,
+                isMadScientistRevivalHidden = false
+            )
+        )
+        assertFalse(
+            WebNotepadServer.isPubliclyDeadForNotepad(
+                isDead = false,
+                isMadScientistRevivalHidden = false
+            )
+        )
     }
 }
