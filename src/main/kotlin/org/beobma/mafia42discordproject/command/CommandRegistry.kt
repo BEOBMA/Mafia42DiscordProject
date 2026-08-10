@@ -17,6 +17,7 @@ object CommandRegistry {
         BestJobCommand,
         JobPreferenceCommand,
         JobPreferenceStatusCommand,
+        PreferencePresetCommand,
         JobAssignmentSimulationCommand,
         GameStatisticsCommand,
         GameStatisticsImageCommand,

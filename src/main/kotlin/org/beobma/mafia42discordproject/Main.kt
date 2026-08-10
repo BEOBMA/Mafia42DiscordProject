@@ -15,6 +15,7 @@ import org.beobma.mafia42discordproject.game.GameManager
 import org.beobma.mafia42discordproject.game.MafiaExecutionProtectionManager
 import org.beobma.mafia42discordproject.game.player.BestJobPreferenceManager
 import org.beobma.mafia42discordproject.game.player.JobPreferenceManager
+import org.beobma.mafia42discordproject.game.player.PreferencePresetManager
 import org.beobma.mafia42discordproject.job.JobManager
 import org.beobma.mafia42discordproject.job.ability.AbilityManager
 import org.beobma.mafia42discordproject.lavalink.LavalinkManager
@@ -97,6 +98,7 @@ suspend fun main() {
     AbilityManager.registerAll()
     JobPreferenceManager.load()
     BestJobPreferenceManager.load()
+    PreferencePresetManager.load()
     MafiaExecutionProtectionManager.load()
     WebNotepadServer.start()
     try {

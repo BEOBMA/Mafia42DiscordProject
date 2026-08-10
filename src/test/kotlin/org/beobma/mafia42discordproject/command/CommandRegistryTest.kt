@@ -30,6 +30,8 @@ class CommandRegistryTest {
         assertSame(SpectateCommand, CommandRegistry.find("관전"))
         assertSame(JobPreferenceCommand, CommandRegistry.find("선호직업"))
         assertSame(JobPreferenceCommand, CommandRegistry.find("직업선호"))
+        assertSame(PreferencePresetCommand, CommandRegistry.find("preset"))
+        assertSame(PreferencePresetCommand, CommandRegistry.find("프리셋"))
     }
 
     @Test

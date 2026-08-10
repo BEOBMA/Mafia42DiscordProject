@@ -31,8 +31,11 @@ object BestJobPreferenceManager {
     fun load() = store.load()
 
     fun buildAllowedJobNames(userId: ULong): Set<String> {
-        val preferredJobNames = JobPreferenceManager.get(userId)
-            .orEmpty()
+        return buildAllowedJobNames(JobPreferenceManager.get(userId).orEmpty())
+    }
+
+    internal fun buildAllowedJobNames(preferredJobs: List<Job>): Set<String> {
+        val preferredJobNames = preferredJobs
             .map(Job::name)
             .filter { it !in excludedCandidateJobNames }
             .toSet()
@@ -42,6 +45,11 @@ object BestJobPreferenceManager {
     fun isAllowedJob(userId: ULong, jobName: String): Boolean {
         if (jobName in excludedCandidateJobNames) return false
         return jobName in buildAllowedJobNames(userId)
+    }
+
+    internal fun isAllowedJob(preferredJobs: List<Job>, jobName: String): Boolean {
+        if (jobName in excludedCandidateJobNames) return false
+        return jobName in buildAllowedJobNames(preferredJobs)
     }
 }
 
