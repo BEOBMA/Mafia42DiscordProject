@@ -4,10 +4,14 @@ internal object DeathAbilitySuppressionPolicy {
     fun shouldAnnounceWill(
         hasStoredWill: Boolean,
         hasCurrentWillAbility: Boolean,
-        wasConvertedByProbation: Boolean
+        wasConvertedByProbation: Boolean,
+        isWillSuppressed: Boolean = false
     ): Boolean {
-        return hasStoredWill && (hasCurrentWillAbility || wasConvertedByProbation)
+        if (isWillSuppressed) return false
+        return hasCurrentWillAbility || (hasStoredWill && wasConvertedByProbation)
     }
+
+    fun displayedWillContent(storedWill: String?): String = storedWill.orEmpty().ifEmpty { "''" }
 
     fun shouldSuppressBelongings(wasConvertedByProbation: Boolean): Boolean {
         return wasConvertedByProbation

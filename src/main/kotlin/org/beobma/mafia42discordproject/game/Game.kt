@@ -55,6 +55,11 @@ data class SecretLetterDelivery(
     val content: String
 )
 
+data class PendingMegaphone(
+    val senderId: Snowflake,
+    val message: String
+)
+
 data class Game(
     var playerDatas: MutableList<PlayerData>,
     val guild: Guild,
@@ -78,6 +83,7 @@ data class Game(
             mode = if (value) GameStartMode.MADNESS else GameStartMode.NORMAL
         }
     var nightPhaseStartedAtMillis: Long = 0L
+    var nightPhaseEndsAtMillis: Long = 0L
     var prophetSpecialWinScheduledTeam: Team? = null
     var mainChannel: TextChannel? = null
     var mafiaChannel: TextChannel? = null
@@ -124,6 +130,7 @@ data class Game(
     internal val megaphoneUseGate = MegaphoneUseGate()
     val usedMegaphonePlayerIds: MutableSet<Snowflake> = mutableSetOf()
     var megaphoneUsedTonight: Boolean = false
+    var pendingMegaphone: PendingMegaphone? = null
     val usedSecretLetterPlayerIds: MutableSet<Snowflake> = mutableSetOf()
     val pendingLettersByRecipient: MutableMap<Snowflake, MutableList<SecretLetterDelivery>> = mutableMapOf()
     val willByPlayerId: MutableMap<Snowflake, String> = mutableMapOf()

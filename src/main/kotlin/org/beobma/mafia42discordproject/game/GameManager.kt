@@ -37,6 +37,11 @@ import org.beobma.mafia42discordproject.game.assignment.RequiredRoleCounts
 import org.beobma.mafia42discordproject.game.assignment.buildJobSelectionWeightByName
 import org.beobma.mafia42discordproject.game.assignment.selectUniformMafiaPlayerIndices
 import org.beobma.mafia42discordproject.game.communication.SpiritRelayResult
+import org.beobma.mafia42discordproject.game.communication.MEGAPHONE_MAX_CHARACTERS
+import org.beobma.mafia42discordproject.game.communication.SECRET_LETTER_MAX_CHARACTERS
+import org.beobma.mafia42discordproject.game.communication.WILL_MAX_CHARACTERS
+import org.beobma.mafia42discordproject.game.communication.isNightCommunicationSubmissionOpen
+import org.beobma.mafia42discordproject.game.communication.truncateToCharacterLimit
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipation
 import org.beobma.mafia42discordproject.game.lobby.LobbyParticipationResult
 import org.beobma.mafia42discordproject.game.lobby.LobbyRefreshResult
@@ -2490,28 +2495,41 @@ object GameManager {
             return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
         }
         if (sender.allAbilities.none { it is Megaphone }) return SpiritRelayResult(false, "확성기 능력이 없습니다.")
-        if (message.isBlank()) return SpiritRelayResult(false, "확성기 메시지를 입력해 주세요.")
+        val content = message.truncateToCharacterLimit(MEGAPHONE_MAX_CHARACTERS)
+        if (content.isBlank()) return SpiritRelayResult(false, "확성기 메시지를 입력해 주세요.")
         if (sender.member.id in game.usedMegaphonePlayerIds) return SpiritRelayResult(false, "확성기는 게임 중 1회만 사용할 수 있습니다.")
         if (game.megaphoneUsedTonight) return SpiritRelayResult(false, "이번 밤에는 이미 다른 플레이어가 확성기를 사용했습니다.")
+        if (!isNightCommunicationSubmissionOpen(System.currentTimeMillis(), game.nightPhaseEndsAtMillis)) {
+            return SpiritRelayResult(false, "밤 시간이 15초 이하로 남으면 확성기를 사용할 수 없습니다.")
+        }
+
+        game.pendingMegaphone = PendingMegaphone(sender.member.id, content)
+        game.usedMegaphonePlayerIds += sender.member.id
+        game.megaphoneUsedTonight = true
+        return SpiritRelayResult(true, "확성기 사용이 처리되었습니다. 밤 시간이 15초 남았을 때 전송됩니다.")
+    }
+
+    internal suspend fun publishPendingMegaphone(game: Game) {
+        val pending = game.megaphoneUseGate.exclusive {
+            game.pendingMegaphone.also { game.pendingMegaphone = null }
+        } ?: return
+        val sender = game.getPlayer(pending.senderId) ?: return
 
         game.mainChannel?.createMessage {
             embed {
                 title = "확성기"
-                description = "${sender.member.effectiveName}: $message"
+                description = "${sender.member.effectiveName}: ${pending.message}"
             }
         }
         GameReplayLogger.logChat(
             game = game,
             actor = sender,
-            body = message,
+            body = pending.message,
             visibility = ReplayVisibility.PUBLIC,
             title = "확성기",
             recipients = replayRecipientsFor(game, ReplayVisibility.PUBLIC),
             recipientDescription = replayRecipientDescription(game, ReplayVisibility.PUBLIC)
         )
-        game.usedMegaphonePlayerIds += sender.member.id
-        game.megaphoneUsedTonight = true
-        return SpiritRelayResult(true, "확성기 메시지를 전송했습니다.")
     }
 
     private fun sendSecretLetter(game: Game, sender: PlayerData, target: PlayerData, message: String): SpiritRelayResult {
@@ -2525,9 +2543,10 @@ object GameManager {
         if (sender.member.id in game.usedSecretLetterPlayerIds) return SpiritRelayResult(false, "밀서는 게임 중 1회만 보낼 수 있습니다.")
         if (target.state.isDead) return SpiritRelayResult(false, "사망한 플레이어에게는 밀서를 보낼 수 없습니다.")
         if (target.member.id == sender.member.id) return SpiritRelayResult(false, "자기 자신에게는 밀서를 보낼 수 없습니다.")
-        if (message.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
+        val content = message.truncateToCharacterLimit(SECRET_LETTER_MAX_CHARACTERS)
+        if (content.isBlank()) return SpiritRelayResult(false, "밀서 내용을 입력해 주세요.")
 
-        val formatted = replayCommunicationBody(sender, listOf(target), message)
+        val formatted = replayCommunicationBody(sender, listOf(target), content)
         GameReplayLogger.logSystem(
             game = game,
             title = "밀서 작성",
@@ -2559,13 +2578,17 @@ object GameManager {
             return SpiritRelayResult(false, FrogCurseManager.abilityBlockedMessage(sender))
         }
         if (sender.allAbilities.none { it is Will }) return SpiritRelayResult(false, "유언 능력이 없습니다.")
-        if (message.isBlank()) return SpiritRelayResult(false, "유언 내용을 입력해 주세요.")
+        if (!isNightCommunicationSubmissionOpen(System.currentTimeMillis(), game.nightPhaseEndsAtMillis)) {
+            return SpiritRelayResult(false, "밤 시간이 15초 이하로 남으면 유언을 작성할 수 없습니다.")
+        }
+        val content = message.truncateToCharacterLimit(WILL_MAX_CHARACTERS)
+        if (content.isBlank()) return SpiritRelayResult(false, "유언 내용을 입력해 주세요.")
 
-        game.willByPlayerId[sender.member.id] = message
+        game.willByPlayerId[sender.member.id] = content
         GameReplayLogger.logSystem(
             game = game,
             title = "유언 작성",
-            body = replayCommunicationBody(sender, "본인", message),
+            body = replayCommunicationBody(sender, "본인", content),
             visibility = ReplayVisibility.DIRECT_MESSAGE,
             actor = sender,
             recipients = listOf(GameReplayLogger.recipient(sender, ReplayVisibility.DIRECT_MESSAGE))

@@ -22,6 +22,7 @@ import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainCh
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.sendMainChannerMessage
 import org.beobma.mafia42discordproject.discord.DiscordMessageManager.stopLoopingGameSound
 import org.beobma.mafia42discordproject.game.loop.*
+import org.beobma.mafia42discordproject.game.communication.MEGAPHONE_REVEAL_BEFORE_NIGHT_END_MS
 import org.beobma.mafia42discordproject.game.mode.GameStartMode
 import org.beobma.mafia42discordproject.game.player.PlayerData
 import org.beobma.mafia42discordproject.game.replay.GameReplayLogger
@@ -88,6 +89,11 @@ import kotlin.time.Duration.Companion.milliseconds
 import org.beobma.mafia42discordproject.job.ability.general.definition.list.priest.Exorcism as PriestExorcism
 
 object GameLoopManager {
+    private data class ScheduledPhaseAction(
+        val beforeEndOffsetMillis: Long,
+        val action: suspend () -> Unit
+    )
+
     private var timeThreadChannel: ThreadChannel? = null
     private var timeStatusMessage: Message? = null
     private val countdownLock = Any()
@@ -228,6 +234,7 @@ object GameLoopManager {
         midpointAction: (suspend () -> Unit)? = null,
         beforeEndAction: (suspend () -> Unit)? = null,
         beforeEndOffsetMillis: Long = 0L,
+        scheduledActions: List<ScheduledPhaseAction> = emptyList(),
         stopLoopingSoundOnEnd: Boolean = true
     ) {
         val initialDuration = durationMillis.coerceAtLeast(0L)
@@ -236,6 +243,15 @@ object GameLoopManager {
         val beforeEndAtMillis = now + (initialDuration - beforeEndOffsetMillis).coerceAtLeast(0L)
         var midpointTriggered = midpointAction == null || initialDuration <= 0L
         var beforeEndTriggered = beforeEndAction == null || initialDuration <= 0L
+        val scheduledTriggerTimes = scheduledActions.map { scheduledAction ->
+            now + (initialDuration - scheduledAction.beforeEndOffsetMillis).coerceAtLeast(0L)
+        }
+        val scheduledActionsTriggered = BooleanArray(scheduledActions.size) { initialDuration <= 0L }
+        if (game.currentPhase == GamePhase.NIGHT && label == "밤") {
+            game.megaphoneUseGate.exclusive {
+                game.nightPhaseEndsAtMillis = now + initialDuration
+            }
+        }
         synchronized(countdownLock) {
             activeCountdown = ActiveCountdown(
                 guildId = game.guild.id,
@@ -273,6 +289,13 @@ object GameLoopManager {
                 beforeEndAction?.invoke()
             }
 
+            scheduledActions.forEachIndexed { index, scheduledAction ->
+                if (!scheduledActionsTriggered[index] && System.currentTimeMillis() >= scheduledTriggerTimes[index]) {
+                    scheduledActionsTriggered[index] = true
+                    scheduledAction.action()
+                }
+            }
+
             delay(minOf(remainingMillis, 500L).milliseconds)
         }
 
@@ -283,6 +306,12 @@ object GameLoopManager {
         if (!beforeEndTriggered) {
             beforeEndTriggered = true
             beforeEndAction?.invoke()
+        }
+        scheduledActions.forEachIndexed { index, scheduledAction ->
+            if (!scheduledActionsTriggered[index]) {
+                scheduledActionsTriggered[index] = true
+                scheduledAction.action()
+            }
         }
 
         updateTimeStatusMessageAtZero(game, label)
@@ -351,6 +380,8 @@ object GameLoopManager {
         notifyMindReadingResults(game)
         game.megaphoneUseGate.exclusive {
             game.megaphoneUsedTonight = false
+            game.pendingMegaphone = null
+            game.nightPhaseEndsAtMillis = Long.MAX_VALUE
             game.currentPhase = GamePhase.NIGHT
         }
         game.dayCount += 1
@@ -2325,12 +2356,15 @@ object GameLoopManager {
             DeathAbilitySuppressionPolicy.shouldAnnounceWill(
                 hasStoredWill = game.willByPlayerId[player.member.id]?.isNotBlank() == true,
                 hasCurrentWillAbility = player.allAbilities.any { it is Will },
-                wasConvertedByProbation = wasConvertedByProbation
+                wasConvertedByProbation = wasConvertedByProbation,
+                isWillSuppressed = player.state.isShamaned
             )
         }
 
-        return willOwners.mapNotNull { player ->
-            val willMessage = game.willByPlayerId.remove(player.member.id) ?: return@mapNotNull null
+        return willOwners.map { player ->
+            val willMessage = DeathAbilitySuppressionPolicy.displayedWillContent(
+                game.willByPlayerId.remove(player.member.id)
+            )
             DawnAnnouncement(
                 imageUrl = "",
                 message = "${player.member.effectiveName}: $willMessage",
@@ -3058,7 +3092,12 @@ object GameLoopManager {
                 beforeEndAction = {
                     AgentOperation.resolveNightEndOperations(game)
                 },
-                beforeEndOffsetMillis = 1_000L
+                beforeEndOffsetMillis = 1_000L,
+                scheduledActions = listOf(
+                    ScheduledPhaseAction(MEGAPHONE_REVEAL_BEFORE_NIGHT_END_MS) {
+                        GameManager.publishPendingMegaphone(game)
+                    }
+                )
             )
 
             val nightSummary = resolveNightPhase(game)

@@ -1,6 +1,7 @@
 package org.beobma.mafia42discordproject.game.system
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -45,5 +46,26 @@ class DeathAbilitySuppressionPolicyTest {
                 wasConvertedByProbation = false
             )
         )
+    }
+
+    @Test
+    fun aCurrentWillAbilityAnnouncesAnEmptyWillUnlessSuppressed() {
+        assertTrue(
+            DeathAbilitySuppressionPolicy.shouldAnnounceWill(
+                hasStoredWill = false,
+                hasCurrentWillAbility = true,
+                wasConvertedByProbation = false
+            )
+        )
+        assertFalse(
+            DeathAbilitySuppressionPolicy.shouldAnnounceWill(
+                hasStoredWill = false,
+                hasCurrentWillAbility = true,
+                wasConvertedByProbation = false,
+                isWillSuppressed = true
+            )
+        )
+        assertEquals("''", DeathAbilitySuppressionPolicy.displayedWillContent(null))
+        assertEquals("작성한 유언", DeathAbilitySuppressionPolicy.displayedWillContent("작성한 유언"))
     }
 }
