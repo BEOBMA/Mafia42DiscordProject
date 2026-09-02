@@ -11,6 +11,8 @@ import org.beobma.mafia42discordproject.job.ability.PassiveAbility
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.Instructions
 import org.beobma.mafia42discordproject.job.ability.general.evil.list.mafia.Wanted
 import org.beobma.mafia42discordproject.job.definition.list.Citizen
+import org.beobma.mafia42discordproject.job.definition.list.Cabal
+import org.beobma.mafia42discordproject.job.definition.list.CabalRole
 import org.beobma.mafia42discordproject.job.evil.Evil
 import org.beobma.mafia42discordproject.job.evil.list.Villain
 
@@ -40,6 +42,9 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
 
         // 2. 대상의 직업으로 변경
         val newJob = JobManager.createByName(originalVictimJob.name) ?: return
+        if (newJob is Cabal && originalVictimJob is Cabal) {
+            inheritCabalIdentity(game, owner, victim, newJob, originalVictimJob)
+        }
 
         // 3. 도굴꾼 자신의 부가 능력은 항상 유지
         val mergedExtras = LinkedHashMap<String, Ability>()
@@ -75,17 +80,47 @@ class GraveRobbing : JobUniqueAbility, PassiveAbility {
             revealedJob = originalVictimJob,
             sourceAbilityName = name,
             resolvedAt = org.beobma.mafia42discordproject.game.system.DiscoveryStep.DAWN,
-            note = buildStealNote(inheritedExtraAbilityNames),
+            note = buildStealNote(inheritedExtraAbilityNames, newJob as? Cabal),
             imageUrl = SystemImage.GHOUL_GRAVE_ROBBING_SUCCESS.imageUrl
         )
     }
 
-    private fun buildStealNote(inheritedExtraAbilityNames: List<String>): String {
-        return if (inheritedExtraAbilityNames.isNotEmpty()) {
-            "${inheritedExtraAbilityNames.distinct().joinToString(", ")} 스킬을 계승 받았습니다."
-        } else {
-            ""
+    private fun inheritCabalIdentity(
+        game: Game,
+        owner: PlayerData,
+        victim: PlayerData,
+        inherited: Cabal,
+        original: Cabal
+    ) {
+        inherited.role = original.role
+        inherited.pairedPlayerId = original.pairedPlayerId
+        inherited.selectedTargetId = original.selectedTargetId
+        inherited.hasFoundMoon = original.hasFoundMoon
+        inherited.hasFoundSun = original.hasFoundSun
+        inherited.wasFoundBySun = original.wasFoundBySun
+        inherited.moonMarkedSunTonight = original.moonMarkedSunTonight
+        inherited.cabalSpecialWinReady = false
+        inherited.notifiedPartnerDeathIds += original.notifiedPartnerDeathIds
+
+        val partner = original.pairedPlayerId
+            ?.let(game::getPlayer)
+            ?.job as? Cabal
+        if (partner?.pairedPlayerId == victim.member.id) {
+            partner.pairedPlayerId = owner.member.id
         }
+    }
+
+    private fun buildStealNote(inheritedExtraAbilityNames: List<String>, inheritedCabal: Cabal?): String {
+        return buildList {
+            when (inheritedCabal?.role) {
+                CabalRole.SUN -> add("해 비밀결사 역할을 계승하였습니다.")
+                CabalRole.MOON -> add("달 비밀결사 역할을 계승하였습니다.")
+                null -> Unit
+            }
+            if (inheritedExtraAbilityNames.isNotEmpty()) {
+                add("${inheritedExtraAbilityNames.distinct().joinToString(", ")} 스킬을 계승 받았습니다.")
+            }
+        }.joinToString("\n")
     }
 
     private fun cloneAbility(ability: Ability): Ability {

@@ -14,7 +14,7 @@ import org.beobma.mafia42discordproject.job.evil.list.actualOrStolenJob
 
 class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
     override val name: String = "접선"
-    override val description: String = "밤마다 플레이어 한 명을 지목해 낮이 될 때 해 비밀결사 여부를 확인한다."
+    override val description: String = "해 비밀결사가 달 비밀결사를 찾은 뒤, 밤에 플레이어 한 명을 지목해 낮이 될 때 해 비밀결사 여부를 확인한다."
     override val image: String = "https://lsvptosgnbwgsteuwstf.supabase.co/storage/v1/object/public/mafia/mafia%20(94).webp"
     override val usablePhase: GamePhase = GamePhase.NIGHT
 
@@ -44,6 +44,10 @@ class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
             return AbilityResult(false, "달 비밀결사에게만 주어진 능력입니다.")
         }
 
+        if (!cabal.wasFoundBySun) {
+            return AbilityResult(false, "해 비밀결사가 달 비밀결사를 찾기 전까지는 능력을 사용할 수 없습니다.")
+        }
+
         if (target == null) {
             cabal.selectedTargetId = null
             cabal.moonMarkedSunTonight = false
@@ -59,6 +63,6 @@ class MoonCabalAbility : ActiveAbility, JobUniqueAbility {
         val isSunTarget = effectiveTarget.member.id == cabal.pairedPlayerId
         cabal.moonMarkedSunTonight = isSunTarget
 
-        return AbilityResult(true, "밀사의 대상을 ${target.member.effectiveName}님으로 지정했습니다.")
+        return AbilityResult(true, "접선의 대상을 ${target.member.effectiveName}님으로 지정했습니다.")
     }
 }
